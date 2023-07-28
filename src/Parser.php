@@ -67,16 +67,17 @@ final class Parser
         }
         $schema = self::getSchema($className);
         try {
-            return $schema->instantiate($input);
+            $instance = $schema->instantiate($input);
         } catch (Exception $exception) {
             throw new InvalidArgumentException(sprintf('Failed to instantiate %s: %s', $schema->getName(), $exception->getMessage()), 1688582285, $exception);
         }
+        Assert::isInstanceOf($instance, $className);
+        return $instance;
     }
 
     /**
-     * @template T of object
-     * @param class-string<T> $className
-     * @return Schema<T>
+     * @param class-string $className
+     * @return Schema
      */
     public static function getSchema(string $className): Schema
     {
@@ -88,7 +89,7 @@ final class Parser
             foreach ($reflectionClass->getCases() as $caseReflection) {
                 $caseSchemas[$caseReflection->getName()] = new EnumCaseSchema($caseReflection, self::getDescription($caseReflection));
             }
-            /** @var Schema<T> $schema */
+            /** @var Schema $schema */
             $schema = new EnumSchema($reflectionClass, self::getDescription($reflectionClass), $caseSchemas);
             return $schema;
         }
@@ -131,7 +132,7 @@ final class Parser
     /**
      * @template T of object
      * @param ReflectionClass<T> $reflectionClass
-     * @return Schema<T>
+     * @return Schema
      */
     private static function getShapeSchema(ReflectionClass $reflectionClass): Schema
     {
@@ -162,16 +163,13 @@ final class Parser
                     throw new InvalidArgumentException(sprintf('Failed to determine base type for "%s": %s', $propertyName, $exception->getMessage()), 1675172978, $exception);
                 }
             }
-            /** @var Schema<bool|int|object|string> $propertySchema */
             if ($parameter->isOptional()) {
-                /** @var Schema<object> $propertySchema */
                 $propertySchema = new OptionalSchema($propertySchema);
             }
             $overwrittenDescription = self::getDescription($parameter);
             if ($overwrittenDescription !== null) {
                 $overriddenPropertyDescriptions[$propertyName] = $overwrittenDescription;
             }
-            /** @var Schema<bool|int|object|string|null> $propertySchema */
             $propertySchemas[$propertyName] = $propertySchema;
         }
         return new ShapeSchema($reflectionClass, self::getDescription($reflectionClass), $propertySchemas, $overriddenPropertyDescriptions);

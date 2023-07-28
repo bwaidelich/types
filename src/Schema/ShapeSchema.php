@@ -23,15 +23,11 @@ use function is_object;
 use function iterator_to_array;
 use function sprintf;
 
-/**
- * @template T of object
- * @implements Schema<T>
- */
 final class ShapeSchema implements Schema
 {
     /**
-     * @param ReflectionClass<T> $reflectionClass
-     * @param array<non-empty-string, Schema<bool|int|object|string|null>> $propertySchemas
+     * @param ReflectionClass<object> $reflectionClass
+     * @param array<non-empty-string, Schema> $propertySchemas
      * @param array<non-empty-string, string> $overriddenPropertyDescriptions
      */
     public function __construct(
@@ -69,7 +65,6 @@ final class ShapeSchema implements Schema
         $constructor = $this->reflectionClass->getConstructor();
         Assert::isInstanceOf($constructor, ReflectionMethod::class, sprintf('Missing constructor in class "%s"', $this->reflectionClass->getName()));
         try {
-            /** @var T $instance */
             $instance = $this->reflectionClass->newInstanceWithoutConstructor();
             $constructor->invoke($instance, ...$arrayValue);
         // @codeCoverageIgnoreStart

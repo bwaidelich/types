@@ -15,16 +15,10 @@ use function count;
 use function is_iterable;
 use function sprintf;
 
-/**
- * @template T of object
- * @template TItem of object
- * @implements Schema<T>
- */
 final class ListSchema implements Schema
 {
     /**
-     * @param ReflectionClass<T> $reflectionClass
-     * @param Schema<TItem> $itemSchema
+     * @param ReflectionClass<object> $reflectionClass
      */
     public function __construct(
         private readonly ReflectionClass $reflectionClass,
@@ -56,7 +50,6 @@ final class ListSchema implements Schema
         $constructor = $this->reflectionClass->getConstructor();
         Assert::isInstanceOf($constructor, ReflectionMethod::class, sprintf('Missing constructor in class "%s"', $this->reflectionClass->getName()));
         try {
-            /** @var T $instance */
             $instance = $this->reflectionClass->newInstanceWithoutConstructor();
             $constructor->invoke($instance, $arrayValue);
         // @codeCoverageIgnoreStart

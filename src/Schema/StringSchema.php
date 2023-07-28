@@ -25,14 +25,10 @@ use function strlen;
 use const FILTER_VALIDATE_EMAIL;
 use const FILTER_VALIDATE_URL;
 
-/**
- * @template T of object
- * @implements Schema<T>
- */
 final class StringSchema implements Schema
 {
     /**
-     * @param ReflectionClass<T> $reflectionClass
+     * @param ReflectionClass<object> $reflectionClass
      */
     public function __construct(
         private readonly ReflectionClass $reflectionClass,
@@ -65,7 +61,6 @@ final class StringSchema implements Schema
         $constructor = $this->reflectionClass->getConstructor();
         Assert::isInstanceOf($constructor, ReflectionMethod::class, sprintf('Missing constructor in class "%s"', $this->reflectionClass->getName()));
         try {
-            /** @var T $instance */
             $instance = $this->reflectionClass->newInstanceWithoutConstructor();
             $constructor->invoke($instance, $stringValue);
         // @codeCoverageIgnoreStart

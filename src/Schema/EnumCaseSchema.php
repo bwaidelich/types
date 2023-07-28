@@ -8,10 +8,6 @@ use ReflectionEnumBackedCase;
 use ReflectionEnumUnitCase;
 use UnitEnum;
 
-/**
- * @template T of ReflectionEnumUnitCase
- * @implements Schema<T>
- */
 final class EnumCaseSchema implements Schema
 {
     public function __construct(

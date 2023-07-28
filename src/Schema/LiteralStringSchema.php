@@ -11,9 +11,6 @@ use function is_int;
 use function is_string;
 use function sprintf;
 
-/**
- * @implements Schema<string>
- */
 final class LiteralStringSchema implements Schema
 {
     public function __construct(

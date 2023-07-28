@@ -9,9 +9,6 @@ use InvalidArgumentException;
 use function get_debug_type;
 use function sprintf;
 
-/**
- * @implements Schema<bool>
- */
 final class LiteralBooleanSchema implements Schema
 {
     public function __construct(

@@ -18,14 +18,10 @@ use function is_int;
 use function is_string;
 use function sprintf;
 
-/**
- * @template T of object
- * @implements Schema<T>
- */
 final class IntegerSchema implements Schema
 {
     /**
-     * @param ReflectionClass<T> $reflectionClass
+     * @param ReflectionClass<object> $reflectionClass
      */
     public function __construct(
         private readonly ReflectionClass $reflectionClass,
@@ -56,7 +52,6 @@ final class IntegerSchema implements Schema
         $constructor = $this->reflectionClass->getConstructor();
         Assert::isInstanceOf($constructor, ReflectionMethod::class, sprintf('Missing constructor in class "%s"', $this->reflectionClass->getName()));
         try {
-            /** @var T $instance */
             $instance = $this->reflectionClass->newInstanceWithoutConstructor();
             $constructor->invoke($instance, $intValue);
         // @codeCoverageIgnoreStart

@@ -19,14 +19,10 @@ use function is_int;
 use function is_string;
 use function sprintf;
 
-/**
- * @template T of ReflectionEnumUnitCase
- * @implements Schema<T>
- */
 final class EnumSchema implements Schema
 {
     /**
-     * @param array<string|int, EnumCaseSchema<T>> $caseSchemas
+     * @param array<string|int, EnumCaseSchema> $caseSchemas
      */
     public function __construct(
         private readonly ReflectionEnum $reflectionClass,

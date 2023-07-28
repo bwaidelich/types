@@ -4,15 +4,8 @@ declare(strict_types=1);
 
 namespace Wwwision\Types\Schema;
 
-/**
- * @template WrappedT of (object|string|bool|int)
- * @implements Schema<WrappedT|null>
- */
 final class OptionalSchema implements Schema
 {
-    /**
-     * @param Schema<WrappedT> $wrapped
-     */
     public function __construct(
         public readonly Schema $wrapped,
     ) {
