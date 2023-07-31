@@ -115,7 +115,7 @@ instantiate(Contact::class, ['name' => 'John Doe', 'age' => 45]);
 > logic but mostly in the infrastructure layer. E.g. a `DatabaseContactRepository` might return a `Contacts` object.
 
 <details>
-<summary>Example: Database integration</summary>
+<summary><h4>Example: Database integration</h4></summary>
 
 ```php
 // ...
@@ -239,7 +239,7 @@ $date = $date->add(new \DateInterval('P1D'));
 The `Description` attribute allows you to add some domain specific documentation to classes and parameters.
 
 <details>
-<summary>Example: Class with description</summary>
+<summary><h4>Example: Class with description</h4></summary>
 
 ```php
 #[Description('This is a description for this class')]
@@ -265,7 +265,7 @@ It has the optional arguments
 * `maximum` – to specify the allowed _maximum_ value
 
 <details>
-<summary>Example</summary>
+<summary><h4>Example</h4></summary>
 
 ```php
 #[IntegerBased(minimum: 0, maximum: 123)]
@@ -292,7 +292,7 @@ It has the optional arguments
   the [JSON Schema string format](https://json-schema.org/understanding-json-schema/reference/string.html#format))
 
 <details>
-<summary>Example: String Value Object with min and max length constraints</summary>
+<summary><h4>Example: String Value Object with min and max length constraints</h4></summary>
 
 ```php
 #[StringBased(minLength: 1, maxLength: 200)]
@@ -308,7 +308,7 @@ instantiate(GivenName::class, '');
 </details>
 
 <details>
-<summary>Example: String Value Object with format and pattern constraints</summary>
+<summary><h4>Example: String Value Object with format and pattern constraints</h4></summary>
 
 Just like with JSON Schema, `format` and `pattern` can be _combined_ to further narrow the type:
 
@@ -335,7 +335,7 @@ It has the optional arguments
 * `maxCount` – to specify how many items the list has to contain _at most_
 
 <details>
-<summary>Example: Simple generic array</summary>
+<summary><h4>Example: Simple generic array</h4></summary>
 
 ```php
 #[StringBased]
@@ -358,7 +358,7 @@ instantiate(Hobbies::class, ['Soccer', 'Ping Pong', 'Guitar']);
 </details>
 
 <details>
-<summary>Example: More verbose generic array with type hints and min and max count constraints</summary>
+<summary><h4>Example: More verbose generic array with type hints and min and max count constraints</h4></summary>
 
 The following example shows a more realistic implementation of a List, with:
 
@@ -406,7 +406,7 @@ The examples above demonstrate how to create very specific Value Objects with st
 
 
 <details>
-<summary>Example: Complex composite object</summary>
+<summary><h4>Example: Complex composite object</h4></summary>
 
 ```php
 #[StringBased]
@@ -469,7 +469,8 @@ assert($schema->propertySchemas['isRegistered']->getDescription() === 'Whether t
 The declarative approach of this library allows for some interesting integrations.
 So far, the following two exist – Feel free to create another one and I will gladly add it to this list:
 
-* 
+* [types/graphql](https://github.com/bwaidelich/types-graphql) – to create GraphQL schemas from PHP types
+* [types/glossary](https://github.com/bwaidelich/types-glossary) – to create Markdown glossaries for all relevant PHP types
 
 ## Dependencies
 
