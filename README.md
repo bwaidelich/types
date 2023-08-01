@@ -218,7 +218,7 @@ final class Date {
     }
 }
 
-$date = instantiate(Date::class, '1980-12-30');
+$date = instantiate(Date::class, 'invalid');
 $date = $date->add(new \DateInterval('P1D'));
 
 // this is fine
