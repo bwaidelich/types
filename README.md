@@ -29,8 +29,7 @@ class Contact {
 
 This class has a couple of issues:
 
-* The values are mutable, so every part of the system can just change them without control (`$contact->name = '
-  changed';)
+* The values are mutable, so every part of the system can just change them without control (`$contact->name = 'changed';`)
 * The values of `$name` and `$age` are unbound – this makes the type very fragile. For example, you could specify a name
   with thousands of characters or a negative number for the age, possibly breaking at the integration level
 * There is no human readably type information – is the $name supposed to be a full name, just the given name or a family
