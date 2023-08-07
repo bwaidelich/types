@@ -28,6 +28,9 @@ final class OptionalSchema implements Schema
 
     public function instantiate(mixed $value): mixed
     {
+        if ($value === null) {
+            return null;
+        }
         return $this->wrapped->instantiate($value);
     }
 
