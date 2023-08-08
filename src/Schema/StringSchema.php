@@ -57,6 +57,9 @@ final class StringSchema implements Schema
 
     public function instantiate(mixed $value): object
     {
+        if (is_object($value) && $this->reflectionClass->isInstance($value)) {
+            return $value;
+        }
         $stringValue = $this->coerce($value);
         $constructor = $this->reflectionClass->getConstructor();
         Assert::isInstanceOf($constructor, ReflectionMethod::class, sprintf('Missing constructor in class "%s"', $this->reflectionClass->getName()));

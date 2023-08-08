@@ -141,7 +141,6 @@ final class IntegrationTest extends TestCase
         self::assertJsonStringEqualsJsonString('{"type":"WrappedType","name":"WrappedName","description":"WrappedDescription","optional":true}', json_encode($literalBooleanSchema, JSON_THROW_ON_ERROR));
     }
 
-
     public function test_instantiate_throws_if_className_is_empty(): void
     {
         $this->expectException(InvalidArgumentException::class);
@@ -185,6 +184,7 @@ final class IntegrationTest extends TestCase
                 return 'MISS';
             }
         }, 'expectedResult' => Title::MISS];
+        yield 'from already converted instance' => ['value' => Title::MS, 'expectedResult' => Title::MS];
     }
 
     #[DataProvider('instantiate_enum_dataProvider')]
@@ -319,8 +319,8 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_list_object_dataProvider(): Generator
     {
-        yield 'from instance' => ['value' => instantiate(GivenNames::class, ['John', 'Jack', 'Jane']), 'className' => GivenNames::class, 'expectedResult' => '[{"value":"John"},{"value":"Jack"},{"value":"Jane"}]'];
-        yield 'from strings' => ['value' => ['John', 'Jack', 'Jane'], 'className' => GivenNames::class, 'expectedResult' => '[{"value":"John"},{"value":"Jack"},{"value":"Jane"}]'];
+        yield 'from instance' => ['value' => instantiate(GivenNames::class, ['John', 'Jack', 'Jane']), 'className' => GivenNames::class, 'expectedResult' => '["John","Jack","Jane"]'];
+        yield 'from strings' => ['value' => ['John', 'Jack', 'Jane'], 'className' => GivenNames::class, 'expectedResult' => '["John","Jack","Jane"]'];
     }
 
     #[DataProvider('instantiate_list_object_dataProvider')]
@@ -436,6 +436,21 @@ final class IntegrationTest extends TestCase
     {
         /** @var class-string<object> $className */
         self::assertSame($expectedResult, instantiate($className, $value)->value);
+    }
+
+    public static function objects_dataProvider(): Generator
+    {
+        yield 'enum' => ['instance' => Title::MR];
+        yield 'integer' => ['instance' => Parser::instantiate(Age::class, 55)];
+        yield 'list' => ['instance' => Parser::instantiate(GivenNames::class, ['John', 'Jane', 'Max'])];
+        yield 'shape' => ['instance' => Parser::instantiate(FullName::class, ['givenName' => 'John', 'familyName' => 'Doe'])];
+        yield 'string' => ['instance' => Parser::instantiate(GivenName::class, 'Jane')];
+    }
+
+    #[DataProvider('objects_dataProvider')]
+    public function test_instantiate_returns_same_object_if_it_is_already_a_valid_type(object $instance): void
+    {
+        self::assertSame($instance, Parser::getSchema($instance::class)->instantiate($instance));
     }
 }
 

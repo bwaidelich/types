@@ -61,6 +61,9 @@ final class ShapeSchema implements Schema
 
     public function instantiate(mixed $value): mixed
     {
+        if (is_object($value) && $this->reflectionClass->isInstance($value)) {
+            return $value;
+        }
         $arrayValue = $this->coerce($value);
         $constructor = $this->reflectionClass->getConstructor();
         Assert::isInstanceOf($constructor, ReflectionMethod::class, sprintf('Missing constructor in class "%s"', $this->reflectionClass->getName()));
