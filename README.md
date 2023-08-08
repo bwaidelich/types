@@ -463,6 +463,72 @@ assert($schema->propertySchemas['isRegistered']->getDescription() === 'Whether t
 
 </details>
 
+## Interfaces
+
+Starting with version [1.1](https://github.com/bwaidelich/types/releases/tag/1.1.0), this package allows to refer to interface types.
+
+In order to instantiate an object via its interface, the instance class name has to be specified via the `__type` key.
+All remaining array items will be used as usual. For simple objects, that only expect a single scalar value, the `__value` key can be specified additionally:
+
+```php
+interface SimpleOrComplexObject {
+    public function render(): string;
+}
+
+#[StringBased]
+final class SimpleObject implements SimpleOrComplexObject {
+    private function __construct(private readonly string $value) {}
+    public function render(): string {
+        return $this->value;
+    }
+}
+
+final class ComplexObject implements SimpleOrComplexObject {
+    private function __construct(private readonly string $prefix, private readonly string $suffix) {}
+    public function render(): string {
+        return $this->prefix . $this->suffix;
+    }
+}
+
+$simpleObject = instantiate(SimpleOrComplexObject::class, ['__type' => SimpleObject::class, '__value' => 'Some value']);
+assert($simpleObject instanceof SimpleObject);
+
+$complexObject = instantiate(SimpleOrComplexObject::class, ['__type' => ComplexObject::class, 'prefix' => 'Prefix', 'suffix' => 'Suffix']);
+assert($complexObject instanceof ComplexObject);
+```
+
+Especially when working with [generic lists](#list-generic-array), it can be useful to allow for polymorphism, i.e. allow the list to contain any instance of an interface:
+
+<details>
+<summary><h4>Example: Generic list of interfaces</h4></summary>
+
+```php
+// ...
+
+#[ListBased(itemClassName: SimpleOrComplexObject::class)]
+final class SimpleOrComplexObjects implements IteratorAggregate {
+    public function __construct(private readonly array $objects) {}
+    
+    public function getIterator() : Traversable{
+        return new ArrayIterator($this->objects);
+    }
+    
+    public function map(Closure $closure): array
+    {
+        return array_map($closure, $this->objects);
+    }
+}
+
+$objects = instantiate(SimpleOrComplexObjects::class, [
+    ['__type' => SimpleObject::class, '__value' => 'Simple'],
+    ['__type' => ComplexObject::class, 'prefix' => 'Com', 'suffix' => 'plex'],
+]);
+
+assert($objects->map(fn (SimpleOrComplexObject $o) => $o->render()) === ['Simple', 'Complex']);
+```
+
+</details>
+
 ## Integrations
 
 The declarative approach of this library allows for some interesting integrations.
