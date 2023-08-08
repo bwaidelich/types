@@ -26,6 +26,7 @@ use Wwwision\Types\Attributes\TypeBased;
 use Wwwision\Types\Schema\EnumCaseSchema;
 use Wwwision\Types\Schema\EnumSchema;
 use Wwwision\Types\Schema\IntegerSchema;
+use Wwwision\Types\Schema\InterfaceSchema;
 use Wwwision\Types\Schema\ListSchema;
 use Wwwision\Types\Schema\LiteralBooleanSchema;
 use Wwwision\Types\Schema\LiteralIntegerSchema;
@@ -36,6 +37,7 @@ use Wwwision\Types\Schema\ShapeSchema;
 use Wwwision\Types\Schema\StringSchema;
 
 use function get_debug_type;
+use function interface_exists;
 use function is_a;
 use function is_object;
 use function is_subclass_of;
@@ -83,6 +85,10 @@ final class Parser
     public static function getSchema(string $className): Schema
     {
         Assert::notEmpty($className, 'Failed to get schema for empty class name');
+        if (interface_exists($className)) {
+            $interfaceReflection = self::reflectClass($className);
+            return self::getInterfaceSchema($interfaceReflection);
+        }
         Assert::classExists($className, 'Failed to get schema for class "%s" because that class does not exist');
         $reflectionClass = self::reflectClass($className);
         if (is_a($reflectionClass, ReflectionEnum::class, true)) {
@@ -160,6 +166,33 @@ final class Parser
             $propertySchemas[$propertyName] = $propertySchema;
         }
         return new ShapeSchema($reflectionClass, self::getDescription($reflectionClass), $propertySchemas, $overriddenPropertyDescriptions);
+    }
+
+    /**
+     * @template T of object
+     * @param ReflectionClass<T> $interfaceReflection
+     */
+    private static function getInterfaceSchema(ReflectionClass $interfaceReflection): InterfaceSchema
+    {
+        $propertySchemas = [];
+        $overriddenPropertyDescriptions = [];
+        foreach ($interfaceReflection->getMethods(ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
+            Assert::isEmpty($reflectionMethod->getParameters(), sprintf('Method "%s" of interface "%s" has at least one parameter, but this is currently not supported', $reflectionMethod->getName(), $interfaceReflection->getName()));
+            $propertyName = $reflectionMethod->getName();
+            $returnType = $reflectionMethod->getReturnType();
+            Assert::notNull($returnType, sprintf('Return type of method "%s" of interface "%s" is missing', $reflectionMethod->getName(), $interfaceReflection->getName()));
+            Assert::isInstanceOf($returnType, ReflectionNamedType::class, sprintf('Return type of method "%s" of interface "%s" was expected to be of type %%2$s. Got: %%s', $reflectionMethod->getName(), $interfaceReflection->getName()));
+            $propertySchema = self::reflectionTypeToSchema($returnType);
+            if ($returnType->allowsNull()) {
+                $propertySchema = new OptionalSchema($propertySchema);
+            }
+            $overwrittenDescription = self::getDescription($reflectionMethod);
+            if ($overwrittenDescription !== null) {
+                $overriddenPropertyDescriptions[$propertyName] = $overwrittenDescription;
+            }
+            $propertySchemas[$propertyName] = $propertySchema;
+        }
+        return new InterfaceSchema($interfaceReflection, self::getDescription($interfaceReflection), $propertySchemas, $overriddenPropertyDescriptions);
     }
 
     private static function reflectionTypeToSchema(ReflectionNamedType $reflectionType, string $description = null): Schema

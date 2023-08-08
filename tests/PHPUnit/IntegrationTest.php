@@ -23,6 +23,7 @@ use Wwwision\Types\Parser;
 use Wwwision\Types\Schema\EnumCaseSchema;
 use Wwwision\Types\Schema\EnumSchema;
 use Wwwision\Types\Schema\IntegerSchema;
+use Wwwision\Types\Schema\InterfaceSchema;
 use Wwwision\Types\Schema\ListSchema;
 use Wwwision\Types\Schema\LiteralBooleanSchema;
 use Wwwision\Types\Schema\LiteralIntegerSchema;
@@ -51,6 +52,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(OptionalSchema::class)]
 #[CoversClass(ShapeSchema::class)]
 #[CoversClass(StringSchema::class)]
+#[CoversClass(InterfaceSchema::class)]
 #[CoversClass(StringTypeFormat::class)]
 #[CoversClass(instantiate::class)]
 final class IntegrationTest extends TestCase
@@ -77,6 +79,16 @@ final class IntegrationTest extends TestCase
         Parser::getSchema(ShapeWithInvalidObjectProperty::class);
     }
 
+    /**
+     * Note: Currently methods with parameters are not supported, but this can change at some point
+     */
+    public function test_getSchema_throws_if_given_class_is_interface_with_parameterized_methods(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Method "methodWithParameters" of interface "Wwwision\Types\Tests\PHPUnit\SomeInvalidInterface" has at least one parameter, but this is currently not supported');
+        Parser::getSchema(SomeInvalidInterface::class);
+    }
+
     public static function getSchema_dataProvider(): Generator
     {
         yield 'enum' => ['className' => Title::class, 'expectedResult' => '{"type":"enum","name":"Title","description":"honorific title of a person","cases":[{"type":"string","description":"for men, regardless of marital status, who do not have another professional or academic title","name":"MR","value":"MR"},{"type":"string","description":"for married women who do not have another professional or academic title","name":"MRS","value":"MRS"},{"type":"string","description":"for girls, unmarried women and married women who continue to use their maiden name","name":"MISS","value":"MISS"},{"type":"string","description":"for women, regardless of marital status or when marital status is unknown","name":"MS","value":"MS"},{"type":"string","description":"for any other title that does not match the above","name":"OTHER","value":"OTHER"}]}'];
@@ -95,6 +107,8 @@ final class IntegrationTest extends TestCase
         yield 'shape with bool' => ['className' => ShapeWithBool::class, 'expectedResult' => '{"type":"object","name":"ShapeWithBool","description":null,"properties":[{"type":"boolean","name":"value","description":"Description for literal bool"}]}'];
         yield 'shape with int' => ['className' => ShapeWithInt::class, 'expectedResult' => '{"type":"object","name":"ShapeWithInt","description":null,"properties":[{"type":"int","name":"value","description":"Description for literal int"}]}'];
         yield 'shape with string' => ['className' => ShapeWithString::class, 'expectedResult' => '{"type":"object","name":"ShapeWithString","description":null,"properties":[{"type":"string","name":"value","description":"Description for literal string"}]}'];
+
+        yield 'interface' => ['className' => SomeInterface::class, 'expectedResult' => '{"description":"SomeInterface description","name":"SomeInterface","properties":[{"description":"Custom description for \"someMethod\"","name":"someMethod","type":"string"},{"description":"Custom description for \"someOtherMethod\"","name":"someOtherMethod","optional":true,"type":"FamilyName"}],"type":"interface"}'];
     }
 
     #[DataProvider('getSchema_dataProvider')]
@@ -438,6 +452,53 @@ final class IntegrationTest extends TestCase
         self::assertSame($expectedResult, instantiate($className, $value)->value);
     }
 
+    public static function instantiate_interface_object_failing_dataProvider(): Generator
+    {
+        yield 'from null' => ['value' => null, 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Value of type null cannot be casted to instance of SomeInterface'];
+        yield 'from object' => ['value' => new stdClass(), 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Value of type stdClass cannot be casted to instance of SomeInterface'];
+        yield 'from boolean' => ['value' => false, 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Value of type bool cannot be casted to instance of SomeInterface'];
+        yield 'from integer' => ['value' => 1234, 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Value of type int cannot be casted to instance of SomeInterface'];
+        yield 'from float' => ['value' => 2.0, 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Value of type float cannot be casted to instance of SomeInterface'];
+        yield 'from array without __type' => ['value' => ['someKey' => 'someValue'], 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: The given array has to "__type" key'];
+        yield 'from array with invalid __type' => ['value' => ['__type' => 123], 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Expected "__type" to be of type string, got: int'];
+        yield 'from array with unknown __type' => ['value' => ['__type' => 'NoClassName'], 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Expected "__type" to be a valid class name, got: "NoClassName"'];
+        yield 'from array with __type that is not an instance of the interface' => ['value' => ['__type' => ShapeWithInt::class, 'value' => '123'], 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: The given "__type" of "Wwwision\Types\Tests\PHPUnit\ShapeWithInt" is not an implementation of SomeInterface'];
+        yield 'from array with valid __type but invalid remaining values' => ['value' => ['__type' => GivenName::class], 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Failed to instantiate GivenName: Value of type array cannot be casted to string'];
+        yield 'from array with valid __type but missing properties' => ['value' => ['__type' => FullName::class, 'givenName' => 'John'], 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Failed to instantiate FullName: Missing property "familyName"'];
+    }
+
+    #[DataProvider('instantiate_interface_object_failing_dataProvider')]
+    public function test_instantiate_interface_object_failing(mixed $value, string $className, string $expectedExceptionMessage): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage($expectedExceptionMessage);
+        /** @var class-string<object> $className */
+        instantiate($className, $value);
+    }
+
+    public static function instantiate_interface_object_dataProvider(): Generator
+    {
+        yield 'from array with __type and __value' => ['value' => ['__type' => GivenName::class, '__value' => 'this is valid'], 'className' => SomeInterface::class, 'expectedResult' => '"this is valid"'];
+        yield 'from array and remaining values' => ['value' => ['__type' => FullName::class, 'givenName' => 'some given name', 'familyName' => 'some family name'], 'className' => SomeInterface::class, 'expectedResult' => '{"givenName":"some given name","familyName":"some family name"}'];
+        yield 'from valid implementation' => ['value' => Parser::instantiate(GivenName::class, 'John'), 'className' => SomeInterface::class, 'expectedResult' => '"John"'];
+    }
+
+    #[DataProvider('instantiate_interface_object_dataProvider')]
+    public function test_instantiate_interface_object(mixed $value, string $className, string $expectedResult): void
+    {
+        /** @var class-string<object> $className */
+        self::assertJsonStringEqualsJsonString($expectedResult, json_encode(instantiate($className, $value)));
+    }
+
+    public function test_interface_implementationSchemas(): void
+    {
+        $interfaceSchema = Parser::getSchema(SomeInterface::class);
+        self::assertInstanceOf(InterfaceSchema::class, $interfaceSchema);
+
+        $implementationSchemaNames = array_map(fn (Schema $schema) => $schema->getName(), $interfaceSchema->implementationSchemas());
+        self::assertSame(['GivenName', 'FamilyName', 'FullName'], $implementationSchemaNames);
+    }
+
     public static function objects_dataProvider(): Generator
     {
         yield 'enum' => ['instance' => Title::MR];
@@ -452,14 +513,30 @@ final class IntegrationTest extends TestCase
     {
         self::assertSame($instance, Parser::getSchema($instance::class)->instantiate($instance));
     }
+
+    public function test_instantiate_returns_same_instance_if_object_implements_interface_of_schema(): void
+    {
+        $instance = Parser::instantiate(GivenName::class, 'John');
+        self::assertSame($instance, Parser::getSchema(SomeInterface::class)->instantiate($instance));
+    }
 }
 
 #[StringBased(minLength: 3, maxLength: 20)]
 #[Description('First name of a person')]
-final class GivenName implements JsonSerializable
+final class GivenName implements SomeInterface, JsonSerializable
 {
     private function __construct(public readonly string $value)
     {
+    }
+
+    public function someMethod(): string
+    {
+        return 'bar';
+    }
+
+    public function someOtherMethod(): FamilyName
+    {
+        return instantiate(self::class, $this->value);
     }
 
     public function jsonSerialize(): string
@@ -470,10 +547,20 @@ final class GivenName implements JsonSerializable
 
 #[StringBased(minLength: 3, maxLength: 20)]
 #[Description('Last name of a person')]
-final class FamilyName implements JsonSerializable
+final class FamilyName implements JsonSerializable, SomeInterface
 {
     private function __construct(public readonly string $value)
     {
+    }
+
+    public function someMethod(): string
+    {
+        return 'bar';
+    }
+
+    public function someOtherMethod(): FamilyName
+    {
+        return instantiate(self::class, $this->value);
     }
 
     public function jsonSerialize(): string
@@ -492,7 +579,7 @@ final class Age
 }
 
 #[Description('First and last name of a person')]
-final class FullName
+final class FullName implements SomeInterface
 {
     public function __construct(
         #[Description('Overridden given name description')]
@@ -500,6 +587,16 @@ final class FullName
         public readonly FamilyName $familyName,
     )
     {
+    }
+
+    public function someMethod(): string
+    {
+        return 'baz';
+    }
+
+    public function someOtherMethod(): FamilyName
+    {
+        return $this->familyName;
     }
 }
 
@@ -666,4 +763,16 @@ final class ShapeWithString {
         #[Description('Description for literal string')]
         public readonly string $value,
     ) {}
+}
+
+#[Description('SomeInterface description')]
+interface SomeInterface {
+    #[Description('Custom description for "someMethod"')]
+    public function someMethod(): string;
+    #[Description('Custom description for "someOtherMethod"')]
+    public function someOtherMethod(): ?FamilyName;
+}
+
+interface SomeInvalidInterface {
+    public function methodWithParameters(string $param = null): string;
 }

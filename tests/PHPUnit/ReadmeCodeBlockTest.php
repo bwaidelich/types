@@ -49,6 +49,7 @@ final class ReadmeCodeBlockTest extends TestCase
         $namespacedCode = <<<CODE
             namespace $namespace {
                 use Countable;
+                use Closure;
                 use JsonSerializable;
                 use IteratorAggregate;
                 use ArrayIterator;
