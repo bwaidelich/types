@@ -48,6 +48,9 @@ final class IntegerSchema implements Schema
 
     public function instantiate(mixed $value): object
     {
+        if (is_object($value) && $this->reflectionClass->isInstance($value)) {
+            return $value;
+        }
         $intValue = $this->coerce($value);
         $constructor = $this->reflectionClass->getConstructor();
         Assert::isInstanceOf($constructor, ReflectionMethod::class, sprintf('Missing constructor in class "%s"', $this->reflectionClass->getName()));

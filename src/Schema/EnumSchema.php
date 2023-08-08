@@ -7,7 +7,6 @@ namespace Wwwision\Types\Schema;
 use BackedEnum;
 use InvalidArgumentException;
 use ReflectionEnum;
-use ReflectionEnumUnitCase;
 use ReflectionNamedType;
 use Stringable;
 use UnitEnum;
@@ -57,6 +56,10 @@ final class EnumSchema implements Schema
 
     public function instantiate(mixed $value): UnitEnum
     {
+        if (is_object($value) && $this->reflectionClass->isInstance($value)) {
+            /** @var UnitEnum $value */
+            return $value;
+        }
         $coercedValue = $this->coerce($value);
         if ($this->reflectionClass->isBacked()) {
             /** @var class-string<BackedEnum> $enumClass */
