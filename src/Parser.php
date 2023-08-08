@@ -11,6 +11,7 @@ use ReflectionClass;
 use ReflectionClassConstant;
 use ReflectionEnum;
 use ReflectionException;
+use ReflectionFunctionAbstract;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
@@ -115,10 +116,10 @@ final class Parser
     }
 
     /**
-     * @param ReflectionParameter|ReflectionClass<object>|ReflectionClassConstant $reflection
+     * @param ReflectionParameter|ReflectionClass<object>|ReflectionClassConstant|ReflectionFunctionAbstract $reflection
      * @return string|null
      */
-    private static function getDescription(ReflectionParameter|ReflectionClass|ReflectionClassConstant $reflection): ?string
+    private static function getDescription(ReflectionParameter|ReflectionClass|ReflectionClassConstant|ReflectionFunctionAbstract $reflection): ?string
     {
         $descriptionAttributes = $reflection->getAttributes(Description::class, ReflectionAttribute::IS_INSTANCEOF);
         if (!isset($descriptionAttributes[0])) {
@@ -132,9 +133,8 @@ final class Parser
     /**
      * @template T of object
      * @param ReflectionClass<T> $reflectionClass
-     * @return Schema
      */
-    private static function getShapeSchema(ReflectionClass $reflectionClass): Schema
+    private static function getShapeSchema(ReflectionClass $reflectionClass): ShapeSchema
     {
         $constructor = $reflectionClass->getConstructor();
         Assert::isInstanceOf($constructor, ReflectionMethod::class, sprintf('Missing constructor in class "%s"', $reflectionClass->getName()));
@@ -145,23 +145,10 @@ final class Parser
             $parameterType = $parameter->getType();
             Assert::notNull($parameterType, sprintf('Failed to determine type of constructor parameter "%s"', $propertyName));
             Assert::isInstanceOf($parameterType, ReflectionNamedType::class);
-
-            if ($parameterType->isBuiltin()) {
-                $propertySchema = match ($parameterType->getName()) {
-                    'bool' => new LiteralBooleanSchema(self::getDescription($parameter)),
-                    'int' => new LiteralIntegerSchema(self::getDescription($parameter)),
-                    'string' => new LiteralStringSchema(self::getDescription($parameter)),
-                    default => throw new InvalidArgumentException(sprintf('No support for constructor parameter "%s" of type %s', $propertyName, $parameter->getType())),
-                };
-            } else {
-                /** @var class-string<T> $parameterTypeClassName */
-                $parameterTypeClassName = $parameterType->getName();
-                Assert::classExists($parameterTypeClassName);
-                try {
-                    $propertySchema = self::getSchema($parameterTypeClassName);
-                } catch (InvalidArgumentException $exception) {
-                    throw new InvalidArgumentException(sprintf('Failed to determine base type for "%s": %s', $propertyName, $exception->getMessage()), 1675172978, $exception);
-                }
+            try {
+                $propertySchema = self::reflectionTypeToSchema($parameterType, self::getDescription($parameter));
+            } catch (InvalidArgumentException $exception) {
+                throw new InvalidArgumentException(sprintf('Failed to parse constructor argument "%s" of class "%s": %s', $propertyName, $reflectionClass->getShortName(), $exception->getMessage()), 1675172978, $exception);
             }
             if ($parameter->isOptional()) {
                 $propertySchema = new OptionalSchema($propertySchema);
@@ -173,6 +160,21 @@ final class Parser
             $propertySchemas[$propertyName] = $propertySchema;
         }
         return new ShapeSchema($reflectionClass, self::getDescription($reflectionClass), $propertySchemas, $overriddenPropertyDescriptions);
+    }
+
+    private static function reflectionTypeToSchema(ReflectionNamedType $reflectionType, string $description = null): Schema
+    {
+        if ($reflectionType->isBuiltin()) {
+            return match ($reflectionType->getName()) {
+                'bool' => new LiteralBooleanSchema($description),
+                'int' => new LiteralIntegerSchema($description),
+                'string' => new LiteralStringSchema($description),
+                default => throw new InvalidArgumentException(sprintf('No support for type %s', $reflectionType->getName())),
+            };
+        }
+        $typeClassName = $reflectionType->getName();
+        Assert::classExists($typeClassName);
+        return Parser::getSchema($typeClassName);
     }
 
     /**

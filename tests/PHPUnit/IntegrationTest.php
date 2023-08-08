@@ -73,7 +73,7 @@ final class IntegrationTest extends TestCase
     public function test_getSchema_throws_if_given_class_is_shape_with_invalid_properties(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Failed to determine base type for "someProperty": Missing constructor in class "stdClass"');
+        $this->expectExceptionMessage('Failed to parse constructor argument "someProperty" of class "ShapeWithInvalidObjectProperty": Missing constructor in class "stdClass"');
         Parser::getSchema(ShapeWithInvalidObjectProperty::class);
     }
 
