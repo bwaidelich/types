@@ -11,6 +11,7 @@ use ReflectionNamedType;
 use Stringable;
 use UnitEnum;
 use ValueError;
+
 use function get_debug_type;
 use function is_float;
 use function is_int;
@@ -56,6 +57,7 @@ final class EnumSchema implements Schema
     public function instantiate(mixed $value): UnitEnum
     {
         if (is_object($value) && $this->reflectionClass->isInstance($value)) {
+            /** @var UnitEnum $value */
             return $value;
         }
         $coercedValue = $this->coerce($value);

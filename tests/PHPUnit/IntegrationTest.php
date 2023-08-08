@@ -319,8 +319,8 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_list_object_dataProvider(): Generator
     {
-        yield 'from instance' => ['value' => instantiate(GivenNames::class, ['John', 'Jack', 'Jane']), 'className' => GivenNames::class, 'expectedResult' => '["John","Jack","Jane"]'];
-        yield 'from strings' => ['value' => ['John', 'Jack', 'Jane'], 'className' => GivenNames::class, 'expectedResult' => '["John","Jack","Jane"]'];
+        yield 'from instance' => ['value' => instantiate(GivenNames::class, ['John', 'Jack', 'Jane']), 'className' => GivenNames::class, 'expectedResult' => '[{"value":"John"},{"value":"Jack"},{"value":"Jane"}]'];
+        yield 'from strings' => ['value' => ['John', 'Jack', 'Jane'], 'className' => GivenNames::class, 'expectedResult' => '[{"value":"John"},{"value":"Jack"},{"value":"Jane"}]'];
     }
 
     #[DataProvider('instantiate_list_object_dataProvider')]
