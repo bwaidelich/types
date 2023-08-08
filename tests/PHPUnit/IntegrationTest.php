@@ -319,8 +319,8 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_list_object_dataProvider(): Generator
     {
-        yield 'from instance' => ['value' => instantiate(GivenNames::class, ['John', 'Jack', 'Jane']), 'className' => GivenNames::class, 'expectedResult' => '[{"value":"John"},{"value":"Jack"},{"value":"Jane"}]'];
-        yield 'from strings' => ['value' => ['John', 'Jack', 'Jane'], 'className' => GivenNames::class, 'expectedResult' => '[{"value":"John"},{"value":"Jack"},{"value":"Jane"}]'];
+        yield 'from instance' => ['value' => instantiate(GivenNames::class, ['John', 'Jack', 'Jane']), 'className' => GivenNames::class, 'expectedResult' => '["John","Jack","Jane"]'];
+        yield 'from strings' => ['value' => ['John', 'Jack', 'Jane'], 'className' => GivenNames::class, 'expectedResult' => '["John","Jack","Jane"]'];
     }
 
     #[DataProvider('instantiate_list_object_dataProvider')]
@@ -364,17 +364,17 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_shape_object_dataProvider(): Generator
     {
-        yield 'from array matching all constraints' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Some last name'], 'className' => FullName::class, 'expectedResult' => '{"givenName":{"value":"Some first name"},"familyName":{"value":"Some last name"}}'];
-        yield 'from iterable matching all constraints' => ['value' => new ArrayIterator(['givenName' => 'Some first name', 'familyName' => 'Some last name']), 'className' => FullName::class, 'expectedResult' => '{"givenName":{"value":"Some first name"},"familyName":{"value":"Some last name"}}'];
-        yield 'from array without optionals' => ['value' => ['stringBased' => 'Some value'], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":{"value":"Some value"},"optionalStringBased":null,"optionalInt":null,"optionalBool":false,"optionalString":null}'];
-        yield 'from array with optionals' => ['value' => ['stringBased' => 'Some value', 'optionalString' => 'optionalString value', 'optionalStringBased' => 'oSB value', 'optionalInt' => 42, 'optionalBool' => true], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":{"value":"Some value"},"optionalStringBased":{"value":"oSB value"},"optionalInt":42,"optionalBool":true,"optionalString":"optionalString value"}'];
-        yield 'from array with optionals and coercion' => ['value' => ['stringBased' => 'Some value', 'optionalString' => new class { function __toString() { return 'optionalString value'; }}, 'optionalStringBased' => 'oSB value', 'optionalInt' => '123', 'optionalBool' => 1], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":{"value":"Some value"},"optionalStringBased":{"value":"oSB value"},"optionalInt":123,"optionalBool":true,"optionalString":"optionalString value"}'];
-        yield 'from array with optionals and coercion 2' => ['value' => ['stringBased' => 'Some value', 'optionalString' => new class { function __toString() { return 'optionalString value'; }}, 'optionalStringBased' => 'oSB value', 'optionalInt' => 55.0, 'optionalBool' => '0'], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":{"value":"Some value"},"optionalStringBased":{"value":"oSB value"},"optionalInt":55,"optionalBool":false,"optionalString":"optionalString value"}'];
-        yield 'from array with null-values for optionals' => ['value' => ['stringBased' => 'Some value', 'optionalStringBased' => null, 'optionalInt' => null, 'optionalBool' => null, 'optionalString' => null], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":{"value":"Some value"},"optionalStringBased":null,"optionalInt":null,"optionalBool":null,"optionalString":null}'];
+        yield 'from array matching all constraints' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Some last name'], 'className' => FullName::class, 'expectedResult' => '{"givenName":"Some first name","familyName":"Some last name"}'];
+        yield 'from iterable matching all constraints' => ['value' => new ArrayIterator(['givenName' => 'Some first name', 'familyName' => 'Some last name']), 'className' => FullName::class, 'expectedResult' => '{"givenName":"Some first name","familyName":"Some last name"}'];
+        yield 'from array without optionals' => ['value' => ['stringBased' => 'Some value'], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":null,"optionalInt":null,"optionalBool":false,"optionalString":null}'];
+        yield 'from array with optionals' => ['value' => ['stringBased' => 'Some value', 'optionalString' => 'optionalString value', 'optionalStringBased' => 'oSB value', 'optionalInt' => 42, 'optionalBool' => true], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":42,"optionalBool":true,"optionalString":"optionalString value"}'];
+        yield 'from array with optionals and coercion' => ['value' => ['stringBased' => 'Some value', 'optionalString' => new class { function __toString() { return 'optionalString value'; }}, 'optionalStringBased' => 'oSB value', 'optionalInt' => '123', 'optionalBool' => 1], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":123,"optionalBool":true,"optionalString":"optionalString value"}'];
+        yield 'from array with optionals and coercion 2' => ['value' => ['stringBased' => 'Some value', 'optionalString' => new class { function __toString() { return 'optionalString value'; }}, 'optionalStringBased' => 'oSB value', 'optionalInt' => 55.0, 'optionalBool' => '0'], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":55,"optionalBool":false,"optionalString":"optionalString value"}'];
+        yield 'from array with null-values for optionals' => ['value' => ['stringBased' => 'Some value', 'optionalStringBased' => null, 'optionalInt' => null, 'optionalBool' => null, 'optionalString' => null], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":null,"optionalInt":null,"optionalBool":null,"optionalString":null}'];
         $class = new stdClass();
         $class->givenName = 'Some first name';
         $class->familyName = 'Some last name';
-        yield 'from stdClass matching all constraints' => ['value' => $class, 'className' => FullName::class, 'expectedResult' => '{"givenName":{"value":"Some first name"},"familyName":{"value":"Some last name"}}'];
+        yield 'from stdClass matching all constraints' => ['value' => $class, 'className' => FullName::class, 'expectedResult' => '{"givenName":"Some first name","familyName":"Some last name"}'];
     }
 
     #[DataProvider('instantiate_shape_object_dataProvider')]
@@ -456,19 +456,29 @@ final class IntegrationTest extends TestCase
 
 #[StringBased(minLength: 3, maxLength: 20)]
 #[Description('First name of a person')]
-final class GivenName
+final class GivenName implements JsonSerializable
 {
     private function __construct(public readonly string $value)
     {
+    }
+
+    public function jsonSerialize(): string
+    {
+        return $this->value;
     }
 }
 
 #[StringBased(minLength: 3, maxLength: 20)]
 #[Description('Last name of a person')]
-final class FamilyName
+final class FamilyName implements JsonSerializable
 {
     private function __construct(public readonly string $value)
     {
+    }
+
+    public function jsonSerialize(): string
+    {
+        return $this->value;
     }
 }
 
