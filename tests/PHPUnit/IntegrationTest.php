@@ -68,7 +68,7 @@ final class IntegrationTest extends TestCase
     public function test_getSchema_throws_if_className_is_not_a_className(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Failed to get schema for class ""notAClass"" because that class does not exist');
+        $this->expectExceptionMessage('Failed to get schema for class "notAClass" because that class does not exist');
         Parser::getSchema('notAClass');
     }
 
@@ -165,7 +165,7 @@ final class IntegrationTest extends TestCase
     public function test_instantiate_throws_if_className_is_not_a_className(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Failed to get schema for class ""notAClass"" because that class does not exist');
+        $this->expectExceptionMessage('Failed to get schema for class "notAClass" because that class does not exist');
         instantiate('notAClass', null);
     }
 
