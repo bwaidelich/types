@@ -89,7 +89,7 @@ final class Parser
             $interfaceReflection = self::reflectClass($className);
             return self::getInterfaceSchema($interfaceReflection);
         }
-        Assert::classExists($className, 'Failed to get schema for class "%s" because that class does not exist');
+        Assert::classExists($className, 'Failed to get schema for class %s because that class does not exist');
         $reflectionClass = self::reflectClass($className);
         if (is_a($reflectionClass, ReflectionEnum::class, true)) {
             $caseSchemas = [];
