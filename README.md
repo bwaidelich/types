@@ -5,7 +5,7 @@ and mapping unknown data.
 |----------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
 | Extends the PHP type system                                                                              | Uses reflection at runtime (see [performance considerations](#performance))            |
 | Great [integrations](#integrations)                                                                      | Partly unconventional [best practices](#best-practices)                                |
-| Simple [Generics](#list-generic-array)                                                                   | Static class, i.e. global (namespaced) `instantiate()` method                          |
+| Simple [Generics](#list-based)                                                                   | Static class, i.e. global (namespaced) `instantiate()` method                          |
 | No need to implement interfaces or extend base classes                                                   | Very young project – I certainly would be skeptical if I hadn't written this myself ;) |
 | Small footprint (just one public function/class and a couple of [3rd party dependencies](#dependencies)) | You just don't like me.. pff.. whateva                                                 |
 
