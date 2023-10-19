@@ -5,7 +5,7 @@ and mapping unknown data.
 |----------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
 | Extends the PHP type system                                                                              | Uses reflection at runtime (see [performance considerations](#performance))            |
 | Great [integrations](#integrations)                                                                      | Partly unconventional [best practices](#best-practices)                                |
-| Simple [Generics](#listbased)                                                                   | Static class, i.e. global (namespaced) `instantiate()` method                          |
+| Simple [Generics](#generics)                                                                             | Static class, i.e. global (namespaced) `instantiate()` method                          |
 | No need to implement interfaces or extend base classes                                                   | Very young project – I certainly would be skeptical if I hadn't written this myself ;) |
 | Small footprint (just one public function/class and a couple of [3rd party dependencies](#dependencies)) | You just don't like me.. pff.. whateva                                                 |
 
@@ -398,6 +398,27 @@ instantiate(HobbiesAdvanced::class, ['Soccer', 'Ping Pong', 'Guitar', 'Gaming'])
 ```
 
 </details>
+
+## Generics
+
+Generics won't make it into PHP most likely (see this [video from Brent](https://www.youtube.com/watch?v=JtmRG5lCENA) that explains why that is the case).
+The [ListBased](#listbased) attribute allows to relatively easily create type-safe collections of a specific item type.
+Currently you still have to create a custom class for that, but I don't think that this is a big problem because mostly a common collection class won't fit all the specific requirements.
+For example: `PostResults` could provide different functions and implementations than a `Posts` set (the former might be unbound, the latter might have a `minCount` constraint etc).
+
+### Further thoughts
+
+I'm thinking about adding a more generic (no pun intended) way to allow for common classes without having to specify the `itemClassName` in the attribute but at instantiation time, maybe something along the lines of
+
+```php
+#[Generic('TKey', 'TValue')]
+final class Collection {
+    // ...
+}
+$posts = generic(Collection::class, $dbRows, TKey: Types::int(), TValue: Types::classOf(Post::class));
+```
+
+But it adds some more oddities and I currently don't really need it becaused of the reasons mentioned above.
 
 ## Composite types
 
