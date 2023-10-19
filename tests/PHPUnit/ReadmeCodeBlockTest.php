@@ -28,7 +28,7 @@ final class ReadmeCodeBlockTest extends TestCase
         if (!is_string($readmeContents)) {
             self::fail(sprintf('Failed to read README file from "%s"', $readmeFilePath));
         }
-        preg_match_all('/(?<=```php)(.+?)(?=```)/s', $readmeContents, $matches, PREG_OFFSET_CAPTURE);
+        preg_match_all('/(?<=```php(?! \(no test\)))(.+?)(?=```)/s', $readmeContents, $matches, PREG_OFFSET_CAPTURE);
         foreach ($matches[0] as $matchGroup) {
             $lineNumber = substr_count(mb_substr($readmeContents, 0, $matchGroup[1]), PHP_EOL) + 1;
             $code = $matchGroup[0];
