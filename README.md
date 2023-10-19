@@ -402,7 +402,9 @@ instantiate(HobbiesAdvanced::class, ['Soccer', 'Ping Pong', 'Guitar', 'Gaming'])
 ## Generics
 
 Generics won't make it into PHP most likely (see this [video from Brent](https://www.youtube.com/watch?v=JtmRG5lCENA) that explains why that is the case).
-The [ListBased](#listbased) attribute allows to relatively easily create type-safe collections of a specific item type.
+
+The [ListBased](#listbased) attribute allows for relatively easily creation of type-safe collections of a specific item type.
+
 Currently you still have to create a custom class for that, but I don't think that this is a big problem because mostly a common collection class won't fit all the specific requirements.
 For example: `PostResults` could provide different functions and implementations than a `Posts` set (the former might be unbound, the latter might have a `minCount` constraint etc).
 
