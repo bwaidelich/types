@@ -76,7 +76,7 @@ final class StringSchema implements Schema
 
     private function coerce(mixed $value): string
     {
-        if ($value instanceof Stringable) {
+        if (is_int($value) || $value instanceof Stringable) {
             $value = (string)$value;
         }
         if (!is_string($value)) {

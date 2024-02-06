@@ -316,7 +316,7 @@ final class IntegrationTest extends TestCase
         yield 'from string' => ['value' => 'some string', 'className' => FullNames::class, 'expectedExceptionMessage' => 'Failed to instantiate FullNames: Non-iterable value of type string cannot be casted to list of FullName'];
 
         yield 'from array with invalid item' => ['value' => ['Some value'], 'className' => FullNames::class, 'expectedExceptionMessage' => 'Failed to instantiate FullNames: At key "0": Non-iterable value of type string cannot be casted to instance of FullName'];
-        yield 'from array with invalid item 2' => ['value' => [123], 'className' => GivenNames::class, 'expectedExceptionMessage' => 'Failed to instantiate GivenNames: At key "0": Value of type int cannot be casted to string'];
+        yield 'from array with invalid item 2' => ['value' => [123.45], 'className' => GivenNames::class, 'expectedExceptionMessage' => 'Failed to instantiate GivenNames: At key "0": Value of type float cannot be casted to string'];
         yield 'from array violating minCount' => ['value' => [], 'className' => FullNames::class, 'expectedExceptionMessage' => 'Failed to instantiate FullNames: Number of elements (0) is less than allowed min count of 2'];
         yield 'from array violating minCount 2' => ['value' => [['givenName' => 'John', 'familyName' => 'Doe']], 'className' => FullNames::class, 'expectedExceptionMessage' => 'Failed to instantiate FullNames: Number of elements (1) is less than allowed min count of 2'];
         yield 'from array violating maxCount' => ['value' => ['John', 'Jane', 'Max', 'Jack', 'Fred'], 'className' => GivenNames::class, 'expectedExceptionMessage' => 'Failed to instantiate GivenNames: Number of elements (5) is more than allowed max count of 4'];
@@ -403,7 +403,6 @@ final class IntegrationTest extends TestCase
         yield 'from null' => ['value' => null, 'className' => GivenName::class, 'expectedExceptionMessage' => 'Failed to instantiate GivenName: Value of type null cannot be casted to string'];
         yield 'from object' => ['value' => new stdClass(), 'className' => GivenName::class, 'expectedExceptionMessage' => 'Failed to instantiate GivenName: Value of type stdClass cannot be casted to string'];
         yield 'from boolean' => ['value' => false, 'className' => GivenName::class, 'expectedExceptionMessage' => 'Failed to instantiate GivenName: Value of type bool cannot be casted to string'];
-        yield 'from integer' => ['value' => 1234, 'className' => GivenName::class, 'expectedExceptionMessage' => 'Failed to instantiate GivenName: Value of type int cannot be casted to string'];
         yield 'from float' => ['value' => 2.0, 'className' => GivenName::class, 'expectedExceptionMessage' => 'Failed to instantiate GivenName: Value of type float cannot be casted to string'];
 
         yield 'from string violating minLength' => ['value' => 'ab', 'className' => GivenName::class, 'expectedExceptionMessage' => 'Failed to instantiate GivenName: Value "ab" does not have the required minimum length of 3 characters'];
@@ -431,6 +430,7 @@ final class IntegrationTest extends TestCase
     {
         yield 'from string that matches constraints' => ['value' => 'this is valid', 'className' => GivenName::class, 'expectedResult' => 'this is valid'];
         yield 'from string that matches pattern' => ['value' => 'this is not magic', 'className' => NotMagic::class, 'expectedResult' => 'this is not magic'];
+        yield 'from integer' => ['value' => 123, 'className' => NotMagic::class, 'expectedResult' => '123'];
         yield 'from stringable object' => ['value' => new class {
             function __toString()
             {
