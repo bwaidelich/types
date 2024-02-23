@@ -18,6 +18,7 @@ use Wwwision\Types\Exception\Issues\TooSmall;
 use Wwwision\Types\Exception\Issues\UnrecognizedKeys;
 use Wwwision\Types\Schema\EnumCaseSchema;
 use Wwwision\Types\Schema\EnumSchema;
+use Wwwision\Types\Schema\FloatSchema;
 use Wwwision\Types\Schema\IntegerSchema;
 use Wwwision\Types\Schema\InterfaceSchema;
 use Wwwision\Types\Schema\ListSchema;
@@ -99,10 +100,11 @@ final class CoerceException extends InvalidArgumentException implements JsonSeri
         return new self($value, $schema, Issues::create($issue));
     }
 
-    public static function tooSmall(mixed $value, IntegerSchema|StringSchema|ListSchema $schema, int $min, bool $inclusive, bool $exact): self
+    public static function tooSmall(mixed $value, IntegerSchema|FloatSchema|StringSchema|ListSchema $schema, int|float $min, bool $inclusive, bool $exact): self
     {
         $message = match ($schema::class) {
             IntegerSchema::class => sprintf('Number must be greater than or equal to %d', $min),
+            FloatSchema::class => sprintf('Number must be greater than or equal to %.3f', $min),
             StringSchema::class => sprintf('String must contain at least %d character(s)', $min),
             ListSchema::class => sprintf('Array must contain at least %d element(s)', $min),
         };
@@ -110,10 +112,11 @@ final class CoerceException extends InvalidArgumentException implements JsonSeri
         return new self($value, $schema, Issues::create($issue));
     }
 
-    public static function tooBig(mixed $value, IntegerSchema|StringSchema|ListSchema $schema, int $max, bool $inclusive, bool $exact): self
+    public static function tooBig(mixed $value, IntegerSchema|FloatSchema|StringSchema|ListSchema $schema, int|float $max, bool $inclusive, bool $exact): self
     {
         $message = match ($schema::class) {
             IntegerSchema::class => sprintf('Number must be less than or equal to %d', $max),
+            FloatSchema::class => sprintf('Number must be less than or equal to %.3f', $max),
             StringSchema::class => sprintf('String must contain at most %d character(s)', $max),
             ListSchema::class => sprintf('Array must contain at most %d element(s)', $max),
         };

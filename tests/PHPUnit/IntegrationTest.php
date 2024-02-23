@@ -16,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 use stdClass;
 use Traversable;
 use Wwwision\Types\Attributes\Description;
+use Wwwision\Types\Attributes\FloatBased;
 use Wwwision\Types\Attributes\IntegerBased;
 use Wwwision\Types\Attributes\ListBased;
 use Wwwision\Types\Attributes\StringBased;
@@ -23,10 +24,12 @@ use Wwwision\Types\Exception\CoerceException;
 use Wwwision\Types\Parser;
 use Wwwision\Types\Schema\EnumCaseSchema;
 use Wwwision\Types\Schema\EnumSchema;
+use Wwwision\Types\Schema\FloatSchema;
 use Wwwision\Types\Schema\IntegerSchema;
 use Wwwision\Types\Schema\InterfaceSchema;
 use Wwwision\Types\Schema\ListSchema;
 use Wwwision\Types\Schema\LiteralBooleanSchema;
+use Wwwision\Types\Schema\LiteralFloatSchema;
 use Wwwision\Types\Schema\LiteralIntegerSchema;
 use Wwwision\Types\Schema\LiteralStringSchema;
 use Wwwision\Types\Schema\OptionalSchema;
@@ -45,9 +48,11 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(StringBased::class)]
 #[CoversClass(EnumCaseSchema::class)]
 #[CoversClass(EnumSchema::class)]
+#[CoversClass(FloatSchema::class)]
 #[CoversClass(IntegerSchema::class)]
 #[CoversClass(ListSchema::class)]
 #[CoversClass(LiteralBooleanSchema::class)]
+#[CoversClass(LiteralFloatSchema::class)]
 #[CoversClass(LiteralIntegerSchema::class)]
 #[CoversClass(LiteralStringSchema::class)]
 #[CoversClass(OptionalSchema::class)]
@@ -107,6 +112,7 @@ final class IntegrationTest extends TestCase
         yield 'shape with bool' => ['className' => ShapeWithBool::class, 'expectedResult' => '{"type":"object","name":"ShapeWithBool","description":null,"properties":[{"type":"boolean","name":"value","description":"Description for literal bool"}]}'];
         yield 'shape with int' => ['className' => ShapeWithInt::class, 'expectedResult' => '{"type":"object","name":"ShapeWithInt","description":null,"properties":[{"type":"int","name":"value","description":"Description for literal int"}]}'];
         yield 'shape with string' => ['className' => ShapeWithString::class, 'expectedResult' => '{"type":"object","name":"ShapeWithString","description":null,"properties":[{"type":"string","name":"value","description":"Description for literal string"}]}'];
+        yield 'shape with floats' => ['className' => GeoCoordinates::class, 'expectedResult' => '{"type":"object","name":"GeoCoordinates","description":null,"properties":[{"type":"Longitude","name":"longitude","description":null},{"type":"Latitude","name":"latitude","description":null}]}'];
 
         yield 'interface' => ['className' => SomeInterface::class, 'expectedResult' => '{"description":"SomeInterface description","name":"SomeInterface","properties":[{"description":"Custom description for \"someMethod\"","name":"someMethod","type":"string"},{"description":"Custom description for \"someOtherMethod\"","name":"someOtherMethod","optional":true,"type":"FamilyName"}],"type":"interface"}'];
     }
@@ -135,14 +141,20 @@ final class IntegrationTest extends TestCase
 
     public function test_getSchema_for_literal_integer(): void
     {
-        $literalBooleanSchema = new LiteralIntegerSchema('Some Description');
-        self::assertJsonStringEqualsJsonString('{"type":"integer","name":"int","description":"Some Description"}', json_encode($literalBooleanSchema, JSON_THROW_ON_ERROR));
+        $literalIntegerSchema = new LiteralIntegerSchema('Some Description');
+        self::assertJsonStringEqualsJsonString('{"type":"integer","name":"int","description":"Some Description"}', json_encode($literalIntegerSchema, JSON_THROW_ON_ERROR));
+    }
+
+    public function test_getSchema_for_literal_float(): void
+    {
+        $literalFloatSchema = new LiteralFloatSchema('Some Description');
+        self::assertJsonStringEqualsJsonString('{"type":"float","name":"float","description":"Some Description"}', json_encode($literalFloatSchema, JSON_THROW_ON_ERROR));
     }
 
     public function test_getSchema_for_literal_string(): void
     {
-        $literalBooleanSchema = new LiteralStringSchema('Some Description');
-        self::assertJsonStringEqualsJsonString('{"type":"string","name":"string","description":"Some Description"}', json_encode($literalBooleanSchema, JSON_THROW_ON_ERROR));
+        $literalStringSchema = new LiteralStringSchema('Some Description');
+        self::assertJsonStringEqualsJsonString('{"type":"string","name":"string","description":"Some Description"}', json_encode($literalStringSchema, JSON_THROW_ON_ERROR));
     }
 
     public function test_getSchema_for_optional(): void
@@ -290,6 +302,55 @@ final class IntegrationTest extends TestCase
         self::assertSame($expectedResult, instantiate(RomanNumber::class, $value));
     }
 
+    public static function instantiate_float_based_object_failing_dataProvider(): Generator
+    {
+        yield 'from null' => ['value' => null, 'className' => Longitude::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected float, received null', 'path' => [], 'expected' => 'float', 'received' => 'null']]];
+        yield 'from object' => ['value' => new stdClass(), 'className' => Longitude::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected float, received object', 'path' => [], 'expected' => 'float', 'received' => 'object']]];
+        yield 'from boolean' => ['value' => false, 'className' => Longitude::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected float, received boolean', 'path' => [], 'expected' => 'float', 'received' => 'boolean']]];
+        yield 'from string' => ['value' => 'not numeric', 'className' => Longitude::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected float, received string', 'path' => [], 'expected' => 'float', 'received' => 'string']]];
+
+        yield 'from float violating minimum' => ['value' => -181.0, 'className' => Longitude::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Number must be greater than or equal to -180.000', 'path' => [], 'type' => 'double', 'minimum' => -180, 'inclusive' => true, 'exact' => false]]];
+        yield 'from float with fraction violating minimum' => ['value' => -90.123, 'className' => Latitude::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Number must be greater than or equal to -90.000', 'path' => [], 'type' => 'double', 'minimum' => -90, 'inclusive' => true, 'exact' => false]]];
+        yield 'from float violating maximum' => ['value' => 181.0, 'className' => Longitude::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Number must be less than or equal to 180.500', 'path' => [], 'type' => 'double', 'maximum' => 180.5, 'inclusive' => true, 'exact' => false]]];
+        yield 'from float with fraction violating maximum' => ['value' => 90.123, 'className' => Latitude::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Number must be less than or equal to 90.000', 'path' => [], 'type' => 'double', 'maximum' => 90, 'inclusive' => true, 'exact' => false]]];
+
+        yield 'from float with fraction violating multiple constraints' => ['value' => 5.34, 'className' => ImpossibleFloat::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Number must be less than or equal to 2.450', 'path' => [], 'type' => 'double', 'maximum' => 2.45, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'Number must be greater than or equal to 10.230', 'path' => [], 'type' => 'double', 'minimum' => 10.23, 'inclusive' => true, 'exact' => false]]];
+    }
+
+    /**
+     * @param class-string<object> $className
+     */
+    #[DataProvider('instantiate_float_based_object_failing_dataProvider')]
+    public function test_instantiate_float_based_object_failing(mixed $value, string $className, array $expectedIssues): void
+    {
+        $exceptionThrown = false;
+        $expectedIssuesJson = json_encode($expectedIssues, JSON_THROW_ON_ERROR);
+        try {
+            instantiate($className, $value);
+        } catch (CoerceException $e) {
+            $exceptionThrown = true;
+            self::assertJsonStringEqualsJsonString($expectedIssuesJson, json_encode($e, JSON_THROW_ON_ERROR));
+        }
+        self::assertTrue($exceptionThrown, sprintf('Failed asserting that exception of type "%s" is thrown.', CoerceException::class));
+    }
+
+    public static function instantiate_float_based_object_dataProvider(): Generator
+    {
+        yield 'from instance' => ['value' => instantiate(Longitude::class, 120), 'className' => Longitude::class, 'expectedResult' => 120.0];
+        yield 'from integer that matches constraints' => ['value' => 120, 'className' => Longitude::class, 'expectedResult' => 120];
+        yield 'from numeric string that matches constraints' => ['value' => '1', 'className' => Longitude::class, 'expectedResult' => 1];
+        yield 'from numeric string with floating point that matches constraints' => ['value' => '1.234', 'className' => Longitude::class, 'expectedResult' => 1.234];
+        yield 'from float without fraction' => ['value' => 4.0, 'className' => Longitude::class, 'expectedResult' => 4];
+        yield 'from float with fraction' => ['value' => 4.456, 'className' => Longitude::class, 'expectedResult' => 4.456];
+    }
+
+    #[DataProvider('instantiate_float_based_object_dataProvider')]
+    public function test_instantiate_float_based_object(mixed $value, string $className, float $expectedResult): void
+    {
+        /** @var class-string<object> $className */
+        self::assertSame($expectedResult, instantiate($className, $value)->value);
+    }
+
     public static function instantiate_int_based_object_failing_dataProvider(): Generator
     {
         yield 'from null' => ['value' => null, 'className' => Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received null', 'path' => [], 'expected' => 'integer', 'received' => 'null']]];
@@ -433,6 +494,7 @@ final class IntegrationTest extends TestCase
         yield 'from array with optionals and coercion' => ['value' => ['stringBased' => 'Some value', 'optionalString' => new class { public function __toString() { return 'optionalString value'; }}, 'optionalStringBased' => 'oSB value', 'optionalInt' => '123', 'optionalBool' => 1], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":123,"optionalBool":true,"optionalString":"optionalString value"}'];
         yield 'from array with optionals and coercion 2' => ['value' => ['stringBased' => 'Some value', 'optionalString' => new class { public function __toString() { return 'optionalString value'; }}, 'optionalStringBased' => 'oSB value', 'optionalInt' => 55.0, 'optionalBool' => '0'], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":55,"optionalBool":false,"optionalString":"optionalString value"}'];
         yield 'from array with null-values for optionals' => ['value' => ['stringBased' => 'Some value', 'optionalStringBased' => null, 'optionalInt' => null, 'optionalBool' => null, 'optionalString' => null], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":null,"optionalInt":null,"optionalBool":null,"optionalString":null}'];
+        yield 'todo' => ['value' => ['latitude' => 33, 'longitude' => '123.45'], 'className' => GeoCoordinates::class, 'expectedResult' => '{"longitude":{"value":123.45},"latitude":{"value":33}}'];
         $class = new stdClass();
         $class->givenName = 'Some first name';
         $class->familyName = 'Some last name';
@@ -877,6 +939,28 @@ interface SomeInterface {
     public function someOtherMethod(): ?FamilyName;
 }
 
+#[FloatBased(minimum: -180.0, maximum: 180.5)]
+final class Longitude {
+    private function __construct(
+        public readonly float $value,
+    ) {}
+}
+
+#[FloatBased(minimum: -90, maximum: 90)]
+final class Latitude {
+    private function __construct(
+        public readonly float $value,
+    ) {}
+}
+
+final class GeoCoordinates {
+    public function __construct(
+        public readonly Longitude $longitude,
+        public readonly Latitude $latitude
+    ) {}
+}
+
+
 interface SomeInvalidInterface {
     public function methodWithParameters(string $param = null): string;
 }
@@ -892,6 +976,13 @@ final class ImpossibleInt
 {
     private function __construct(public readonly string $value) {}
 }
+
+#[FloatBased(minimum: 10.23, maximum: 2.45)]
+final class ImpossibleFloat
+{
+    private function __construct(public readonly string $value) {}
+}
+
 #[ListBased(itemClassName: GivenName::class, minCount: 10, maxCount: 2)]
 final class ImpossibleList
 {
