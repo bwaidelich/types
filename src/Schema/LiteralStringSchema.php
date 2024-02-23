@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Wwwision\Types\Schema;
 
-use InvalidArgumentException;
 use Stringable;
+use Wwwision\Types\Exception\CoerceException;
 
 use function is_int;
 use function is_string;
-use function sprintf;
 
 final class LiteralStringSchema implements Schema
 {
@@ -44,7 +43,7 @@ final class LiteralStringSchema implements Schema
             $value = (string)$value;
         }
         if (!is_string($value)) {
-            throw new InvalidArgumentException(sprintf('Value of type %s cannot be casted to string', get_debug_type($value)));
+            throw CoerceException::invalidType($value, $this);
         }
         return $value;
     }

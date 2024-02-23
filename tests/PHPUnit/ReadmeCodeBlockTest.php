@@ -9,6 +9,7 @@ use Generator;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Wwwision\Types\Exception\CoerceException;
 use function file_get_contents;
 use function get_debug_type;
 use function preg_match;
@@ -58,6 +59,7 @@ final class ReadmeCodeBlockTest extends TestCase
                 use Wwwision\Types\Attributes\IntegerBased;
                 use Wwwision\Types\Attributes\ListBased;
                 use Wwwision\Types\Attributes\StringBased;
+                use Wwwision\Types\Exception\CoerceException;
                 use Wwwision\Types\Parser;
                 use Wwwision\Types\Schema\StringTypeFormat;
                 use function Wwwision\Types\instantiate;
@@ -67,13 +69,12 @@ final class ReadmeCodeBlockTest extends TestCase
         $caughtException = null;
         try {
             eval($namespacedCode);
-        } catch (Exception $exception) {
+        } catch (CoerceException $exception) {
             $caughtException = $exception;
         }
         if ($caughtException !== null) {
             self::assertNotNull($expectedExceptionMessage, sprintf('Did not expect an exception for code block in line %d but got one of type %s: %s', $lineNumber, get_debug_type($caughtException), $caughtException->getMessage()));
-            $exceptionType = $caughtException::class;
-            self::assertSame($expectedExceptionMessage, $exceptionType . ': ' . $caughtException->getMessage(), sprintf('Exception for code block in line %d did not match the expected', $lineNumber));
+            self::assertSame($expectedExceptionMessage, $caughtException->getMessage(), sprintf('Exception for code block in line %d did not match the expected', $lineNumber));
         } else {
             self::assertNull($expectedExceptionMessage, sprintf('Expected exception "%s" in code block in line %d but none was thrown', $expectedExceptionMessage, $lineNumber));
         }

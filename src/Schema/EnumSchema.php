@@ -5,18 +5,16 @@ declare(strict_types=1);
 namespace Wwwision\Types\Schema;
 
 use BackedEnum;
-use InvalidArgumentException;
 use ReflectionEnum;
 use ReflectionNamedType;
 use Stringable;
 use UnitEnum;
 use ValueError;
+use Wwwision\Types\Exception\CoerceException;
 
-use function get_debug_type;
 use function is_float;
 use function is_int;
 use function is_string;
-use function sprintf;
 
 final class EnumSchema implements Schema
 {
@@ -67,10 +65,7 @@ final class EnumSchema implements Schema
             try {
                 return $enumClass::from($coercedValue);
             } catch (ValueError $_) {
-                if (is_int($value)) {
-                    throw new InvalidArgumentException(sprintf('Value %s is not a valid enum case', $coercedValue));
-                }
-                throw new InvalidArgumentException(sprintf('Value "%s" is not a valid enum case', $coercedValue));
+                throw CoerceException::invalidEnumValue($value, $this);
             }
         }
         foreach ($this->caseSchemas as $caseSchema) {
@@ -78,29 +73,25 @@ final class EnumSchema implements Schema
                 return $caseSchema->instantiate($coercedValue);
             }
         }
-        if (is_int($value)) {
-            throw new InvalidArgumentException(sprintf('Value %s is not a valid enum case', $coercedValue));
-        }
-        throw new InvalidArgumentException(sprintf('Value "%s" is not a valid enum case', $coercedValue));
+        throw CoerceException::invalidEnumValue($value, $this);
     }
 
     private function coerce(mixed $value): string|int
     {
         if ($this->getBackingType() === 'int') {
             if (is_string($value) || $value instanceof Stringable) {
-                $value = (string)$value;
-                $intValue = (int)$value;
-                if ((string)$intValue !== $value) {
-                    throw new InvalidArgumentException(sprintf('Value "%s" cannot be casted to int backed enum', $value));
+                $intValue = (int)((string)$value);
+                if ((string)$intValue !== (string)$value) {
+                    throw CoerceException::invalidType($value, $this);
                 }
             } elseif (is_float($value)) {
                 $intValue = (int)$value;
                 if (((float)$intValue) !== $value) {
-                    throw new InvalidArgumentException(sprintf('Value of type %.3F cannot be casted to int backed enum', $value));
+                    throw CoerceException::invalidType($value, $this);
                 }
             } else {
                 if (!is_int($value)) {
-                    throw new InvalidArgumentException(sprintf('Value of type %s cannot be casted to int backed enum', get_debug_type($value)));
+                    throw CoerceException::invalidType($value, $this);
                 }
                 $intValue = $value;
             }
@@ -110,7 +101,7 @@ final class EnumSchema implements Schema
             $value = (string)$value;
         }
         if (!is_string($value)) {
-            throw new InvalidArgumentException(sprintf('Value of type %s cannot be casted to string backed enum', get_debug_type($value)));
+            throw CoerceException::invalidType($value, $this);
         }
         return $value;
     }

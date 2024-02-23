@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Wwwision\Types\Schema;
 
-use InvalidArgumentException;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
 use RuntimeException;
 use Stringable;
 use Webmozart\Assert\Assert;
+use Wwwision\Types\Exception\CoerceException;
+use Wwwision\Types\Exception\Issues\Issues;
 
-use function get_debug_type;
 use function is_float;
 use function is_int;
 use function is_string;
@@ -68,27 +68,30 @@ final class IntegerSchema implements Schema
     private function coerce(mixed $value): int
     {
         if (is_string($value) || $value instanceof Stringable) {
-            $value = (string)$value;
-            $intValue = (int)$value;
-            if ((string)$intValue !== $value) {
-                throw new InvalidArgumentException(sprintf('Value "%s" cannot be casted to int', $value));
+            $intValue = (int)((string)$value);
+            if ((string)$intValue !== (string)$value) {
+                throw CoerceException::invalidType($value, $this);
             }
         } elseif (is_float($value)) {
             $intValue = (int)$value;
             if (((float)$intValue) !== $value) {
-                throw new InvalidArgumentException(sprintf('Value %.3F cannot be casted to int', $value));
+                throw CoerceException::invalidType($value, $this);
             }
         } else {
             if (!is_int($value)) {
-                throw new InvalidArgumentException(sprintf('Value of type %s cannot be casted to int', get_debug_type($value)));
+                throw CoerceException::invalidType($value, $this);
             }
             $intValue = $value;
         }
-        if ($this->minimum !== null && $value < $this->minimum) {
-            throw new InvalidArgumentException(sprintf('Value %d falls below the allowed minimum value of %d', $value, $this->minimum));
-        }
+        $issues = Issues::empty();
         if ($this->maximum !== null && $value > $this->maximum) {
-            throw new InvalidArgumentException(sprintf('Value %d exceeds the allowed maximum value of %d', $value, $this->maximum));
+            $issues = $issues->add(CoerceException::tooBig($value, $this, $this->maximum, true, $this->minimum === $this->maximum)->issues);
+        }
+        if ($this->minimum !== null && $value < $this->minimum) {
+            $issues = $issues->add(CoerceException::tooSmall($value, $this, $this->minimum, true, $this->minimum === $this->maximum)->issues);
+        }
+        if (!$issues->isEmpty()) {
+            throw CoerceException::fromIssues($issues, $value, $this);
         }
         return $intValue;
     }

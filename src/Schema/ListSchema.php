@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Wwwision\Types\Schema;
 
-use InvalidArgumentException;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
 use RuntimeException;
 use Webmozart\Assert\Assert;
+use Wwwision\Types\Exception\CoerceException;
+use Wwwision\Types\Exception\Issues\Issues;
 
-use function count;
 use function is_iterable;
 use function sprintf;
 
@@ -69,22 +69,27 @@ final class ListSchema implements Schema
     private function coerce(mixed $value): array
     {
         if (!is_iterable($value)) {
-            throw new InvalidArgumentException(sprintf('Non-iterable value of type %s cannot be casted to list of %s', get_debug_type($value), $this->itemSchema->getName()));
+            throw CoerceException::invalidType($value, $this);
         }
         $converted = [];
+        $count = 0;
+        $issues = Issues::empty();
         foreach ($value as $key => $itemValue) {
+            $count++;
             try {
-                $converted[] = $this->itemSchema->instantiate($itemValue);
-            } catch (InvalidArgumentException $e) {
-                throw new InvalidArgumentException(sprintf('At key "%s": %s', $key, $e->getMessage()), 1688674403, $e);
+                $converted[$key] = $this->itemSchema->instantiate($itemValue);
+            } catch (CoerceException $e) {
+                $issues = $issues->add($e->issues, $key);
             }
         }
-        $count = count($converted);
-        if ($this->minCount !== null && $count < $this->minCount) {
-            throw new InvalidArgumentException(sprintf('Number of elements (%d) is less than allowed min count of %d', $count, $this->minCount), 1688674488);
-        }
         if ($this->maxCount !== null && $count > $this->maxCount) {
-            throw new InvalidArgumentException(sprintf('Number of elements (%d) is more than allowed max count of %d', $count, $this->maxCount), 1688674506);
+            $issues = $issues->prepend(CoerceException::tooBig($value, $this, $this->maxCount, true, $this->minCount === $this->maxCount)->issues);
+        }
+        if ($this->minCount !== null && $count < $this->minCount) {
+            $issues = $issues->prepend(CoerceException::tooSmall($value, $this, $this->minCount, true, $this->minCount === $this->maxCount)->issues);
+        }
+        if (!$issues->isEmpty()) {
+            throw CoerceException::fromIssues($issues, $value, $this);
         }
         return $converted;
     }

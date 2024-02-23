@@ -26,6 +26,11 @@ final class EnumCaseSchema implements Schema
         return $this->reflectionClass->getValue()->name;
     }
 
+    public function getValue(): string|int
+    {
+        return $this->reflectionClass instanceof ReflectionEnumBackedCase ? $this->reflectionClass->getBackingValue() : $this->reflectionClass->getName();
+    }
+
     public function getDescription(): ?string
     {
         return $this->description;
@@ -42,7 +47,7 @@ final class EnumCaseSchema implements Schema
             'type' => $this->getType(),
             'description' => $this->getDescription(),
             'name' => $this->getName(),
-            'value' => $this->reflectionClass instanceof ReflectionEnumBackedCase ? $this->reflectionClass->getBackingValue() : $this->reflectionClass->getName(),
+            'value' => $this->getValue(),
         ];
     }
 }

@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Wwwision\Types\Schema;
 
-use InvalidArgumentException;
 use ReflectionClass;
 use Webmozart\Assert\Assert;
+use Wwwision\Types\Exception\CoerceException;
 use Wwwision\Types\Parser;
 
-use function array_key_exists;
 use function is_array;
 use function sprintf;
 
@@ -71,22 +70,41 @@ final class InterfaceSchema implements Schema
             return $value;
         }
         if (is_array($value)) {
-            Assert::keyExists($value, '__type', 'The given array has to "__type" key');
-            $type = $value['__type'];
-            Assert::string($type, 'Expected "__type" to be of type string, got: %s');
-            Assert::classExists($type, 'Expected "__type" to be a valid class name, got: %s');
-            if (isset($value['__value'])) {
-                $value = $value['__value'];
-            } else {
-                unset($value['__type']);
-            }
-            $result = Parser::instantiate($type, $value);
-            if (!$this->reflectionClass->isInstance($result)) {
-                throw new InvalidArgumentException(sprintf('The given "__type" of "%s" is not an implementation of %s', $type, $this->getName()));
-            }
-            return $result;
+            $array = $value;
+        } elseif (is_iterable($value)) {
+            $array = iterator_to_array($value);
+        } elseif (is_object($value)) {
+            $array = get_object_vars($value);
+        } else {
+            throw CoerceException::invalidType($value, $this);
         }
-        throw new InvalidArgumentException(sprintf('Value of type %s cannot be casted to instance of %s', get_debug_type($value), $this->getName()));
+        if (!array_key_exists('__type', $array)) {
+            throw CoerceException::custom('Missing key "__type"', $value, $this);
+        }
+        $type = $array['__type'];
+        if (!is_string($type)) {
+            throw CoerceException::custom(sprintf('Key "__type" has to be a string, got: %s', get_debug_type($type)), $value, $this);
+        }
+        if (!class_exists($type)) {
+            throw CoerceException::custom(sprintf('Key "__type" has to be a valid class name, got: "%s"', $type), $value, $this);
+        }
+        if (isset($array['__value'])) {
+            $array = $array['__value'];
+        } else {
+            unset($array['__type']);
+        }
+        if ($array === []) {
+            throw CoerceException::custom(sprintf('Missing keys for interface of type %s', $this->getName()), $value, $this);
+        }
+        try {
+            $result = Parser::instantiate($type, $array);
+        } catch (CoerceException $e) {
+            throw CoerceException::fromIssues($e->issues, $value, $this);
+        }
+        if (!$this->reflectionClass->isInstance($result)) {
+            throw CoerceException::custom(sprintf('The given "__type" of "%s" is not an implementation of %s', $type, $this->getName()), $value, $this);
+        }
+        return $result;
     }
 
     public function jsonSerialize(): array
