@@ -68,11 +68,7 @@ final class Parser
             return $input;
         }
         $schema = self::getSchema($className);
-//        try {
-            $instance = $schema->instantiate($input);
-//        } catch (Exception $exception) {
-//            throw new InvalidArgumentException(sprintf('Failed to instantiate %s: %s', $schema->getName(), $exception->getMessage()), 1688582285, $exception);
-//        }
+        $instance = $schema->instantiate($input);
         Assert::isInstanceOf($instance, $className);
         return $instance;
     }

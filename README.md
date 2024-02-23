@@ -558,7 +558,7 @@ assert($objects->map(fn (SimpleOrComplexObject $o) => $o->render()) === ['Simple
 Errors that occur during the instantiation of objects lead to an `InvalidArgumentException` to be thrown.
 That exception contains a human-readable error message that can be helpful to debug any errors, for example:
 
-> At key "0": At property "givenName": Value "a" does not have the required minimum length of 3 characters
+> Failed to instantiate FullNames: At key "0": At property "givenName": Value "a" does not have the required minimum length of 3 characters
 
 Starting with version [1.2](https://github.com/bwaidelich/types/releases/tag/1.2.0), the more specific `CoerceException` is thrown with an improved exception message that collects all failures:
 
