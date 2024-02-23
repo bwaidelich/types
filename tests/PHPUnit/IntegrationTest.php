@@ -112,6 +112,7 @@ final class IntegrationTest extends TestCase
         yield 'shape with bool' => ['className' => ShapeWithBool::class, 'expectedResult' => '{"type":"object","name":"ShapeWithBool","description":null,"properties":[{"type":"boolean","name":"value","description":"Description for literal bool"}]}'];
         yield 'shape with int' => ['className' => ShapeWithInt::class, 'expectedResult' => '{"type":"object","name":"ShapeWithInt","description":null,"properties":[{"type":"int","name":"value","description":"Description for literal int"}]}'];
         yield 'shape with string' => ['className' => ShapeWithString::class, 'expectedResult' => '{"type":"object","name":"ShapeWithString","description":null,"properties":[{"type":"string","name":"value","description":"Description for literal string"}]}'];
+        yield 'shape with float' => ['className' => ShapeWithFloat::class, 'expectedResult' => '{"type":"object","name":"ShapeWithFloat","description":null,"properties":[{"type":"float","name":"value","description":"Description for literal float"}]}'];
         yield 'shape with floats' => ['className' => GeoCoordinates::class, 'expectedResult' => '{"type":"object","name":"GeoCoordinates","description":null,"properties":[{"type":"Longitude","name":"longitude","description":null},{"type":"Latitude","name":"latitude","description":null}]}'];
 
         yield 'interface' => ['className' => SomeInterface::class, 'expectedResult' => '{"description":"SomeInterface description","name":"SomeInterface","properties":[{"description":"Custom description for \"someMethod\"","name":"someMethod","type":"string"},{"description":"Custom description for \"someOtherMethod\"","name":"someOtherMethod","optional":true,"type":"FamilyName"}],"type":"interface"}'];
@@ -928,6 +929,13 @@ final class ShapeWithString {
     private function __construct(
         #[Description('Description for literal string')]
         public readonly string $value,
+    ) {}
+}
+
+final class ShapeWithFloat {
+    private function __construct(
+        #[Description('Description for literal float')]
+        public readonly float $value,
     ) {}
 }
 
