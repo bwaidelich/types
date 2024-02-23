@@ -1,4 +1,4 @@
-Library to narrow the scope of your PHP types with JSON Schema based [attributes](#attributes) allowing for validating
+Library to narrow the scope of your PHP types with JSON Schema inspired [attributes](#attributes) allowing for validating
 and mapping unknown data.
 
 | Why this package might be for you                                                                        | Why this package might NOT be for you                                                  |
