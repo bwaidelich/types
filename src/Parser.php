@@ -18,12 +18,14 @@ use RuntimeException;
 use UnitEnum;
 use Webmozart\Assert\Assert;
 use Wwwision\Types\Attributes\Description;
+use Wwwision\Types\Attributes\FloatBased;
 use Wwwision\Types\Attributes\IntegerBased;
 use Wwwision\Types\Attributes\ListBased;
 use Wwwision\Types\Attributes\StringBased;
 use Wwwision\Types\Attributes\TypeBased;
 use Wwwision\Types\Schema\EnumCaseSchema;
 use Wwwision\Types\Schema\EnumSchema;
+use Wwwision\Types\Schema\FloatSchema;
 use Wwwision\Types\Schema\IntegerSchema;
 use Wwwision\Types\Schema\InterfaceSchema;
 use Wwwision\Types\Schema\ListSchema;
@@ -105,6 +107,7 @@ final class Parser
         return match ($baseTypeAttribute::class) {
             StringBased::class => new StringSchema($reflectionClass, self::getDescription($reflectionClass), $baseTypeAttribute->minLength, $baseTypeAttribute->maxLength, $baseTypeAttribute->pattern, $baseTypeAttribute->format),
             IntegerBased::class => new IntegerSchema($reflectionClass, self::getDescription($reflectionClass), $baseTypeAttribute->minimum, $baseTypeAttribute->maximum),
+            FloatBased::class => new FloatSchema($reflectionClass, self::getDescription($reflectionClass), $baseTypeAttribute->minimum, $baseTypeAttribute->maximum),
             ListBased::class => new ListSchema(
                 $reflectionClass,
                 self::getDescription($reflectionClass),

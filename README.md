@@ -278,6 +278,33 @@ instantiate(SomeIntBased::class, '-5');
 
 </details>
 
+### FloatBased
+
+Starting with version [1.2](https://github.com/bwaidelich/types/releases/tag/1.2.0)
+
+With the `FloatBased` attribute you can create Value Objects that represent a floating point number (aka double).
+It has the optional arguments
+
+* `minimum` – to specify the allowed _minimum_ value (as integer or float)
+* `maximum` – to specify the allowed _maximum_ value (as integer or float)
+
+<details>
+<summary><h4>Example</h4></summary>
+
+```php
+#[FloatBased(minimum: 12.34, maximum: 30)]
+final class SomeFloatBased {
+    private function __construct(public readonly float $value) {}
+}
+
+instantiate(SomeFloatBased::class, 12);
+
+// Exception: Failed to cast integer value of 12 to SomeFloatBased: too_small (Number must be greater than or equal to 12.340)
+```
+
+</details>
+
+
 ### StringBased
 
 With the `StringBased` attribute you can create Value Objects that represent a string.

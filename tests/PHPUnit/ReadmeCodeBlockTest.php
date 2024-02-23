@@ -57,6 +57,7 @@ final class ReadmeCodeBlockTest extends TestCase
                 use Traversable;
                 use Wwwision\Types\Attributes\Description;
                 use Wwwision\Types\Attributes\IntegerBased;
+                use Wwwision\Types\Attributes\FloatBased;
                 use Wwwision\Types\Attributes\ListBased;
                 use Wwwision\Types\Attributes\StringBased;
                 use Wwwision\Types\Exception\CoerceException;
