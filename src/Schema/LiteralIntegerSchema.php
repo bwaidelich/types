@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Wwwision\Types\Schema;
 
-use InvalidArgumentException;
 use Stringable;
+use Wwwision\Types\Exception\CoerceException;
 
-use function get_debug_type;
 use function is_float;
 use function is_int;
 use function is_string;
-use function sprintf;
 
 final class LiteralIntegerSchema implements Schema
 {
@@ -43,19 +41,18 @@ final class LiteralIntegerSchema implements Schema
     private function coerce(mixed $value): int
     {
         if (is_string($value) || $value instanceof Stringable) {
-            $value = (string)$value;
-            $intValue = (int)$value;
-            if ((string)$intValue !== $value) {
-                throw new InvalidArgumentException(sprintf('Value "%s" cannot be casted to integer', $value));
+            $intValue = (int)((string)$value);
+            if ((string)$intValue !== (string)$value) {
+                throw CoerceException::invalidType($value, $this);
             }
         } elseif (is_float($value)) {
             $intValue = (int)$value;
             if (((float)$intValue) !== $value) {
-                throw new InvalidArgumentException(sprintf('Value %.3F cannot be casted to integer', $value));
+                throw CoerceException::invalidType($value, $this);
             }
         } else {
             if (!is_int($value)) {
-                throw new InvalidArgumentException(sprintf('Value of type %s cannot be casted to integer', get_debug_type($value)));
+                throw CoerceException::invalidType($value, $this);
             }
             $intValue = $value;
         }

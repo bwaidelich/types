@@ -227,8 +227,7 @@ assert($date->value === '1980-12-31');
 // this is not because of the "pattern"
 $date = $date->add(new \DateInterval('P1D'));
 
-// Exception: InvalidArgumentException: Failed to instantiate Date: Value "1981-01-01" does not match the regular expression "/^1980/"
-
+// Exception: Failed to cast string of "1981-01-01" to Date: invalid_string (Value does not match regular expression)
 ```
 
 ## Attributes
@@ -274,7 +273,7 @@ final class SomeIntBased {
 
 instantiate(SomeIntBased::class, '-5');
 
-// Exception: InvalidArgumentException: Failed to instantiate SomeIntBased: Value -5 falls below the allowed minimum value of 0
+// Exception: Failed to cast string of "-5" to SomeIntBased: too_small (Number must be greater than or equal to 0)
 ```
 
 </details>
@@ -301,7 +300,7 @@ final class GivenName {
 
 instantiate(GivenName::class, '');
 
-// Exception: InvalidArgumentException: Failed to instantiate GivenName: Value "" does not have the required minimum length of 1 characters
+// Exception: Failed to cast string of "" to GivenName: too_small (String must contain at least 1 character(s))
 ```
 
 </details>
@@ -319,7 +318,7 @@ final class EmployeeEmailAddress {
 
 instantiate(EmployeeEmailAddress::class, 'not@your.org.localhost');
 
-// Exception: InvalidArgumentException: Failed to instantiate EmployeeEmailAddress: Value "not@your.org.localhost" does not match the regular expression "/@your.org$/"
+// Exception: Failed to cast string of "not@your.org.localhost" to EmployeeEmailAddress: invalid_string (Value does not match regular expression)
 ```
 
 </details>
@@ -394,7 +393,7 @@ final class HobbiesAdvanced implements IteratorAggregate, Countable, JsonSeriali
 
 instantiate(HobbiesAdvanced::class, ['Soccer', 'Ping Pong', 'Guitar', 'Gaming']);
 
-// Exception: InvalidArgumentException: Failed to instantiate HobbiesAdvanced: Number of elements (4) is more than allowed max count of 3
+// Exception: Failed to cast value of type array to HobbiesAdvanced: too_big (Array must contain at most 3 element(s))
 ```
 
 </details>
@@ -553,6 +552,46 @@ assert($objects->map(fn (SimpleOrComplexObject $o) => $o->render()) === ['Simple
 ```
 
 </details>
+
+## Error handling
+
+Errors that occur during the instantiation of objects lead to an `InvalidArgumentException` to be thrown.
+That exception contains a human-readable error message that can be helpful to debug any errors, for example:
+
+> Failed to instantiate FullNames: At key "0": At property "givenName": Value "a" does not have the required minimum length of 3 characters
+
+Starting with version [1.2](https://github.com/bwaidelich/types/releases/tag/1.2.0), the more specific `CoerceException` is thrown with an improved exception message that collects all failures:
+
+> Failed to cast value of type array to FullNames: At "0.givenName": too_small (String must contain at least 3 character(s)). At "1.familyName": invalid_type (Required)
+
+In addition, the exception contains a property `issues` that allows for programmatic parsing and/or rewriting of the error messages.
+The exception itself is JSON-serializable and the above example would be equivalent to:
+
+```json
+[
+  {
+    "code": "too_small",
+    "message": "String must contain at least 3 character(s)",
+    "path": [0, "givenName"],
+    "type": "string",
+    "minimum": 3,
+    "inclusive": true,
+    "exact": false
+  },
+  {
+    "code": "invalid_type",
+    "message": "Required",
+    "path": [1, "familyName"],
+    "expected": "string",
+    "received": "undefined"
+  }
+]
+```
+
+> **Note**
+> If the syntax is familiar to you, that's no surpise. It is inspired (and in fact almost completely compatible) with the issue format
+> of the fantastic [Zod library](https://zod.dev/ERROR_HANDLING)
+
 
 ## Integrations
 

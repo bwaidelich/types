@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace Wwwision\Types\Schema;
 
-use InvalidArgumentException;
-
-use function get_debug_type;
-use function sprintf;
+use Wwwision\Types\Exception\CoerceException;
 
 final class LiteralBooleanSchema implements Schema
 {
@@ -42,13 +39,7 @@ final class LiteralBooleanSchema implements Schema
         if ($value === 1 || $value === '1') {
             return true;
         }
-        if (is_string($value)) {
-            throw new InvalidArgumentException(sprintf('Value "%s" cannot be casted to boolean', $value));
-        }
-        if (is_int($value)) {
-            throw new InvalidArgumentException(sprintf('Value %d cannot be casted to boolean', $value));
-        }
-        throw new InvalidArgumentException(sprintf('Value of type %s cannot be casted to boolean', get_debug_type($value)));
+        throw CoerceException::invalidType($value, $this);
     }
 
     public function jsonSerialize(): array

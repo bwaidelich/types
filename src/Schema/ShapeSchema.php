@@ -4,19 +4,17 @@ declare(strict_types=1);
 
 namespace Wwwision\Types\Schema;
 
-use InvalidArgumentException;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
 use RuntimeException;
 use Webmozart\Assert\Assert;
+use Wwwision\Types\Exception\CoerceException;
+use Wwwision\Types\Exception\Issues\Issues;
 
 use function array_diff_key;
 use function array_key_exists;
-use function array_keys;
-use function get_debug_type;
 use function get_object_vars;
-use function implode;
 use function is_array;
 use function is_iterable;
 use function is_object;
@@ -90,27 +88,30 @@ final class ShapeSchema implements Schema
         } elseif (is_object($value)) {
             $array = get_object_vars($value);
         } else {
-            throw new InvalidArgumentException(sprintf('Non-iterable value of type %s cannot be casted to instance of %s', get_debug_type($value), $this->getName()));
+            throw CoerceException::invalidType($value, $this);
         }
-        $unknownProperties = array_diff_key($array, $this->propertySchemas);
-        if ($unknownProperties !== []) {
-            throw new InvalidArgumentException(sprintf('Unknown propert%s "%s"', count($unknownProperties) !== 1 ? 'ies' : 'y', implode('", "', array_keys($unknownProperties))));
-        }
-
+        $issues = Issues::empty();
         $result = [];
         foreach ($this->propertySchemas as $propertyName => $propertySchema) {
             if (array_key_exists($propertyName, $array)) {
                 try {
                     $result[$propertyName] = $propertySchema->instantiate($array[$propertyName]);
-                } catch (InvalidArgumentException $e) {
-                    throw new InvalidArgumentException(sprintf('At property "%s": %s', $propertyName, $e->getMessage()), 1688564876, $e);
+                } catch (CoerceException $e) {
+                    $issues = $issues->add($e->issues, $propertyName);
                 }
                 continue;
             }
             if ($propertySchema instanceof OptionalSchema) {
                 continue;
             }
-            throw new InvalidArgumentException(sprintf('Missing property "%s"', $propertyName));
+            $issues = $issues->add(CoerceException::required($this, $propertySchema)->issues, $propertyName);
+        }
+        $unrecognizedKeys = array_diff_key($array, $this->propertySchemas);
+        if ($unrecognizedKeys !== []) {
+            $issues = $issues->add(CoerceException::unrecognizedKeys($value, $this, array_values($unrecognizedKeys))->issues);
+        }
+        if (!$issues->isEmpty()) {
+            throw CoerceException::fromIssues($issues, $value, $this);
         }
         return $result;
     }

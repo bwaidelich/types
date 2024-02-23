@@ -6,7 +6,6 @@ namespace Wwwision\Types\Schema;
 
 use DateTimeImmutable;
 use DateTimeInterface;
-use InvalidArgumentException;
 use Ramsey\Uuid\Uuid;
 use ReflectionClass;
 use ReflectionException;
@@ -14,9 +13,10 @@ use ReflectionMethod;
 use RuntimeException;
 use Stringable;
 use Webmozart\Assert\Assert;
+use Wwwision\Types\Exception\CoerceException;
+use Wwwision\Types\Exception\Issues\Issues;
 
 use function filter_var;
-use function get_debug_type;
 use function is_string;
 use function preg_match;
 use function sprintf;
@@ -80,16 +80,17 @@ final class StringSchema implements Schema
             $value = (string)$value;
         }
         if (!is_string($value)) {
-            throw new InvalidArgumentException(sprintf('Value of type %s cannot be casted to string', get_debug_type($value)));
+            throw CoerceException::invalidType($value, $this);
         }
+        $issues = Issues::empty();
         if ($this->minLength !== null && strlen($value) < $this->minLength) {
-            throw new InvalidArgumentException(sprintf('Value "%s" does not have the required minimum length of %d characters', $value, $this->minLength));
+            $issues = $issues->add(CoerceException::tooSmall($value, $this, $this->minLength, true, $this->minLength === $this->maxLength)->issues);
         }
         if ($this->maxLength !== null && strlen($value) > $this->maxLength) {
-            throw new InvalidArgumentException(sprintf('Value "%s" exceeds the allowed maximum length of %d characters', $value, $this->maxLength));
+            $issues = $issues->add(CoerceException::tooBig($value, $this, $this->maxLength, true, $this->minLength === $this->maxLength)->issues);
         }
         if ($this->pattern !== null && preg_match('/' . $this->pattern . '/', $value) !== 1) {
-            throw new InvalidArgumentException(sprintf('Value "%s" does not match the regular expression "/%s/"', $value, $this->pattern));
+            $issues = $issues->add(CoerceException::invalidPattern($value, $this)->issues);
         }
         if ($this->format !== null) {
             $matchesFormat = match ($this->format) {
@@ -100,8 +101,11 @@ final class StringSchema implements Schema
                 StringTypeFormat::uuid => Uuid::isValid($value),
             };
             if (!$matchesFormat) {
-                throw new InvalidArgumentException(sprintf('Value "%s" does not match format "%s"', $value, $this->format->name));
+                $issues = $issues->add(CoerceException::invalidString($value, $this)->issues);
             }
+        }
+        if (!$issues->isEmpty()) {
+            throw CoerceException::fromIssues($issues, $value, $this);
         }
         return $value;
     }

@@ -19,6 +19,7 @@ use Wwwision\Types\Attributes\Description;
 use Wwwision\Types\Attributes\IntegerBased;
 use Wwwision\Types\Attributes\ListBased;
 use Wwwision\Types\Attributes\StringBased;
+use Wwwision\Types\Exception\CoerceException;
 use Wwwision\Types\Parser;
 use Wwwision\Types\Schema\EnumCaseSchema;
 use Wwwision\Types\Schema\EnumSchema;
@@ -54,7 +55,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(StringSchema::class)]
 #[CoversClass(InterfaceSchema::class)]
 #[CoversClass(StringTypeFormat::class)]
-#[CoversClass(instantiate::class)]
 final class IntegrationTest extends TestCase
 {
 
@@ -171,21 +171,28 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_enum_failing_dataProvider(): Generator
     {
-        yield 'from null' => ['value' => null, 'expectedExceptionMessage' => 'Failed to instantiate Title: Value of type null cannot be casted to string backed enum'];
-        yield 'from string that is no case' => ['value' => 'mr', 'expectedExceptionMessage' => 'Failed to instantiate Title: Value "mr" is not a valid enum case'];
-        yield 'from object' => ['value' => new stdClass(), 'expectedExceptionMessage' => 'Failed to instantiate Title: Value of type stdClass cannot be casted to string backed enum'];
-        yield 'from boolean' => ['value' => true, 'expectedExceptionMessage' => 'Failed to instantiate Title: Value of type bool cannot be casted to string backed enum'];
-        yield 'from integer' => ['value' => 3, 'expectedExceptionMessage' => 'Failed to instantiate Title: Value 3 is not a valid enum case'];
-        yield 'from float without fraction' => ['value' => 2.0, 'expectedExceptionMessage' => 'Failed to instantiate Title: Value of type float cannot be casted to string backed enum'];
-        yield 'from float with fraction' => ['value' => 2.5, 'expectedExceptionMessage' => 'Failed to instantiate Title: Value of type float cannot be casted to string backed enum'];
+        yield 'from null' => ['value' => null, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected \'MR\' | \'MRS\' | \'MISS\' | \'MS\' | \'OTHER\', received null', 'path' => [], 'expected' => 'enum', 'received' => 'null']]];
+        yield 'from string that is no case' => ['value' => 'mr', 'expectedIssues' => [['code' => 'invalid_enum_value', 'message' => 'Invalid enum value. Expected \'MR\' | \'MRS\' | \'MISS\' | \'MS\' | \'OTHER\', received \'mr\'', 'path' => [], 'received' => '\'mr\'', 'options' => ['MR', 'MRS', 'MISS', 'MS', 'OTHER']]]];
+        yield 'from long string that is no case' => ['value' => 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum', 'expectedIssues' => [['code' => 'invalid_enum_value', 'message' => 'Invalid enum value. Expected \'MR\' | \'MRS\' | \'MISS\' | \'MS\' | \'OTHER\', received \'Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt[...]\'', 'path' => [], 'received' => '\'Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt[...]\'', 'options' => ['MR', 'MRS', 'MISS', 'MS', 'OTHER']]]];
+        yield 'from object' => ['value' => new stdClass(), 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected \'MR\' | \'MRS\' | \'MISS\' | \'MS\' | \'OTHER\', received object', 'path' => [], 'expected' => 'enum', 'received' => 'object']]];
+        yield 'from boolean' => ['value' => true, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected \'MR\' | \'MRS\' | \'MISS\' | \'MS\' | \'OTHER\', received boolean', 'path' => [], 'expected' => 'enum', 'received' => 'boolean']]];
+        yield 'from integer' => ['value' => 3, 'expectedIssues' => [['code' => 'invalid_enum_value', 'message' => 'Invalid enum value. Expected \'MR\' | \'MRS\' | \'MISS\' | \'MS\' | \'OTHER\', received integer', 'path' => [], 'received' => 'integer', 'options' => ['MR', 'MRS', 'MISS', 'MS', 'OTHER']]]];
+        yield 'from float without fraction' => ['value' => 2.0, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected \'MR\' | \'MRS\' | \'MISS\' | \'MS\' | \'OTHER\', received double', 'path' => [], 'expected' => 'enum', 'received' => 'double']]];
+        yield 'from float with fraction' => ['value' => 2.5, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected \'MR\' | \'MRS\' | \'MISS\' | \'MS\' | \'OTHER\', received double', 'path' => [], 'expected' => 'enum', 'received' => 'double']]];
     }
 
     #[DataProvider('instantiate_enum_failing_dataProvider')]
-    public function test_instantiate_enum_failing(mixed $value, string $expectedExceptionMessage): void
+    public function test_instantiate_enum_failing(mixed $value, array $expectedIssues): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage($expectedExceptionMessage);
-        instantiate(Title::class, $value);
+        $exceptionThrown = false;
+        $expectedIssuesJson = json_encode($expectedIssues, JSON_THROW_ON_ERROR);
+        try {
+            instantiate(Title::class, $value);
+        } catch (CoerceException $e) {
+            $exceptionThrown = true;
+            self::assertJsonStringEqualsJsonString($expectedIssuesJson, json_encode($e, JSON_THROW_ON_ERROR));
+        }
+        self::assertTrue($exceptionThrown, sprintf('Failed asserting that exception of type "%s" is thrown.', CoerceException::class));
     }
 
     public static function instantiate_enum_dataProvider(): Generator
@@ -193,7 +200,7 @@ final class IntegrationTest extends TestCase
         yield 'from instance' => ['value' => Title::MR, 'expectedResult' => Title::MR];
         yield 'from string matching a case' => ['value' => 'MRS', 'expectedResult' => Title::MRS];
         yield 'from stringable object matching a case' => ['value' => new class {
-            function __toString()
+            public function __toString()
             {
                 return 'MISS';
             }
@@ -209,20 +216,26 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_int_backed_enum_failing_dataProvider(): Generator
     {
-        yield 'from null' => ['value' => null, 'expectedExceptionMessage' => 'Failed to instantiate Number: Value of type null cannot be casted to int backed enum'];
-        yield 'from string' => ['value' => 'TWO', 'expectedExceptionMessage' => 'Failed to instantiate Number: Value "TWO" cannot be casted to int backed enum'];
-        yield 'from object' => ['value' => new stdClass(), 'expectedExceptionMessage' => 'Failed to instantiate Number: Value of type stdClass cannot be casted to int backed enum'];
-        yield 'from float with fraction' => ['value' => 2.5, 'expectedExceptionMessage' => 'Failed to instantiate Number: Value of type 2.500 cannot be casted to int backed enum'];
-        yield 'from float with fraction 2' => ['value' => 2.345678, 'expectedExceptionMessage' => 'Failed to instantiate Number: Value of type 2.346 cannot be casted to int backed enum'];
-        yield 'from int that matches no case' => ['value' => 5, 'expectedExceptionMessage' => 'Failed to instantiate Number: Value 5 is not a valid enum case'];
+        yield 'from null' => ['value' => null, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected 1 | 2 | 3, received null', 'path' => [], 'expected' => 'enum', 'received' => 'null']]];
+        yield 'from string' => ['value' => 'TWO', 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected 1 | 2 | 3, received string', 'path' => [], 'expected' => 'enum', 'received' => 'string']]];
+        yield 'from object' => ['value' => new stdClass(), 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected 1 | 2 | 3, received object', 'path' => [], 'expected' => 'enum', 'received' => 'object']]];
+        yield 'from float with fraction' => ['value' => 2.5, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected 1 | 2 | 3, received double', 'path' => [], 'expected' => 'enum', 'received' => 'double']]];
+        yield 'from float with fraction 2' => ['value' => 2.345678, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected 1 | 2 | 3, received double', 'path' => [], 'expected' => 'enum', 'received' => 'double']]];
+        yield 'from int that matches no case' => ['value' => 5, 'expectedIssues' => [['code' => 'invalid_enum_value', 'message' => 'Invalid enum value. Expected 1 | 2 | 3, received integer', 'path' => [], 'received' => 'integer', 'options' => [1, 2, 3]]]];
     }
 
     #[DataProvider('instantiate_int_backed_enum_failing_dataProvider')]
-    public function test_instantiate_int_backed_enum_failing(mixed $value, string $expectedExceptionMessage): void
+    public function test_instantiate_int_backed_enum_failing(mixed $value, array $expectedIssues): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage($expectedExceptionMessage);
-        instantiate(Number::class, $value);
+        $exceptionThrown = false;
+        $expectedIssuesJson = json_encode($expectedIssues, JSON_THROW_ON_ERROR);
+        try {
+            instantiate(Number::class, $value);
+        } catch (CoerceException $e) {
+            $exceptionThrown = true;
+            self::assertJsonStringEqualsJsonString($expectedIssuesJson, json_encode($e, JSON_THROW_ON_ERROR));
+        }
+        self::assertTrue($exceptionThrown, sprintf('Failed asserting that exception of type "%s" is thrown.', CoerceException::class));
     }
 
     public static function instantiate_int_backed_enum_dataProvider(): Generator
@@ -241,21 +254,27 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_string_backed_enum_failing_dataProvider(): Generator
     {
-        yield 'from null' => ['value' => null, 'expectedExceptionMessage' => 'Failed to instantiate RomanNumber: Value of type null cannot be casted to string backed enum'];
-        yield 'from string that is no case' => ['value' => 'i', 'expectedExceptionMessage' => 'Failed to instantiate RomanNumber: Value "i" is not a valid enum case'];
-        yield 'from object' => ['value' => new stdClass(), 'expectedExceptionMessage' => 'Failed to instantiate RomanNumber: Value of type stdClass cannot be casted to string backed enum'];
-        yield 'from boolean' => ['value' => false, 'expectedExceptionMessage' => 'Failed to instantiate RomanNumber: Value of type bool cannot be casted to string backed enum'];
-        yield 'from integer that matches no case' => ['value' => 12, 'expectedExceptionMessage' => 'Failed to instantiate RomanNumber: Value 12 is not a valid enum case'];
-        yield 'from float without fraction that matches a case' => ['value' => 2.0, 'expectedExceptionMessage' => 'Failed to instantiate RomanNumber: Value of type float cannot be casted to string backed enum'];
-        yield 'from float with fraction' => ['value' => 2.5, 'expectedExceptionMessage' => 'Failed to instantiate RomanNumber: Value of type float cannot be casted to string backed enum'];
+        yield 'from null' => ['value' => null, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected \'1\' | \'2\' | \'3\' | \'4\', received null', 'path' => [], 'expected' => 'enum', 'received' => 'null']]];
+        yield 'from string that is no case' => ['value' => 'i', 'expectedIssues' => [['code' => 'invalid_enum_value', 'message' => 'Invalid enum value. Expected \'1\' | \'2\' | \'3\' | \'4\', received \'i\'', 'path' => [], 'received' => '\'i\'', 'options' => ['1', '2', '3', '4']]]];
+        yield 'from object' => ['value' => new stdClass(), 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected \'1\' | \'2\' | \'3\' | \'4\', received object', 'path' => [], 'expected' => 'enum', 'received' => 'object']]];
+        yield 'from boolean' => ['value' => false, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected \'1\' | \'2\' | \'3\' | \'4\', received boolean', 'path' => [], 'expected' => 'enum', 'received' => 'boolean']]];
+        yield 'from integer that matches no case' => ['value' => 12, 'expectedIssues' => [['code' => 'invalid_enum_value', 'message' => 'Invalid enum value. Expected \'1\' | \'2\' | \'3\' | \'4\', received integer', 'path' => [], 'received' => 'integer', 'options' => ['1', '2', '3', '4']]]];
+        yield 'from float without fraction that matches a case' => ['value' => 2.0, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected \'1\' | \'2\' | \'3\' | \'4\', received double', 'path' => [], 'expected' => 'enum', 'received' => 'double']]];
+        yield 'from float with fraction' => ['value' => 2.5, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected \'1\' | \'2\' | \'3\' | \'4\', received double', 'path' => [], 'expected' => 'enum', 'received' => 'double']]];
     }
 
     #[DataProvider('instantiate_string_backed_enum_failing_dataProvider')]
-    public function test_instantiate_string_backed_enum_failing(mixed $value, string $expectedExceptionMessage): void
+    public function test_instantiate_string_backed_enum_failing(mixed $value, array $expectedIssues): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage($expectedExceptionMessage);
-        instantiate(RomanNumber::class, $value);
+        $exceptionThrown = false;
+        $expectedIssuesJson = json_encode($expectedIssues, JSON_THROW_ON_ERROR);
+        try {
+            instantiate(RomanNumber::class, $value);
+        } catch (CoerceException $e) {
+            $exceptionThrown = true;
+            self::assertJsonStringEqualsJsonString($expectedIssuesJson, json_encode($e, JSON_THROW_ON_ERROR));
+        }
+        self::assertTrue($exceptionThrown, sprintf('Failed asserting that exception of type "%s" is thrown.', CoerceException::class));
     }
 
     public static function instantiate_string_backed_enum_dataProvider(): Generator
@@ -273,24 +292,34 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_int_based_object_failing_dataProvider(): Generator
     {
-        yield 'from null' => ['value' => null, 'className' => Age::class, 'expectedExceptionMessage' => 'Failed to instantiate Age: Value of type null cannot be casted to int'];
-        yield 'from object' => ['value' => new stdClass(), 'className' => Age::class, 'expectedExceptionMessage' => 'Failed to instantiate Age: Value of type stdClass cannot be casted to int'];
-        yield 'from boolean' => ['value' => false, 'className' => Age::class, 'expectedExceptionMessage' => 'Failed to instantiate Age: Value of type bool cannot be casted to int'];
-        yield 'from string' => ['value' => 'not numeric', 'className' => Age::class, 'expectedExceptionMessage' => 'Failed to instantiate Age: Value "not numeric" cannot be casted to int'];
-        yield 'from string with float' => ['value' => '2.0', 'className' => Age::class, 'expectedExceptionMessage' => 'Failed to instantiate Age: Value "2.0" cannot be casted to int'];
-        yield 'from float with fraction' => ['value' => 2.5, 'className' => Age::class, 'expectedExceptionMessage' => 'Failed to instantiate Age: Value 2.500 cannot be casted to int'];
+        yield 'from null' => ['value' => null, 'className' => Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received null', 'path' => [], 'expected' => 'integer', 'received' => 'null']]];
+        yield 'from object' => ['value' => new stdClass(), 'className' => Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received object', 'path' => [], 'expected' => 'integer', 'received' => 'object']]];
+        yield 'from boolean' => ['value' => false, 'className' => Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received boolean', 'path' => [], 'expected' => 'integer', 'received' => 'boolean']]];
+        yield 'from string' => ['value' => 'not numeric', 'className' => Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received string', 'path' => [], 'expected' => 'integer', 'received' => 'string']]];
+        yield 'from string with float' => ['value' => '2.0', 'className' => Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received string', 'path' => [], 'expected' => 'integer', 'received' => 'string']]];
+        yield 'from float with fraction' => ['value' => 2.5, 'className' => Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received double', 'path' => [], 'expected' => 'integer', 'received' => 'double']]];
 
-        yield 'from integer violating minimum' => ['value' => 0, 'className' => Age::class, 'expectedExceptionMessage' => 'Failed to instantiate Age: Value 0 falls below the allowed minimum value of 1'];
-        yield 'from integer violating maximum' => ['value' => 121, 'className' => Age::class, 'expectedExceptionMessage' => 'Failed to instantiate Age: Value 121 exceeds the allowed maximum value of 120'];
+        yield 'from integer violating minimum' => ['value' => 0, 'className' => Age::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Number must be greater than or equal to 1', 'path' => [], 'type' => 'integer', 'minimum' => 1, 'inclusive' => true, 'exact' => false]]];
+        yield 'from integer violating maximum' => ['value' => 121, 'className' => Age::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Number must be less than or equal to 120', 'path' => [], 'type' => 'integer', 'maximum' => 120, 'inclusive' => true, 'exact' => false]]];
+
+        yield 'from integer violating multiple constraints' => ['value' => 5, 'className' => ImpossibleInt::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Number must be less than or equal to 2', 'path' => [], 'type' => 'integer', 'maximum' => 2, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'Number must be greater than or equal to 10', 'path' => [], 'type' => 'integer', 'minimum' => 10, 'inclusive' => true, 'exact' => false]]];
     }
 
+    /**
+     * @param class-string<object> $className
+     */
     #[DataProvider('instantiate_int_based_object_failing_dataProvider')]
-    public function test_instantiate_int_based_object_failing(mixed $value, string $className, string $expectedExceptionMessage): void
+    public function test_instantiate_int_based_object_failing(mixed $value, string $className, array $expectedIssues): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage($expectedExceptionMessage);
-        /** @var class-string<object> $className */
-        instantiate($className, $value);
+        $exceptionThrown = false;
+        $expectedIssuesJson = json_encode($expectedIssues, JSON_THROW_ON_ERROR);
+        try {
+            instantiate($className, $value);
+        } catch (CoerceException $e) {
+            $exceptionThrown = true;
+            self::assertJsonStringEqualsJsonString($expectedIssuesJson, json_encode($e, JSON_THROW_ON_ERROR));
+        }
+        self::assertTrue($exceptionThrown, sprintf('Failed asserting that exception of type "%s" is thrown.', CoerceException::class));
     }
 
     public static function instantiate_int_based_object_dataProvider(): Generator
@@ -310,70 +339,89 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_list_object_failing_dataProvider(): Generator
     {
-        yield 'from null' => ['value' => null, 'className' => FullNames::class, 'expectedExceptionMessage' => 'Failed to instantiate FullNames: Non-iterable value of type null cannot be casted to list of FullName'];
-        yield 'from object' => ['value' => new stdClass(), 'className' => FullNames::class, 'expectedExceptionMessage' => 'Failed to instantiate FullNames: Non-iterable value of type stdClass cannot be casted to list of FullName'];
-        yield 'from boolean' => ['value' => false, 'className' => FullNames::class, 'expectedExceptionMessage' => 'Failed to instantiate FullNames: Non-iterable value of type bool cannot be casted to list of FullName'];
-        yield 'from string' => ['value' => 'some string', 'className' => FullNames::class, 'expectedExceptionMessage' => 'Failed to instantiate FullNames: Non-iterable value of type string cannot be casted to list of FullName'];
+        yield 'from null' => ['value' => null, 'className' => FullNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected array, received null', 'path' => [], 'expected' => 'array', 'received' => 'null']]];
+        yield 'from object' => ['value' => new stdClass(), 'className' => FullNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected array, received object', 'path' => [], 'expected' => 'array', 'received' => 'object']]];
+        yield 'from boolean' => ['value' => false, 'className' => FullNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected array, received boolean', 'path' => [], 'expected' => 'array', 'received' => 'boolean']]];
+        yield 'from string' => ['value' => 'some string', 'className' => FullNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected array, received string', 'path' => [], 'expected' => 'array', 'received' => 'string']]];
 
-        yield 'from array with invalid item' => ['value' => ['Some value'], 'className' => FullNames::class, 'expectedExceptionMessage' => 'Failed to instantiate FullNames: At key "0": Non-iterable value of type string cannot be casted to instance of FullName'];
-        yield 'from array with invalid item 2' => ['value' => [123.45], 'className' => GivenNames::class, 'expectedExceptionMessage' => 'Failed to instantiate GivenNames: At key "0": Value of type float cannot be casted to string'];
-        yield 'from array violating minCount' => ['value' => [], 'className' => FullNames::class, 'expectedExceptionMessage' => 'Failed to instantiate FullNames: Number of elements (0) is less than allowed min count of 2'];
-        yield 'from array violating minCount 2' => ['value' => [['givenName' => 'John', 'familyName' => 'Doe']], 'className' => FullNames::class, 'expectedExceptionMessage' => 'Failed to instantiate FullNames: Number of elements (1) is less than allowed min count of 2'];
-        yield 'from array violating maxCount' => ['value' => ['John', 'Jane', 'Max', 'Jack', 'Fred'], 'className' => GivenNames::class, 'expectedExceptionMessage' => 'Failed to instantiate GivenNames: Number of elements (5) is more than allowed max count of 4'];
+        yield 'from array with invalid item' => ['value' => [123.45], 'className' => GivenNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received double', 'path' => [0], 'expected' => 'string', 'received' => 'double']]];
+        yield 'from array with invalid items' => ['value' => ['Some value', 'Some other value'], 'className' => FullNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received string', 'path' => [0], 'expected' => 'object', 'received' => 'string'], ['code' => 'invalid_type', 'message' => 'Expected object, received string', 'path' => [1], 'expected' => 'object', 'received' => 'string']]];
+        yield 'from non-assoc array with custom exception' => ['value' => ['https://wwwision.de', 'https://neos.io'], 'className' => UriMap::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Expected associative array with string keys', 'path' => [], 'params' => []]]];
+        yield 'from array violating minCount' => ['value' => [], 'className' => FullNames::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Array must contain at least 2 element(s)', 'path' => [], 'type' => 'array', 'minimum' => 2, 'inclusive' => true, 'exact' => false]]];
+        yield 'from array violating minCount 2' => ['value' => [['givenName' => 'John', 'familyName' => 'Doe']], 'className' => FullNames::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Array must contain at least 2 element(s)', 'path' => [], 'type' => 'array', 'minimum' => 2, 'inclusive' => true, 'exact' => false]]];
+        yield 'from array violating maxCount' => ['value' => ['John', 'Jane', 'Max', 'Jack', 'Fred'], 'className' => GivenNames::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Array must contain at most 4 element(s)', 'path' => [], 'type' => 'array', 'maximum' => 4, 'inclusive' => true, 'exact' => false]]];
+        yield 'from array violating mixCount and maxCount' => ['value' => ['foo', 'bar', 'baz'], 'className' => ImpossibleList::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Array must contain at least 10 element(s)', 'path' => [], 'type' => 'array', 'minimum' => 10, 'inclusive' => true, 'exact' => false], ['code' => 'too_big', 'message' => 'Array must contain at most 2 element(s)', 'path' => [], 'type' => 'array', 'maximum' => 2, 'inclusive' => true, 'exact' => false]]];
+        yield 'from array violating mixCount and maxCount and element constraints' => ['value' => ['a', 'bar', 'c'], 'className' => ImpossibleList::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Array must contain at least 10 element(s)', 'path' => [], 'type' => 'array', 'minimum' => 10, 'inclusive' => true, 'exact' => false], ['code' => 'too_big', 'message' => 'Array must contain at most 2 element(s)', 'path' => [], 'type' => 'array', 'maximum' => 2, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => [0], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => [2], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false]]];
     }
 
     #[DataProvider('instantiate_list_object_failing_dataProvider')]
-    public function test_instantiate_list_object_failing(mixed $value, string $className, string $expectedExceptionMessage): void
+    public function test_instantiate_list_object_failing(mixed $value, string $className, array $expectedIssues): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage($expectedExceptionMessage);
-        /** @var class-string<object> $className */
-        instantiate($className, $value);
+        $exceptionThrown = false;
+        $expectedIssuesJson = json_encode($expectedIssues, JSON_THROW_ON_ERROR);
+        try {
+            instantiate($className, $value);
+        } catch (CoerceException $e) {
+            $exceptionThrown = true;
+            self::assertJsonStringEqualsJsonString($expectedIssuesJson, json_encode($e, JSON_THROW_ON_ERROR));
+        }
+        self::assertTrue($exceptionThrown, sprintf('Failed asserting that exception of type "%s" is thrown.', CoerceException::class));
     }
 
     public static function instantiate_list_object_dataProvider(): Generator
     {
         yield 'from instance' => ['value' => instantiate(GivenNames::class, ['John', 'Jack', 'Jane']), 'className' => GivenNames::class, 'expectedResult' => '["John","Jack","Jane"]'];
         yield 'from strings' => ['value' => ['John', 'Jack', 'Jane'], 'className' => GivenNames::class, 'expectedResult' => '["John","Jack","Jane"]'];
+        yield 'map of strings' => ['value' => ['wwwision' => 'https://wwwision.de', 'Neos CMS' => 'https://neos.io'], 'className' => UriMap::class, 'expectedResult' => '{"wwwision":"https://wwwision.de","Neos CMS":"https://neos.io"}'];
     }
 
     #[DataProvider('instantiate_list_object_dataProvider')]
     public function test_instantiate_list_object(mixed $value, string $className, string $expectedResult): void
     {
-        self::assertSame($expectedResult, json_encode(instantiate($className, $value), JSON_THROW_ON_ERROR));
+        self::assertSame($expectedResult, json_encode(instantiate($className, $value), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
     }
 
     public static function instantiate_shape_object_failing_dataProvider(): Generator
     {
-        yield 'from null' => ['value' => null, 'className' => FullName::class, 'expectedExceptionMessage' => 'Failed to instantiate FullName: Non-iterable value of type null cannot be casted to instance of FullName'];
-        yield 'from empty object' => ['value' => new stdClass(), 'className' => FullName::class, 'expectedExceptionMessage' => 'Failed to instantiate FullName: Missing property "givenName"'];
-        yield 'from boolean' => ['value' => false, 'className' => FullName::class, 'expectedExceptionMessage' => 'Failed to instantiate FullName: Non-iterable value of type bool cannot be casted to instance of FullName'];
-        yield 'from string' => ['value' => 'some string', 'className' => FullName::class, 'expectedExceptionMessage' => 'Failed to instantiate FullName: Non-iterable value of type string cannot be casted to instance of FullName'];
+        yield 'from null' => ['value' => null, 'className' => FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received null', 'path' => [], 'expected' => 'object', 'received' => 'null']]];
+        yield 'from empty object' => ['value' => new stdClass(), 'className' => FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['givenName'], 'expected' => 'string', 'received' => 'undefined'], ['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
+        yield 'from boolean' => ['value' => false, 'className' => FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received boolean', 'path' => [], 'expected' => 'object', 'received' => 'boolean']]];
+        yield 'from string' => ['value' => 'some string', 'className' => FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received string', 'path' => [], 'expected' => 'object', 'received' => 'string']]];
 
-        yield 'from array with missing key' => ['value' => ['givenName' => 'Some first name'], 'className' => FullName::class, 'expectedExceptionMessage' => 'Failed to instantiate FullName: Missing property "familyName"'];
-        yield 'from array with missing keys' => ['value' => [], 'className' => FullName::class, 'expectedExceptionMessage' => 'Failed to instantiate FullName: Missing property "givenName"'];
-        yield 'from array with additional key' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Some last name', 'additional' => 'not allowed'], 'className' => FullName::class, 'expectedExceptionMessage' => 'Failed to instantiate FullName: Unknown property "additional"'];
-        yield 'from array with additional keys' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Some last name', 'additional' => 'not allowed', 'another additional' => 'also not allowed'], 'className' => FullName::class, 'expectedExceptionMessage' => 'Failed to instantiate FullName: Unknown properties "additional", "another additional"'];
+        yield 'from array with missing key' => ['value' => ['givenName' => 'Some first name'], 'className' => FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
+        yield 'from array with missing keys' => ['value' => [], 'className' => FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['givenName'], 'expected' => 'string', 'received' => 'undefined'], ['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
+        yield 'from array with additional key' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Some last name', 'additional' => 'not allowed'], 'className' => FullName::class, 'expectedIssues' => [['code' => 'unrecognized_keys', 'message' => 'Unrecognized key(s) in object: \'not allowed\'', 'path' => [], 'keys' => ['not allowed']]]];
+        yield 'from array with additional keys' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Some last name', 'additional' => 'not allowed', 'another additional' => 'also not allowed'], 'className' => FullName::class, 'expectedIssues' => [['code' => 'unrecognized_keys', 'message' => 'Unrecognized key(s) in object: \'not allowed\', \'also not allowed\'', 'path' => [], 'keys' => ['not allowed', 'also not allowed']]]];
 
-        yield 'from array with property violating constraints' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Ab'], 'className' => FullName::class, 'expectedExceptionMessage' => 'Failed to instantiate FullName: At property "familyName": Value "Ab" does not have the required minimum length of 3 characters'];
-        yield 'from array with property violating constraints 2' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Ab'], 'className' => FullName::class, 'expectedExceptionMessage' => 'Failed to instantiate FullName: At property "familyName": Value "Ab" does not have the required minimum length of 3 characters'];
+        yield 'from array with property violating constraint' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Ab'], 'className' => FullName::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => ['familyName'], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false]]];
+        yield 'from array with properties violating constraints' => ['value' => ['givenName' => 'Ab', 'familyName' => 'Ab'], 'className' => FullName::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => ['givenName'], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => ['familyName'], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false]]];
 
-        yield 'bool from string' => ['value' => ['value' => 'not a bool'], 'className' => ShapeWithBool::class, 'expectedExceptionMessage' => 'Failed to instantiate ShapeWithBool: At property "value": Value "not a bool" cannot be casted to boolean'];
-        yield 'bool from int' => ['value' => ['value' => 123], 'className' => ShapeWithBool::class, 'expectedExceptionMessage' => 'Failed to instantiate ShapeWithBool: At property "value": Value 123 cannot be casted to boolean'];
-        yield 'bool from object' => ['value' => ['value' => new stdClass()], 'className' => ShapeWithBool::class, 'expectedExceptionMessage' => 'Failed to instantiate ShapeWithBool: At property "value": Value of type stdClass cannot be casted to boolean'];
-        yield 'string from float' => ['value' => ['value' => 123.45], 'className' => ShapeWithString::class, 'expectedExceptionMessage' => 'Failed to instantiate ShapeWithString: At property "value": Value of type float cannot be casted to string'];
-        yield 'integer from float' => ['value' => ['value' => 123.45], 'className' => ShapeWithInt::class, 'expectedExceptionMessage' => 'Failed to instantiate ShapeWithInt: At property "value": Value 123.450 cannot be casted to integer'];
-        yield 'integer from string' => ['value' => ['value' => 'not numeric'], 'className' => ShapeWithInt::class, 'expectedExceptionMessage' => 'Failed to instantiate ShapeWithInt: At property "value": Value "not numeric" cannot be casted to integer'];
-        yield 'integer from object' => ['value' => ['value' => new stdClass()], 'className' => ShapeWithInt::class, 'expectedExceptionMessage' => 'Failed to instantiate ShapeWithInt: At property "value": Value of type stdClass cannot be casted to integer'];
+        yield 'bool from string' => ['value' => ['value' => 'not a bool'], 'className' => ShapeWithBool::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected boolean, received string', 'path' => ['value'], 'expected' => 'boolean', 'received' => 'string']]];
+        yield 'bool from int' => ['value' => ['value' => 123], 'className' => ShapeWithBool::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected boolean, received integer', 'path' => ['value'], 'expected' => 'boolean', 'received' => 'integer']]];
+        yield 'bool from object' => ['value' => ['value' => new stdClass()], 'className' => ShapeWithBool::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected boolean, received object', 'path' => ['value'], 'expected' => 'boolean', 'received' => 'object']]];
+        yield 'string from float' => ['value' => ['value' => 123.45], 'className' => ShapeWithString::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received double', 'path' => ['value'], 'expected' => 'string', 'received' => 'double']]];
+        yield 'integer from float' => ['value' => ['value' => 123.45], 'className' => ShapeWithInt::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received double', 'path' => ['value'], 'expected' => 'integer', 'received' => 'double']]];
+        yield 'integer from string' => ['value' => ['value' => 'not numeric'], 'className' => ShapeWithInt::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received string', 'path' => ['value'], 'expected' => 'integer', 'received' => 'string']]];
+        yield 'integer from object' => ['value' => ['value' => new stdClass()], 'className' => ShapeWithInt::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received object', 'path' => ['value'], 'expected' => 'integer', 'received' => 'object']]];
+
+        yield 'nested shape' => ['value' => ['shapeWithOptionalTypes' => ['stringBased' => '123', 'optionalInt' => 'not an int']], 'className' => NestedShape::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received string', 'path' => ['shapeWithOptionalTypes', 'optionalInt'], 'expected' => 'integer', 'received' => 'string'], ['code' => 'invalid_type', 'message' => 'Required', 'path' => ['shapeWithBool'], 'expected' => 'object', 'received' => 'undefined']]];
     }
 
+    /**
+     * @param class-string<object> $className
+     */
     #[DataProvider('instantiate_shape_object_failing_dataProvider')]
-    public function test_instantiate_shape_object_failing(mixed $value, string $className, string $expectedExceptionMessage): void
+    public function test_instantiate_shape_object_failing(mixed $value, string $className, array $expectedIssues): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage($expectedExceptionMessage);
-        /** @var class-string<object> $className */
-        instantiate($className, $value);
+        $exceptionThrown = false;
+        $expectedIssuesJson = json_encode($expectedIssues, JSON_THROW_ON_ERROR);
+        try {
+            instantiate($className, $value);
+        } catch (CoerceException $e) {
+            $exceptionThrown = true;
+            self::assertJsonStringEqualsJsonString($expectedIssuesJson, json_encode($e, JSON_THROW_ON_ERROR));
+        }
+        self::assertTrue($exceptionThrown, sprintf('Failed asserting that exception of type "%s" is thrown.', CoerceException::class));
     }
 
     public static function instantiate_shape_object_dataProvider(): Generator
@@ -382,8 +430,8 @@ final class IntegrationTest extends TestCase
         yield 'from iterable matching all constraints' => ['value' => new ArrayIterator(['givenName' => 'Some first name', 'familyName' => 'Some last name']), 'className' => FullName::class, 'expectedResult' => '{"givenName":"Some first name","familyName":"Some last name"}'];
         yield 'from array without optionals' => ['value' => ['stringBased' => 'Some value'], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":null,"optionalInt":null,"optionalBool":false,"optionalString":null}'];
         yield 'from array with optionals' => ['value' => ['stringBased' => 'Some value', 'optionalString' => 'optionalString value', 'optionalStringBased' => 'oSB value', 'optionalInt' => 42, 'optionalBool' => true], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":42,"optionalBool":true,"optionalString":"optionalString value"}'];
-        yield 'from array with optionals and coercion' => ['value' => ['stringBased' => 'Some value', 'optionalString' => new class { function __toString() { return 'optionalString value'; }}, 'optionalStringBased' => 'oSB value', 'optionalInt' => '123', 'optionalBool' => 1], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":123,"optionalBool":true,"optionalString":"optionalString value"}'];
-        yield 'from array with optionals and coercion 2' => ['value' => ['stringBased' => 'Some value', 'optionalString' => new class { function __toString() { return 'optionalString value'; }}, 'optionalStringBased' => 'oSB value', 'optionalInt' => 55.0, 'optionalBool' => '0'], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":55,"optionalBool":false,"optionalString":"optionalString value"}'];
+        yield 'from array with optionals and coercion' => ['value' => ['stringBased' => 'Some value', 'optionalString' => new class { public function __toString() { return 'optionalString value'; }}, 'optionalStringBased' => 'oSB value', 'optionalInt' => '123', 'optionalBool' => 1], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":123,"optionalBool":true,"optionalString":"optionalString value"}'];
+        yield 'from array with optionals and coercion 2' => ['value' => ['stringBased' => 'Some value', 'optionalString' => new class { public function __toString() { return 'optionalString value'; }}, 'optionalStringBased' => 'oSB value', 'optionalInt' => 55.0, 'optionalBool' => '0'], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":55,"optionalBool":false,"optionalString":"optionalString value"}'];
         yield 'from array with null-values for optionals' => ['value' => ['stringBased' => 'Some value', 'optionalStringBased' => null, 'optionalInt' => null, 'optionalBool' => null, 'optionalString' => null], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":null,"optionalInt":null,"optionalBool":null,"optionalString":null}'];
         $class = new stdClass();
         $class->givenName = 'Some first name';
@@ -400,30 +448,42 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_string_based_object_failing_dataProvider(): Generator
     {
-        yield 'from null' => ['value' => null, 'className' => GivenName::class, 'expectedExceptionMessage' => 'Failed to instantiate GivenName: Value of type null cannot be casted to string'];
-        yield 'from object' => ['value' => new stdClass(), 'className' => GivenName::class, 'expectedExceptionMessage' => 'Failed to instantiate GivenName: Value of type stdClass cannot be casted to string'];
-        yield 'from boolean' => ['value' => false, 'className' => GivenName::class, 'expectedExceptionMessage' => 'Failed to instantiate GivenName: Value of type bool cannot be casted to string'];
-        yield 'from float' => ['value' => 2.0, 'className' => GivenName::class, 'expectedExceptionMessage' => 'Failed to instantiate GivenName: Value of type float cannot be casted to string'];
+        yield 'from null' => ['value' => null, 'className' => GivenName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received null', 'path' => [], 'expected' => 'string', 'received' => 'null']]];
+        yield 'from object' => ['value' => new stdClass(), 'className' => GivenName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received object', 'path' => [], 'expected' => 'string', 'received' => 'object']]];
+        yield 'from boolean' => ['value' => false, 'className' => GivenName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received boolean', 'path' => [], 'expected' => 'string', 'received' => 'boolean']]];
+        yield 'from float' => ['value' => 2.0, 'className' => GivenName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received double', 'path' => [], 'expected' => 'string', 'received' => 'double']]];
 
-        yield 'from string violating minLength' => ['value' => 'ab', 'className' => GivenName::class, 'expectedExceptionMessage' => 'Failed to instantiate GivenName: Value "ab" does not have the required minimum length of 3 characters'];
-        yield 'from string violating maxLength' => ['value' => 'This is a bit too long', 'className' => GivenName::class, 'expectedExceptionMessage' => 'Failed to instantiate GivenName: Value "This is a bit too long" exceeds the allowed maximum length of 20 characters'];
-        yield 'from string violating pattern' => ['value' => 'magic foo', 'className' => NotMagic::class, 'expectedExceptionMessage' => 'Failed to instantiate NotMagic: Value "magic foo" does not match the regular expression "/^(?!magic).*/"'];
+        yield 'from string violating minLength' => ['value' => 'ab', 'className' => GivenName::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => [], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false]]];
+        yield 'from string violating maxLength' => ['value' => 'This is a bit too long', 'className' => GivenName::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'String must contain at most 20 character(s)', 'path' => [], 'type' => 'string', 'maximum' => 20, 'inclusive' => true, 'exact' => false]]];
+        yield 'from string violating pattern' => ['value' => 'magic foo', 'className' => NotMagic::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Value does not match regular expression', 'path' => [], 'validation' => 'regex']]];
 
-        yield 'from string violating format "email"' => ['value' => 'not.an@email', 'className' => EmailAddress::class, 'expectedExceptionMessage' => 'Failed to instantiate EmailAddress: Value "not.an@email" does not match format "email"'];
-        yield 'from string violating format "uri"' => ['value' => 'not.a.uri', 'className' => Uri::class, 'expectedExceptionMessage' => 'Failed to instantiate Uri: Value "not.a.uri" does not match format "uri"'];
-        yield 'from string violating format "date"' => ['value' => 'not.a.date', 'className' => Date::class, 'expectedExceptionMessage' => 'Failed to instantiate Date: Value "not.a.date" does not match format "date"'];
-        yield 'from string custom "date" validation' => ['value' => (new DateTimeImmutable('+1 day'))->format('Y-m-d'), 'className' => Date::class, 'expectedExceptionMessage' => 'Failed to instantiate Date: Future dates are not allowed'];
-        yield 'from string violating format "date_time"' => ['value' => 'not.a.date', 'className' => DateTime::class, 'expectedExceptionMessage' => 'Failed to instantiate DateTime: Value "not.a.date" does not match format "date_time"'];
-        yield 'from string violating format "uuid"' => ['value' => 'not.a.uuid', 'className' => Uuid::class, 'expectedExceptionMessage' => 'Failed to instantiate Uuid: Value "not.a.uuid" does not match format "uuid"'];
+        yield 'from string violating format "email"' => ['value' => 'not.an@email', 'className' => EmailAddress::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid email', 'path' => [], 'validation' => 'email']]];
+        yield 'from string violating format "uri"' => ['value' => 'not.a.uri', 'className' => Uri::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid uri', 'path' => [], 'validation' => 'uri']]];
+        yield 'from string violating format "date"' => ['value' => 'not.a.date', 'className' => Date::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date', 'path' => [], 'validation' => 'date']]];
+        yield 'from string violating format "date" because value contains time part' => ['value' => '2025-02-15 13:12:11', 'className' => Date::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date', 'path' => [], 'validation' => 'date']]];
+        yield 'from string custom "date" validation' => ['value' => (new DateTimeImmutable('+1 day'))->format('Y-m-d'), 'className' => Date::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Future dates are not allowed', 'path' => [], 'params' => ['some' => 'param']]]];
+        yield 'from string violating format "date_time"' => ['value' => 'not.a.date', 'className' => DateTime::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date_time', 'path' => [], 'validation' => 'date_time']]];
+        yield 'from string violating format "date_time" because time part is missing' => ['value' => '2025-02-15', 'className' => DateTime::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date_time', 'path' => [], 'validation' => 'date_time']]];
+        yield 'from string violating format "uuid"' => ['value' => 'not.a.uuid', 'className' => Uuid::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid uuid', 'path' => [], 'validation' => 'uuid']]];
+
+        yield 'from string violating multiple constraints' => ['value' => 'invalid', 'className' => ImpossibleString::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'String must contain at least 10 character(s)', 'path' => [], 'type' => 'string', 'minimum' => 10, 'inclusive' => true, 'exact' => false], ['code' => 'too_big', 'message' => 'String must contain at most 2 character(s)', 'path' => [], 'type' => 'string', 'maximum' => 2, 'inclusive' => true, 'exact' => false], ['code' => 'invalid_string', 'message' => 'Value does not match regular expression', 'path' => [], 'validation' => 'regex'], ['code' => 'invalid_string', 'message' => 'Invalid email', 'path' => [], 'validation' => 'email']]];
     }
 
+    /**
+     * @param class-string<object> $className
+     */
     #[DataProvider('instantiate_string_based_object_failing_dataProvider')]
-    public function test_instantiate_string_based_object_failing(mixed $value, string $className, string $expectedExceptionMessage): void
+    public function test_instantiate_string_based_object_failing(mixed $value, string $className, array $expectedIssues): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage($expectedExceptionMessage);
-        /** @var class-string<object> $className */
-        instantiate($className, $value);
+        $exceptionThrown = false;
+        $expectedIssuesJson = json_encode($expectedIssues, JSON_THROW_ON_ERROR);
+        try {
+            instantiate($className, $value);
+        } catch (CoerceException $e) {
+            $exceptionThrown = true;
+            self::assertJsonStringEqualsJsonString($expectedIssuesJson, json_encode($e, JSON_THROW_ON_ERROR));
+        }
+        self::assertTrue($exceptionThrown, sprintf('Failed asserting that exception of type "%s" is thrown.', CoerceException::class));
     }
 
     public static function instantiate_string_based_object_dataProvider(): Generator
@@ -432,7 +492,7 @@ final class IntegrationTest extends TestCase
         yield 'from string that matches pattern' => ['value' => 'this is not magic', 'className' => NotMagic::class, 'expectedResult' => 'this is not magic'];
         yield 'from integer' => ['value' => 123, 'className' => NotMagic::class, 'expectedResult' => '123'];
         yield 'from stringable object' => ['value' => new class {
-            function __toString()
+            public function __toString()
             {
                 return 'from object';
             }
@@ -454,26 +514,34 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_interface_object_failing_dataProvider(): Generator
     {
-        yield 'from null' => ['value' => null, 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Value of type null cannot be casted to instance of SomeInterface'];
-        yield 'from object' => ['value' => new stdClass(), 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Value of type stdClass cannot be casted to instance of SomeInterface'];
-        yield 'from boolean' => ['value' => false, 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Value of type bool cannot be casted to instance of SomeInterface'];
-        yield 'from integer' => ['value' => 1234, 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Value of type int cannot be casted to instance of SomeInterface'];
-        yield 'from float' => ['value' => 2.0, 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Value of type float cannot be casted to instance of SomeInterface'];
-        yield 'from array without __type' => ['value' => ['someKey' => 'someValue'], 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: The given array has to "__type" key'];
-        yield 'from array with invalid __type' => ['value' => ['__type' => 123], 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Expected "__type" to be of type string, got: int'];
-        yield 'from array with unknown __type' => ['value' => ['__type' => 'NoClassName'], 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Expected "__type" to be a valid class name, got: "NoClassName"'];
-        yield 'from array with __type that is not an instance of the interface' => ['value' => ['__type' => ShapeWithInt::class, 'value' => '123'], 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: The given "__type" of "Wwwision\Types\Tests\PHPUnit\ShapeWithInt" is not an implementation of SomeInterface'];
-        yield 'from array with valid __type but invalid remaining values' => ['value' => ['__type' => GivenName::class], 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Failed to instantiate GivenName: Value of type array cannot be casted to string'];
-        yield 'from array with valid __type but missing properties' => ['value' => ['__type' => FullName::class, 'givenName' => 'John'], 'className' => SomeInterface::class, 'expectedExceptionMessage' => 'Failed to instantiate SomeInterface: Failed to instantiate FullName: Missing property "familyName"'];
+        yield 'from null' => ['value' => null, 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received null', 'path' => [], 'expected' => 'interface', 'received' => 'null']]];
+        yield 'from object' => ['value' => new stdClass(), 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing key "__type"', 'path' => [], 'params' => []]]];
+        yield 'from boolean' => ['value' => false, 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received boolean', 'path' => [], 'expected' => 'interface', 'received' => 'boolean']]];
+        yield 'from integer' => ['value' => 1234, 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received integer', 'path' => [], 'expected' => 'interface', 'received' => 'integer']]];
+        yield 'from float' => ['value' => 2.0, 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received double', 'path' => [], 'expected' => 'interface', 'received' => 'double']]];
+        yield 'from array without __type' => ['value' => ['someKey' => 'someValue'], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing key "__type"', 'path' => [], 'params' => []]]];
+        yield 'from array with invalid __type' => ['value' => ['__type' => 123], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Key "__type" has to be a string, got: int', 'path' => [], 'params' => []]]];
+        yield 'from array with unknown __type' => ['value' => ['__type' => 'NoClassName'], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Key "__type" has to be a valid class name, got: "NoClassName"', 'path' => [], 'params' => []]]];
+        yield 'from array with __type that is not an instance of the interface' => ['value' => ['__type' => ShapeWithInt::class, 'value' => '123'], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'The given "__type" of "Wwwision\\Types\\Tests\\PHPUnit\\ShapeWithInt" is not an implementation of SomeInterface', 'path' => [], 'params' => []]]];
+        yield 'from array with valid __type but invalid remaining values' => ['value' => ['__type' => GivenName::class], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing keys for interface of type SomeInterface', 'path' => [], 'params' => []]]];
+        yield 'from array with valid __type but missing properties' => ['value' => ['__type' => FullName::class, 'givenName' => 'John'], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
     }
 
+    /**
+     * @param class-string<object> $className
+     */
     #[DataProvider('instantiate_interface_object_failing_dataProvider')]
-    public function test_instantiate_interface_object_failing(mixed $value, string $className, string $expectedExceptionMessage): void
+    public function test_instantiate_interface_object_failing(mixed $value, string $className, array $expectedIssues): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage($expectedExceptionMessage);
-        /** @var class-string<object> $className */
-        instantiate($className, $value);
+        $exceptionThrown = false;
+        $expectedIssuesJson = json_encode($expectedIssues, JSON_THROW_ON_ERROR);
+        try {
+            instantiate($className, $value);
+        } catch (CoerceException $e) {
+            $exceptionThrown = true;
+            self::assertJsonStringEqualsJsonString($expectedIssuesJson, json_encode($e, JSON_THROW_ON_ERROR));
+        }
+        self::assertTrue($exceptionThrown, sprintf('Failed asserting that exception of type "%s" is thrown.', CoerceException::class));
     }
 
     public static function instantiate_interface_object_dataProvider(): Generator
@@ -487,7 +555,7 @@ final class IntegrationTest extends TestCase
     public function test_instantiate_interface_object(mixed $value, string $className, string $expectedResult): void
     {
         /** @var class-string<object> $className */
-        self::assertJsonStringEqualsJsonString($expectedResult, json_encode(instantiate($className, $value)));
+        self::assertJsonStringEqualsJsonString($expectedResult, json_encode(instantiate($className, $value), JSON_THROW_ON_ERROR));
     }
 
     public function test_interface_implementationSchemas(): void
@@ -495,7 +563,7 @@ final class IntegrationTest extends TestCase
         $interfaceSchema = Parser::getSchema(SomeInterface::class);
         self::assertInstanceOf(InterfaceSchema::class, $interfaceSchema);
 
-        $implementationSchemaNames = array_map(fn (Schema $schema) => $schema->getName(), $interfaceSchema->implementationSchemas());
+        $implementationSchemaNames = array_map(static fn (Schema $schema) => $schema->getName(), $interfaceSchema->implementationSchemas());
         self::assertSame(['GivenName', 'FamilyName', 'FullName'], $implementationSchemaNames);
     }
 
@@ -578,6 +646,7 @@ final class Age
     }
 }
 
+
 #[Description('First and last name of a person')]
 final class FullName implements SomeInterface
 {
@@ -639,6 +708,28 @@ final class GivenNames implements IteratorAggregate, JsonSerializable
     }
 }
 
+#[ListBased(itemClassName: Uri::class)]
+final class UriMap implements IteratorAggregate, JsonSerializable
+{
+    private function __construct(private readonly array $entries)
+    {
+        if (array_keys($entries) !== array_filter(\array_keys($entries), '\is_string')) {
+            throw CoerceException::custom('Expected associative array with string keys', $entries, Parser::getSchema(self::class), );
+        }
+    }
+
+    public function getIterator(): Traversable
+    {
+        return new ArrayIterator($this->entries);
+    }
+
+    public function jsonSerialize(): array
+    {
+        return $this->entries;
+    }
+
+}
+
 #[StringBased(pattern: '^(?!magic).*')]
 final class NotMagic
 {
@@ -656,10 +747,15 @@ final class EmailAddress
 }
 
 #[StringBased(format: StringTypeFormat::uri)]
-final class Uri
+final class Uri implements JsonSerializable
 {
     private function __construct(public readonly string $value)
     {
+    }
+
+    public function jsonSerialize(): string
+    {
+        return $this->value;
     }
 }
 
@@ -670,7 +766,7 @@ final class Date
     {
         $now = new DateTimeImmutable();
         if (DateTimeImmutable::createFromFormat('Y-m-d', $this->value) > $now) {
-            throw new InvalidArgumentException('Future dates are not allowed');
+            throw CoerceException::custom('Future dates are not allowed', $value, Parser::getSchema(self::class), ['some' => 'param']);
         }
     }
 }
@@ -724,6 +820,14 @@ enum RomanNumber: string
     case IV = '4';
 }
 
+final class NestedShape {
+    public function __construct(
+        public readonly ShapeWithOptionalTypes $shapeWithOptionalTypes,
+        public readonly ShapeWithBool $shapeWithBool,
+    ) {
+    }
+}
+
 final class ShapeWithOptionalTypes
 {
     public function __construct(
@@ -775,4 +879,21 @@ interface SomeInterface {
 
 interface SomeInvalidInterface {
     public function methodWithParameters(string $param = null): string;
+}
+
+#[StringBased(minLength: 10, maxLength: 2, pattern: '^foo$', format: StringTypeFormat::email)]
+final class ImpossibleString
+{
+    private function __construct(public readonly string $value) {}
+}
+
+#[IntegerBased(minimum: 10, maximum: 2)]
+final class ImpossibleInt
+{
+    private function __construct(public readonly string $value) {}
+}
+#[ListBased(itemClassName: GivenName::class, minCount: 10, maxCount: 2)]
+final class ImpossibleList
+{
+    private function __construct(private readonly array $items) {}
 }
