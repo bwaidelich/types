@@ -108,7 +108,7 @@ final class ShapeSchema implements Schema
         }
         $unrecognizedKeys = array_diff_key($array, $this->propertySchemas);
         if ($unrecognizedKeys !== []) {
-            $issues = $issues->add(CoerceException::unrecognizedKeys($value, $this, array_values($unrecognizedKeys))->issues);
+            $issues = $issues->add(CoerceException::unrecognizedKeys($value, $this, array_keys($unrecognizedKeys))->issues);
         }
         if (!$issues->isEmpty()) {
             throw CoerceException::fromIssues($issues, $value, $this);
