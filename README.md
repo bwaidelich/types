@@ -114,7 +114,7 @@ instantiate(Contact::class, ['name' => 'John Doe', 'age' => 45]);
 > logic but mostly in the infrastructure layer. E.g. a `DatabaseContactRepository` might return a `Contacts` object.
 
 <details>
-<summary><h4>Example: Database integration</h4></summary>
+<summary><b>Example: Database integration</b></summary>
 
 ```php
 // ...
@@ -237,7 +237,7 @@ $date = $date->add(new \DateInterval('P1D'));
 The `Description` attribute allows you to add some domain specific documentation to classes and parameters.
 
 <details>
-<summary><h4>Example: Class with description</h4></summary>
+<summary><b>Example: Class with description</b></summary>
 
 ```php
 #[Description('This is a description for this class')]
@@ -263,7 +263,7 @@ It has the optional arguments
 * `maximum` – to specify the allowed _maximum_ value
 
 <details>
-<summary><h4>Example</h4></summary>
+<summary><b>Example</b></summary>
 
 ```php
 #[IntegerBased(minimum: 0, maximum: 123)]
@@ -289,7 +289,7 @@ It has the optional arguments
 * `maximum` – to specify the allowed _maximum_ value (as integer or float)
 
 <details>
-<summary><h4>Example</h4></summary>
+<summary><b>Example</b></summary>
 
 ```php
 #[FloatBased(minimum: 12.34, maximum: 30)]
@@ -317,7 +317,7 @@ It has the optional arguments
   the [JSON Schema string format](https://json-schema.org/understanding-json-schema/reference/string.html#format))
 
 <details>
-<summary><h4>Example: String Value Object with min and max length constraints</h4></summary>
+<summary><b>Example: String Value Object with min and max length constraints</b></summary>
 
 ```php
 #[StringBased(minLength: 1, maxLength: 200)]
@@ -333,7 +333,7 @@ instantiate(GivenName::class, '');
 </details>
 
 <details>
-<summary><h4>Example: String Value Object with format and pattern constraints</h4></summary>
+<summary><b>Example: String Value Object with format and pattern constraints</b></summary>
 
 Just like with JSON Schema, `format` and `pattern` can be _combined_ to further narrow the type:
 
@@ -360,7 +360,7 @@ It has the optional arguments
 * `maxCount` – to specify how many items the list has to contain _at most_
 
 <details>
-<summary><h4>Example: Simple generic array</h4></summary>
+<summary><b>Example: Simple generic array</b></summary>
 
 ```php
 #[StringBased]
@@ -383,7 +383,7 @@ instantiate(Hobbies::class, ['Soccer', 'Ping Pong', 'Guitar']);
 </details>
 
 <details>
-<summary><h4>Example: More verbose generic array with type hints and min and max count constraints</h4></summary>
+<summary><b>Example: More verbose generic array with type hints and min and max count constraints</b></summary>
 
 The following example shows a more realistic implementation of a List, with:
 
@@ -431,7 +431,7 @@ The examples above demonstrate how to create very specific Value Objects with st
 
 
 <details>
-<summary><h4>Example: Complex composite object</h4></summary>
+<summary><b>Example: Complex composite object</b></summary>
 
 ```php
 #[StringBased]
@@ -551,7 +551,7 @@ assert($complexObject instanceof ComplexObject);
 Especially when working with [generic lists](#list-generic-array), it can be useful to allow for polymorphism, i.e. allow the list to contain any instance of an interface:
 
 <details>
-<summary><h4>Example: Generic list of interfaces</h4></summary>
+<summary><b>Example: Generic list of interfaces</b></summary>
 
 ```php
 // ...
