@@ -151,6 +151,11 @@ final class DatabaseContactRepository implements ContactRepository {
 
 In order to gain the most with this package, a couple of rules should be considered:
 
+### All state fields in the constructor
+
+This package uses reflection to parse the constructors of involved classes. Therefore the constructor should contain every variable that makes up the internal state (IMO that's a good practice anyways).
+In general you should only allow state changes through the constructor and it's a good idea to mark DTO classes as `readonly`
+
 ### Private constructors
 
 In order to allow data to be validated everywhere, there must be no way to instantiate
