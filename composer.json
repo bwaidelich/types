@@ -40,15 +40,15 @@
     "phpbench/phpbench": "^1.2"
   },
   "scripts": {
-    "test-phpstan": "phpstan",
-    "test-cs": "phpcs --colors --standard=PSR12 --exclude=Generic.Files.LineLength src",
-    "test-cs:fix": "phpcbf --colors --standard=PSR12 --exclude=Generic.Files.LineLength src",
-    "test-phpunit": "phpunit tests/PHPUnit",
-    "test-phpbench": "phpbench run tests/PHPBench --progress=dots --report=default",
+    "test:phpstan": "phpstan",
+    "test:cs": "phpcs --colors --standard=PSR12 --exclude=Generic.Files.LineLength src",
+    "test:cs:fix": "phpcbf --colors --standard=PSR12 --exclude=Generic.Files.LineLength src",
+    "test:phpunit": "phpunit tests/PHPUnit",
+    "test:phpbench": "phpbench run tests/PHPBench --progress=dots --report=default",
     "test": [
-      "@test-phpstan",
-      "@test-cs",
-      "@test-phpunit"
+      "@test:phpstan",
+      "@test:cs",
+      "@test:phpunit"
     ]
   }
 }
