@@ -11,6 +11,7 @@ use InvalidArgumentException;
 use IteratorAggregate;
 use JsonSerializable;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -21,7 +22,17 @@ use Wwwision\Types\Attributes\IntegerBased;
 use Wwwision\Types\Attributes\ListBased;
 use Wwwision\Types\Attributes\StringBased;
 use Wwwision\Types\Exception\CoerceException;
+use Wwwision\Types\Exception\Issues\Custom;
+use Wwwision\Types\Exception\Issues\InvalidEnumValue;
+use Wwwision\Types\Exception\Issues\InvalidString;
+use Wwwision\Types\Exception\Issues\InvalidType;
+use Wwwision\Types\Exception\Issues\IssueCode;
+use Wwwision\Types\Exception\Issues\Issues;
+use Wwwision\Types\Exception\Issues\TooBig;
+use Wwwision\Types\Exception\Issues\TooSmall;
+use Wwwision\Types\Exception\Issues\UnrecognizedKeys;
 use Wwwision\Types\Parser;
+use Wwwision\Types\Schema\ArraySchema;
 use Wwwision\Types\Schema\EnumCaseSchema;
 use Wwwision\Types\Schema\EnumSchema;
 use Wwwision\Types\Schema\FloatSchema;
@@ -41,25 +52,38 @@ use function json_encode;
 use function Wwwision\Types\instantiate;
 use const JSON_THROW_ON_ERROR;
 
-#[CoversClass(Parser::class)]
+#[CoversClass(ArraySchema::class)]
+#[CoversClass(CoerceException::class)]
+#[CoversClass(Custom::class)]
 #[CoversClass(Description::class)]
-#[CoversClass(IntegerBased::class)]
-#[CoversClass(ListBased::class)]
-#[CoversClass(StringBased::class)]
 #[CoversClass(EnumCaseSchema::class)]
 #[CoversClass(EnumSchema::class)]
+#[CoversClass(FloatBased::class)]
 #[CoversClass(FloatSchema::class)]
+#[CoversClass(IntegerBased::class)]
 #[CoversClass(IntegerSchema::class)]
+#[CoversClass(InterfaceSchema::class)]
+#[CoversClass(InvalidEnumValue::class)]
+#[CoversClass(InvalidString::class)]
+#[CoversClass(InvalidType::class)]
+#[CoversClass(IssueCode::class)]
+#[CoversClass(Issues::class)]
+#[CoversClass(ListBased::class)]
 #[CoversClass(ListSchema::class)]
 #[CoversClass(LiteralBooleanSchema::class)]
 #[CoversClass(LiteralFloatSchema::class)]
 #[CoversClass(LiteralIntegerSchema::class)]
 #[CoversClass(LiteralStringSchema::class)]
 #[CoversClass(OptionalSchema::class)]
+#[CoversClass(Parser::class)]
 #[CoversClass(ShapeSchema::class)]
+#[CoversClass(StringBased::class)]
 #[CoversClass(StringSchema::class)]
-#[CoversClass(InterfaceSchema::class)]
 #[CoversClass(StringTypeFormat::class)]
+#[CoversClass(TooBig::class)]
+#[CoversClass(TooSmall::class)]
+#[CoversClass(UnrecognizedKeys::class)]
+#[CoversFunction('Wwwision\\Types\\instantiate')]
 final class IntegrationTest extends TestCase
 {
 
@@ -114,6 +138,7 @@ final class IntegrationTest extends TestCase
         yield 'shape with string' => ['className' => ShapeWithString::class, 'expectedResult' => '{"type":"object","name":"ShapeWithString","description":null,"properties":[{"type":"string","name":"value","description":"Description for literal string"}]}'];
         yield 'shape with float' => ['className' => ShapeWithFloat::class, 'expectedResult' => '{"type":"object","name":"ShapeWithFloat","description":null,"properties":[{"type":"float","name":"value","description":"Description for literal float"}]}'];
         yield 'shape with floats' => ['className' => GeoCoordinates::class, 'expectedResult' => '{"type":"object","name":"GeoCoordinates","description":null,"properties":[{"type":"Longitude","name":"longitude","description":null},{"type":"Latitude","name":"latitude","description":null}]}'];
+        yield 'shape with array' => ['className' => ShapeWithArray::class, 'expectedResult' => '{"type":"object","name":"ShapeWithArray","description":null,"properties":[{"type":"GivenName","name":"givenName","description":"First name of a person"},{"type":"array","name":"someArray","description":"We can use arrays, too"}]}'];
 
         yield 'interface' => ['className' => SomeInterface::class, 'expectedResult' => '{"description":"SomeInterface description","name":"SomeInterface","properties":[{"description":"Custom description for \"someMethod\"","name":"someMethod","type":"string"},{"description":"Custom description for \"someOtherMethod\"","name":"someOtherMethod","optional":true,"type":"FamilyName"}],"type":"interface"}'];
     }
@@ -156,6 +181,12 @@ final class IntegrationTest extends TestCase
     {
         $literalStringSchema = new LiteralStringSchema('Some Description');
         self::assertJsonStringEqualsJsonString('{"type":"string","name":"string","description":"Some Description"}', json_encode($literalStringSchema, JSON_THROW_ON_ERROR));
+    }
+
+    public function test_getSchema_for_literal_array(): void
+    {
+        $arraySchema = new ArraySchema('Some Description');
+        self::assertJsonStringEqualsJsonString('{"type":"array","name":"array","description":"Some Description"}', json_encode($arraySchema, JSON_THROW_ON_ERROR));
     }
 
     public function test_getSchema_for_optional(): void
@@ -467,6 +498,8 @@ final class IntegrationTest extends TestCase
         yield 'integer from object' => ['value' => ['value' => new stdClass()], 'className' => ShapeWithInt::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received object', 'path' => ['value'], 'expected' => 'integer', 'received' => 'object']]];
 
         yield 'nested shape' => ['value' => ['shapeWithOptionalTypes' => ['stringBased' => '123', 'optionalInt' => 'not an int']], 'className' => NestedShape::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received string', 'path' => ['shapeWithOptionalTypes', 'optionalInt'], 'expected' => 'integer', 'received' => 'string'], ['code' => 'invalid_type', 'message' => 'Required', 'path' => ['shapeWithBool'], 'expected' => 'object', 'received' => 'undefined']]];
+
+        yield 'with array property from non-iterable' => ['value' => ['givenName' => 'John', 'someArray' => new stdClass()], 'className' => ShapeWithArray::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected array, received object', 'path' => ['someArray'], 'expected' => 'array', 'received' => 'object']]];
     }
 
     /**
@@ -500,6 +533,9 @@ final class IntegrationTest extends TestCase
         $class->givenName = 'Some first name';
         $class->familyName = 'Some last name';
         yield 'from stdClass matching all constraints' => ['value' => $class, 'className' => FullName::class, 'expectedResult' => '{"givenName":"Some first name","familyName":"Some last name"}'];
+
+        yield 'with array property' => ['value' => ['givenName' => 'John', 'someArray' => ['some', 'array', 'values']], 'className' => ShapeWithArray::class, 'expectedResult' => '{"givenName":"John","someArray":["some","array","values"]}'];
+        yield 'with array property from iterable' => ['value' => ['givenName' => 'Jane', 'someArray' => new ArrayIterator(['some', 'iterable', 'values'])], 'className' => ShapeWithArray::class, 'expectedResult' => '{"givenName":"Jane","someArray":["some","iterable","values"]}'];
     }
 
     #[DataProvider('instantiate_shape_object_dataProvider')]
@@ -995,4 +1031,13 @@ final class ImpossibleFloat
 final class ImpossibleList
 {
     private function __construct(private readonly array $items) {}
+}
+
+final class ShapeWithArray {
+    public function __construct(
+        public readonly GivenName $givenName,
+        #[Description('We can use arrays, too')]
+        public readonly array $someArray,
+    ) {
+    }
 }

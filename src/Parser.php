@@ -23,6 +23,7 @@ use Wwwision\Types\Attributes\IntegerBased;
 use Wwwision\Types\Attributes\ListBased;
 use Wwwision\Types\Attributes\StringBased;
 use Wwwision\Types\Attributes\TypeBased;
+use Wwwision\Types\Schema\ArraySchema;
 use Wwwision\Types\Schema\EnumCaseSchema;
 use Wwwision\Types\Schema\EnumSchema;
 use Wwwision\Types\Schema\FloatSchema;
@@ -198,10 +199,11 @@ final class Parser
     {
         if ($reflectionType->isBuiltin()) {
             return match ($reflectionType->getName()) {
+                'array' => new ArraySchema($description),
                 'bool' => new LiteralBooleanSchema($description),
+                'float' => new LiteralFloatSchema($description),
                 'int' => new LiteralIntegerSchema($description),
                 'string' => new LiteralStringSchema($description),
-                'float' => new LiteralFloatSchema($description),
                 default => throw new InvalidArgumentException(sprintf('No support for type %s', $reflectionType->getName())),
             };
         }
