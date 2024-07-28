@@ -33,11 +33,17 @@ final class ArraySchema implements Schema
         return $this->description;
     }
 
+    /**
+     * @return array<mixed>
+     */
     public function instantiate(mixed $value): array
     {
         return $this->coerce($value);
     }
 
+    /**
+     * @return array<mixed>
+     */
     private function coerce(mixed $value): array
     {
         if (is_array($value)) {
