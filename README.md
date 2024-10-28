@@ -124,7 +124,7 @@ final class Contacts implements IteratorAggregate {
     private function __construct(private readonly array $contacts) {}
     
     public function getIterator() : Traversable {
-        return new ArrayIterator($this->contacts);
+        yield from $this->contacts;
     }
 }
 
@@ -378,7 +378,7 @@ final class Hobbies implements IteratorAggregate {
     private function __construct(private readonly array $hobbies) {}
     
     public function getIterator() : Traversable {
-        return new ArrayIterator($this->hobbies);
+        yield from $this->hobbies;
     }
 }
 
@@ -411,7 +411,7 @@ final class HobbiesAdvanced implements IteratorAggregate, Countable, JsonSeriali
     private function __construct(private readonly array $hobbies) {}
     
     public function getIterator() : Traversable {
-        return new ArrayIterator($this->hobbies);
+        yield from $this->hobbies;
     }
     
     public function count(): int {
@@ -566,7 +566,7 @@ final class SimpleOrComplexObjects implements IteratorAggregate {
     public function __construct(private readonly array $objects) {}
     
     public function getIterator() : Traversable{
-        return new ArrayIterator($this->objects);
+        yield from $this->objects;
     }
     
     public function map(Closure $closure): array
