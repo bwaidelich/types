@@ -57,9 +57,15 @@ final class ShapeSchema implements Schema
         return $this->overriddenPropertyDescriptions[$propertyName] ?? null;
     }
 
+    /** @phpstan-assert-if-true object $value */
+    public function isInstance(mixed $value): bool
+    {
+        return is_object($value) && $this->reflectionClass->isInstance($value);
+    }
+
     public function instantiate(mixed $value): mixed
     {
-        if (is_object($value) && $this->reflectionClass->isInstance($value)) {
+        if ($this->isInstance($value)) {
             return $value;
         }
         $arrayValue = $this->coerce($value);

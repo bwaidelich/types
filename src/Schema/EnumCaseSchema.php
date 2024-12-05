@@ -36,6 +36,11 @@ final class EnumCaseSchema implements Schema
         return $this->description;
     }
 
+    public function isInstance(mixed $value): bool
+    {
+        return $value === $this->reflectionClass->getValue();
+    }
+
     public function instantiate(mixed $value): UnitEnum
     {
         return $this->reflectionClass->getValue();

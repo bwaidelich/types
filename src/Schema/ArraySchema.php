@@ -33,11 +33,20 @@ final class ArraySchema implements Schema
         return $this->description;
     }
 
+    /** @phpstan-assert-if-true array $value */
+    public function isInstance(mixed $value): bool
+    {
+        return is_array($value);
+    }
+
     /**
      * @return array<mixed>
      */
     public function instantiate(mixed $value): array
     {
+        if ($this->isInstance($value)) {
+            return $value;
+        }
         return $this->coerce($value);
     }
 
@@ -46,9 +55,7 @@ final class ArraySchema implements Schema
      */
     private function coerce(mixed $value): array
     {
-        if (is_array($value)) {
-            return $value;
-        }
+        assert(!is_array($value));
         if (is_iterable($value)) {
             return iterator_to_array($value);
         }

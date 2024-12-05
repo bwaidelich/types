@@ -33,8 +33,17 @@ final class LiteralIntegerSchema implements Schema
         return $this->description;
     }
 
+    /** @phpstan-assert-if-true int $value */
+    public function isInstance(mixed $value): bool
+    {
+        return is_int($value);
+    }
+
     public function instantiate(mixed $value): int
     {
+        if ($this->isInstance($value)) {
+            return $value;
+        }
         return $this->coerce($value);
     }
 
@@ -51,10 +60,7 @@ final class LiteralIntegerSchema implements Schema
                 throw CoerceException::invalidType($value, $this);
             }
         } else {
-            if (!is_int($value)) {
-                throw CoerceException::invalidType($value, $this);
-            }
-            $intValue = $value;
+            throw CoerceException::invalidType($value, $this);
         }
         return $intValue;
     }

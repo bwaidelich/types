@@ -32,8 +32,17 @@ final class LiteralStringSchema implements Schema
         return $this->description;
     }
 
+    /** @phpstan-assert-if-true string $value */
+    public function isInstance(mixed $value): bool
+    {
+        return is_string($value);
+    }
+
     public function instantiate(mixed $value): string
     {
+        if ($this->isInstance($value)) {
+            return $value;
+        }
         return $this->coerce($value);
     }
 
@@ -41,8 +50,7 @@ final class LiteralStringSchema implements Schema
     {
         if (is_int($value) || $value instanceof Stringable) {
             $value = (string)$value;
-        }
-        if (!is_string($value)) {
+        } else {
             throw CoerceException::invalidType($value, $this);
         }
         return $value;

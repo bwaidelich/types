@@ -64,9 +64,15 @@ final class InterfaceSchema implements Schema
         return $implementationSchemas;
     }
 
-    public function instantiate(mixed $value): mixed
+    public function isInstance(mixed $value): bool
     {
-        if (is_object($value) && $this->reflectionClass->isInstance($value)) {
+        return is_object($value) && $this->reflectionClass->isInstance($value);
+    }
+
+    public function instantiate(mixed $value): object
+    {
+        if ($this->isInstance($value)) {
+            /** @var object $value */
             return $value;
         }
         if (is_array($value)) {

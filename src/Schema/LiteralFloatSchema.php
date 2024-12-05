@@ -33,8 +33,17 @@ final class LiteralFloatSchema implements Schema
         return $this->description;
     }
 
+    /** @phpstan-assert-if-true float $value */
+    public function isInstance(mixed $value): bool
+    {
+        return is_float($value);
+    }
+
     public function instantiate(mixed $value): float
     {
+        if ($this->isInstance($value)) {
+            return $value;
+        }
         return $this->coerce($value);
     }
 
@@ -45,7 +54,7 @@ final class LiteralFloatSchema implements Schema
             if ((string)$floatValue !== (string)$value) {
                 throw CoerceException::invalidType($value, $this);
             }
-        } elseif (is_float($value) || is_int($value)) {
+        } elseif (is_int($value)) {
             $floatValue = (float)$value;
         } else {
             throw CoerceException::invalidType($value, $this);

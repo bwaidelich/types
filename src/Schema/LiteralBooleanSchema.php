@@ -28,9 +28,15 @@ final class LiteralBooleanSchema implements Schema
         return $this->description;
     }
 
+    /** @phpstan-assert-if-true bool $value */
+    public function isInstance(mixed $value): bool
+    {
+        return is_bool($value);
+    }
+
     public function instantiate(mixed $value): bool
     {
-        if (is_bool($value)) {
+        if ($this->isInstance($value)) {
             return $value;
         }
         if ($value === 0 || $value === '0') {

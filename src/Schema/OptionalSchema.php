@@ -26,6 +26,11 @@ final class OptionalSchema implements Schema
         return $this->wrapped->getDescription();
     }
 
+    public function isInstance(mixed $value): bool
+    {
+        return $value === null || $this->wrapped->isInstance($value);
+    }
+
     public function instantiate(mixed $value): mixed
     {
         if ($value === null) {

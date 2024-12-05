@@ -52,10 +52,15 @@ final class EnumSchema implements Schema
         return 'string';
     }
 
+    /** @phpstan-assert-if-true UnitEnum $value */
+    public function isInstance(mixed $value): bool
+    {
+        return is_object($value) && $this->reflectionClass->isInstance($value);
+    }
+
     public function instantiate(mixed $value): UnitEnum
     {
-        if (is_object($value) && $this->reflectionClass->isInstance($value)) {
-            /** @var UnitEnum $value */
+        if ($this->isInstance($value)) {
             return $value;
         }
         $coercedValue = $this->coerce($value);

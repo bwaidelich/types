@@ -44,9 +44,15 @@ final class ListSchema implements Schema
         return $this->description;
     }
 
+    /** @phpstan-assert-if-true object $value */
+    public function isInstance(mixed $value): bool
+    {
+        return is_object($value) && $this->reflectionClass->isInstance($value);
+    }
+
     public function instantiate(mixed $value): object
     {
-        if (is_object($value) && $this->reflectionClass->isInstance($value)) {
+        if ($this->isInstance($value)) {
             return $value;
         }
         $arrayValue = $this->coerce($value);
