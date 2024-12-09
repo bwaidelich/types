@@ -606,6 +606,7 @@ final class IntegrationTest extends TestCase
         yield 'from string matching format "uri"' => ['value' => 'https://www.some-domain.tld', 'className' => Uri::class, 'expectedResult' => 'https://www.some-domain.tld'];
         yield 'from string matching format "date"' => ['value' => '1980-12-13', 'className' => Date::class, 'expectedResult' => '1980-12-13'];
         yield 'from string matching format "date_time"' => ['value' => '2018-11-13T20:20:39+00:00', 'className' => DateTime::class, 'expectedResult' => '2018-11-13T20:20:39+00:00'];
+        yield 'from string matching format "date_time" with UTC zone designator' => ['value' => '2018-11-13T20:20:39Z', 'className' => DateTime::class, 'expectedResult' => '2018-11-13T20:20:39Z'];
         yield 'from string matching format "uuid"' => ['value' => '3cafa54b-f9c3-4470-8c0e-31612cb70f61', 'className' => Uuid::class, 'expectedResult' => '3cafa54b-f9c3-4470-8c0e-31612cb70f61'];
     }
 
