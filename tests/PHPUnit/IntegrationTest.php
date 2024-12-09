@@ -14,8 +14,10 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionEnumUnitCase;
 use stdClass;
 use Traversable;
+use UnitEnum;
 use Wwwision\Types\Attributes\Description;
 use Wwwision\Types\Attributes\FloatBased;
 use Wwwision\Types\Attributes\IntegerBased;
@@ -48,8 +50,10 @@ use Wwwision\Types\Schema\Schema;
 use Wwwision\Types\Schema\ShapeSchema;
 use Wwwision\Types\Schema\StringSchema;
 use Wwwision\Types\Schema\StringTypeFormat;
+
 use function json_encode;
 use function Wwwision\Types\instantiate;
+
 use const JSON_THROW_ON_ERROR;
 
 #[CoversClass(ArraySchema::class)]
@@ -124,6 +128,7 @@ final class IntegrationTest extends TestCase
         yield 'int backed enum' => ['className' => Number::class, 'expectedResult' => '{"type":"enum","name":"Number","description":"A number","cases":[{"type":"integer","description":"The number 1","name":"ONE","value":1},{"type":"integer","description":null,"name":"TWO","value":2},{"type":"integer","description":null,"name":"THREE","value":3}]}'];
         yield 'string backed enum' => ['className' => RomanNumber::class, 'expectedResult' => '{"type":"enum","name":"RomanNumber","description":null,"cases":[{"type":"string","description":null,"name":"I","value":"1"},{"type":"string","description":"random description","name":"II","value":"2"},{"type":"string","description":null,"name":"III","value":"3"},{"type":"string","description":null,"name":"IV","value":"4"}]}'];
 
+        yield 'float based object' => ['className' => Longitude::class, 'expectedResult' => '{"type":"float","name":"Longitude","description":null,"minimum":-180,"maximum":180.5}'];
         yield 'integer based object' => ['className' => Age::class, 'expectedResult' => '{"type":"integer","name":"Age","description":"The age of a person in years","minimum":1,"maximum":120}'];
         yield 'list object' => ['className' => FullNames::class, 'expectedResult' => '{"type":"array","name":"FullNames","description":null,"itemType":"FullName","minCount":2,"maxCount":5}'];
         yield 'shape object' => ['className' => FullName::class, 'expectedResult' => '{"type":"object","name":"FullName","description":"First and last name of a person","properties":[{"type":"GivenName","name":"givenName","description":"First name of a person"},{"type":"FamilyName","name":"familyName","description":"Last name of a person"}]}'];
@@ -149,6 +154,29 @@ final class IntegrationTest extends TestCase
         $schema = Parser::getSchema($className);
         self::assertJsonStringEqualsJsonString($expectedResult, json_encode($schema, JSON_THROW_ON_ERROR));
     }
+
+    public static function isInstance_dataProvider(): Generator
+    {
+        yield 'enum' => ['className' => Title::class, 'value' => Title::MISS];
+        yield 'int backed enum' => ['className' => Number::class, 'value' => Number::TWO];
+        yield 'string backed enum' => ['className' => RomanNumber::class, 'value' => RomanNumber::IV];
+
+        yield 'integer based object' => ['className' => Age::class, 'value' => instantiate(Age::class, 44)];
+        yield 'list object' => ['className' => GivenNames::class, 'value' => instantiate(GivenNames::class, ['Jane', 'John'])];
+        yield 'shape object' => ['className' => FullName::class, 'value' => instantiate(FullName::class, ['givenName' => 'John', 'familyName' => 'Doe'])];
+
+        yield 'string based object' => ['className' => GivenName::class, 'value' => instantiate(GivenName::class, 'Jane')];
+
+        yield 'interface' => ['className' => SomeInterface::class, 'value' => instantiate(GivenName::class, 'Jane')];
+    }
+
+    #[DataProvider('isInstance_dataProvider')]
+    public function test_isInstance(string $className, mixed $value): void
+    {
+        $schema = Parser::getSchema($className);
+        self::assertTrue($schema->isInstance($value));
+    }
+
 
     public function test_getSchema_for_shape_object_allows_to_retrieve_overridden_property_descriptions(): void
     {
@@ -177,6 +205,40 @@ final class IntegrationTest extends TestCase
         self::assertJsonStringEqualsJsonString('{"type":"float","name":"float","description":"Some Description"}', json_encode($literalFloatSchema, JSON_THROW_ON_ERROR));
     }
 
+    public static function instantiate_literal_float_dataProvider(): Generator
+    {
+        yield 'zero' => ['value' => 0, 'expectedResult' => 0.0, 'requiresCoercion' => true];
+        yield 'string representing floating number' => ['value' => '1.2', 'expectedResult' => 1.2, 'requiresCoercion' => true];
+        yield 'string representing integer' => ['value' => '123', 'expectedResult' => 123.0, 'requiresCoercion' => true];
+
+        yield 'zero with point' => ['value' => 0., 'expectedResult' => 0.0, 'requiresCoercion' => false];
+        yield 'double' => ['value' => 123.45, 'expectedResult' => 123.45, 'requiresCoercion' => false];
+    }
+
+    #[DataProvider('instantiate_literal_float_dataProvider')]
+    public function test_instantiate_for_literal_float(mixed $value, mixed $expectedResult, bool $requiresCoercion): void
+    {
+        $literalFloatSchema = new LiteralFloatSchema(null);
+        self::assertSame($requiresCoercion, !$literalFloatSchema->isInstance($value));
+        self::assertSame($expectedResult, $literalFloatSchema->instantiate($value));
+    }
+
+    public static function instantiate_failing_literal_float_dataProvider(): Generator
+    {
+        yield 'string representing no number' => ['value' => 'NaN', 'expectedException' => 'Failed to cast string of "NaN" to float: invalid_type (Expected float, received string)'];
+        yield 'object' => ['value' => new stdClass(), 'expectedException' => 'Failed to cast value of type stdClass to float: invalid_type (Expected float, received object)'];
+    }
+
+    #[DataProvider('instantiate_failing_literal_float_dataProvider')]
+    public function test_instantiate_failing_for_literal_float(mixed $value, string $expectedException): void
+    {
+        $literalFloatSchema = new LiteralFloatSchema(null);
+
+        $this->expectException(CoerceException::class);
+        $this->expectExceptionMessage($expectedException);
+        $literalFloatSchema->instantiate($value);
+    }
+
     public function test_getSchema_for_literal_string(): void
     {
         $literalStringSchema = new LiteralStringSchema('Some Description');
@@ -197,6 +259,21 @@ final class IntegrationTest extends TestCase
         $mockWrapped->method('getDescription')->willReturn('WrappedDescription');
         $literalBooleanSchema = new OptionalSchema($mockWrapped);
         self::assertJsonStringEqualsJsonString('{"type":"WrappedType","name":"WrappedName","description":"WrappedDescription","optional":true}', json_encode($literalBooleanSchema, JSON_THROW_ON_ERROR));
+    }
+
+    public static function instantiate_optional_dataProvider(): Generator
+    {
+        yield 'string' => ['value' => 'foo', 'expectedResult' => 'foo', 'requiresCoercion' => false];
+        yield 'null' => ['value' => null, 'expectedResult' => null, 'requiresCoercion' => false];
+        yield 'integer' => ['value' => 123, 'expectedResult' => '123', 'requiresCoercion' => true];
+    }
+
+    #[DataProvider('instantiate_optional_dataProvider')]
+    public function test_instantiate_for_optional(mixed $value, mixed $expectedResult, bool $requiresCoercion): void
+    {
+        $optionalSchema = new OptionalSchema(new LiteralStringSchema(null));
+        self::assertSame($requiresCoercion, !$optionalSchema->isInstance($value));
+        self::assertSame($expectedResult, $optionalSchema->instantiate($value));
     }
 
     public function test_instantiate_throws_if_className_is_empty(): void
@@ -256,6 +333,28 @@ final class IntegrationTest extends TestCase
     public function test_instantiate_enum(mixed $value, Title $expectedResult): void
     {
         self::assertSame($expectedResult, instantiate(Title::class, $value));
+    }
+
+    public static function instantiate_enumCase_dataProvider(): Generator
+    {
+        yield 'unit enum from string' => ['unitEnum' => Title::MISS, 'value' => 'MISS', 'requiresCoercion' => true];
+        yield 'unit enum from unit enum' => ['unitEnum' => Title::MISS, 'value' => Title::MISS, 'requiresCoercion' => false];
+
+        yield 'int-backed enum from string' => ['unitEnum' => Number::TWO, 'value' => '2', 'requiresCoercion' => true];
+        yield 'int-backed enum from int' => ['unitEnum' => Number::TWO, 'value' => 2, 'requiresCoercion' => true];
+        yield 'int-backed enum from unit enum' => ['unitEnum' => Number::TWO, 'value' => Number::TWO, 'requiresCoercion' => false];
+
+        yield 'string-backed enum from string' => ['unitEnum' => Number::TWO, 'value' => '2', 'requiresCoercion' => true];
+        yield 'string-backed enum from int' => ['unitEnum' => Number::TWO, 'value' => 2, 'requiresCoercion' => true];
+        yield 'string-backed enum from unit enum' => ['unitEnum' => Number::TWO, 'value' => Number::TWO, 'requiresCoercion' => false];
+    }
+
+    #[DataProvider('instantiate_enumCase_dataProvider')]
+    public function test_instantiate_for_enumCase(UnitEnum $unitEnum, mixed $value, bool $requiresCoercion): void
+    {
+        $reflectionEnumUnitCase = new ReflectionEnumUnitCase($unitEnum, $unitEnum->name);
+        $enumCaseSchema = new EnumCaseSchema($reflectionEnumUnitCase, null);
+        self::assertSame($requiresCoercion, !$enumCaseSchema->isInstance($value));
     }
 
     public static function instantiate_int_backed_enum_failing_dataProvider(): Generator
@@ -381,6 +480,15 @@ final class IntegrationTest extends TestCase
     {
         /** @var class-string<object> $className */
         self::assertSame($expectedResult, instantiate($className, $value)->value);
+    }
+
+    public function test_instantiate_float_based_object_returns_same_instance_if_already_valid(): void
+    {
+        $instance = instantiate(Longitude::class, 120);
+        $schema = Parser::getSchema(Longitude::class);
+        $converted = $schema->instantiate($instance);
+
+        self::assertSame($instance, $converted);
     }
 
     public static function instantiate_int_based_object_failing_dataProvider(): Generator
@@ -646,6 +754,7 @@ final class IntegrationTest extends TestCase
     public static function instantiate_interface_object_dataProvider(): Generator
     {
         yield 'from array with __type and __value' => ['value' => ['__type' => GivenName::class, '__value' => 'this is valid'], 'className' => SomeInterface::class, 'expectedResult' => '"this is valid"'];
+        yield 'from iterable with __type and __value' => ['value' => new ArrayIterator(['__type' => GivenName::class, '__value' => 'this is valid']), 'className' => SomeInterface::class, 'expectedResult' => '"this is valid"'];
         yield 'from array and remaining values' => ['value' => ['__type' => FullName::class, 'givenName' => 'some given name', 'familyName' => 'some family name'], 'className' => SomeInterface::class, 'expectedResult' => '{"givenName":"some given name","familyName":"some family name"}'];
         yield 'from valid implementation' => ['value' => Parser::instantiate(GivenName::class, 'John'), 'className' => SomeInterface::class, 'expectedResult' => '"John"'];
     }
