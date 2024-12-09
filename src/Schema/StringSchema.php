@@ -102,8 +102,8 @@ final class StringSchema implements Schema
             $matchesFormat = match ($this->format) {
                 StringTypeFormat::email => filter_var($value, FILTER_VALIDATE_EMAIL) !== false,
                 StringTypeFormat::uri => filter_var($value, FILTER_VALIDATE_URL) !== false,
-                StringTypeFormat::date => ($d = DateTimeImmutable::createFromFormat('Y-m-d', $value)) && $d->format('Y-m-d') === $value,
-                StringTypeFormat::date_time => ($d = DateTimeImmutable::createFromFormat(DateTimeInterface::ATOM, $value)) && $d->format(DateTimeInterface::W3C) === $value,
+                StringTypeFormat::date => preg_match('/^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/', $value) === 1,
+                StringTypeFormat::date_time => preg_match('/^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(\.\d+)?(Z|[\+-]([01]\d|2[0-3]):?([0-5]\d)?)?$/i', $value) === 1,
                 StringTypeFormat::uuid => Uuid::isValid($value),
             };
             if (!$matchesFormat) {
