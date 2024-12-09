@@ -100,10 +100,24 @@ final class StringSchema implements Schema
         }
         if ($this->format !== null) {
             $matchesFormat = match ($this->format) {
-                StringTypeFormat::email => filter_var($value, FILTER_VALIDATE_EMAIL) !== false,
-                StringTypeFormat::uri => filter_var($value, FILTER_VALIDATE_URL) !== false,
                 StringTypeFormat::date => preg_match('/^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/', $value) === 1,
-                StringTypeFormat::date_time => preg_match('/^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(\.\d+)?(Z|[\+-]([01]\d|2[0-3]):?([0-5]\d)?)?$/i', $value) === 1,
+                StringTypeFormat::date_time => preg_match('/^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(\.\d+)?(Z|[+-]([01]\d|2[0-3]):?([0-5]\d)?)?$/i', $value) === 1,
+                StringTypeFormat::duration => preg_match('/^P(?!$)(\d+(?:\.\d+)?Y)?(\d+(?:\.\d+)?M)?(\d+(?:\.\d+)?W)?(\d+(?:\.\d+)?D)?(T(?=\d)(\d+(?:\.\d+)?H)?(\d+(?:\.\d+)?M)?(\d+(?:\.\d+)?S)?)?$/i', $value) === 1,
+                StringTypeFormat::email => filter_var($value, FILTER_VALIDATE_EMAIL) !== false,
+                StringTypeFormat::hostname => preg_match('/^(?!\d+$)(?!-)[a-zA-Z0-9-]{,63}(?<!-)$/', $value) === 1,
+                StringTypeFormat::idn_email => count(explode('@', $value, 3)) === 2,
+                //StringTypeFormat::idn_hostname => throw new \Exception('To be implemented'),
+                StringTypeFormat::ipv4 => filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false,
+                StringTypeFormat::ipv6 => filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false,
+                //StringTypeFormat::iri => throw new \Exception('To be implemented'),
+                //StringTypeFormat::iri_reference => throw new \Exception('To be implemented'),
+//                StringTypeFormat::json_pointer => throw new \Exception('To be implemented'),
+                StringTypeFormat::regex => @preg_match('/' . $value . '/', '') !== false,
+//                StringTypeFormat::relative_json_pointer => throw new \Exception('To be implemented'),
+                StringTypeFormat::time => preg_match('/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(\.\d+)?(Z|[+-]([01]\d|2[0-3]):?([0-5]\d)?)?$/i', $value) === 1,
+                StringTypeFormat::uri => filter_var($value, FILTER_VALIDATE_URL) !== false,
+//                StringTypeFormat::uri_reference => throw new \Exception('To be implemented'),
+//                StringTypeFormat::uri_template => throw new \Exception('To be implemented'),
                 StringTypeFormat::uuid => Uuid::isValid($value),
             };
             if (!$matchesFormat) {

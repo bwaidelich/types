@@ -664,13 +664,37 @@ final class IntegrationTest extends TestCase
         yield 'from string violating maxLength' => ['value' => 'This is a bit too long', 'className' => GivenName::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'String must contain at most 20 character(s)', 'path' => [], 'type' => 'string', 'maximum' => 20, 'inclusive' => true, 'exact' => false]]];
         yield 'from string violating pattern' => ['value' => 'magic foo', 'className' => NotMagic::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Value does not match regular expression', 'path' => [], 'validation' => 'regex']]];
 
-        yield 'from string violating format "email"' => ['value' => 'not.an@email', 'className' => EmailAddress::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid email', 'path' => [], 'validation' => 'email']]];
-        yield 'from string violating format "uri"' => ['value' => 'not.a.uri', 'className' => Uri::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid uri', 'path' => [], 'validation' => 'uri']]];
-        yield 'from string violating format "date"' => ['value' => 'not.a.date', 'className' => Date::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date', 'path' => [], 'validation' => 'date']]];
-        yield 'from string violating format "date" because value contains time part' => ['value' => '2025-02-15 13:12:11', 'className' => Date::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date', 'path' => [], 'validation' => 'date']]];
-        yield 'from string custom "date" validation' => ['value' => (new DateTimeImmutable('+1 day'))->format('Y-m-d'), 'className' => Date::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Future dates are not allowed', 'path' => [], 'params' => ['some' => 'param']]]];
         yield 'from string violating format "date_time"' => ['value' => 'not.a.date', 'className' => DateTime::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date_time', 'path' => [], 'validation' => 'date_time']]];
         yield 'from string violating format "date_time" because time part is missing' => ['value' => '2025-02-15', 'className' => DateTime::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date_time', 'path' => [], 'validation' => 'date_time']]];
+
+        yield 'from string violating format "duration"' => ['value' => 'not.a.duration', 'className' => Duration::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid duration', 'path' => [], 'validation' => 'duration']]];
+        yield 'from string violating format "duration" empty components' => ['value' => 'PT', 'className' => Duration::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid duration', 'path' => [], 'validation' => 'duration']]];
+        yield 'from string violating format "duration" missing time component' => ['value' => 'P3MT', 'className' => Duration::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid duration', 'path' => [], 'validation' => 'duration']]];
+
+        yield 'from string violating format "idn_email"' => ['value' => 'not.an.idn.email', 'className' => IdnEmailAddress::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid idn_email', 'path' => [], 'validation' => 'idn_email']]];
+        yield 'from string violating format "idn_email" more than one @' => ['value' => 'not@an@idn.email', 'className' => IdnEmailAddress::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid idn_email', 'path' => [], 'validation' => 'idn_email']]];
+
+        yield 'from string violating format "email"' => ['value' => 'not.an@email', 'className' => EmailAddress::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid email', 'path' => [], 'validation' => 'email']]];
+
+        yield 'from string violating format "hostname"' => ['value' => 'not.a.hostname', 'className' => Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
+        yield 'from string violating format "hostname" because it is numeric' => ['value' => '01010', 'className' => Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
+        yield 'from string violating format "hostname" because it ends with a dash' => ['value' => 'A0c-', 'className' => Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
+        yield 'from string violating format "hostname" because it starts with a dash' => ['value' => '-A0c', 'className' => Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
+        yield 'from string violating format "hostname" because it exceeds max length' => ['value' => 'o123456701234567012345670123456701234567012345670123456701234567', 'className' => Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
+
+        yield 'from string violating format "ipv4"' => ['value' => 'not.an.ipv4', 'className' => Ipv4::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid ipv4', 'path' => [], 'validation' => 'ipv4']]];
+
+        yield 'from string violating format "ipv6"' => ['value' => 'not.an.ipv6', 'className' => Ipv6::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid ipv6', 'path' => [], 'validation' => 'ipv6']]];
+
+        yield 'from string violating format "regex"' => ['value' => 'not.a.regex', 'className' => Regex::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid regex', 'path' => [], 'validation' => 'regex']]];
+
+        yield 'from string violating format "time"' => ['value' => 'not.a.time', 'className' => Time::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid time', 'path' => [], 'validation' => 'time']]];
+        yield 'from string violating format "time" because value contains date part' => ['value' => '2025-02-15Z13:12:11', 'className' => Time::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid time', 'path' => [], 'validation' => 'time']]];
+
+        yield 'from string violating format "uri"' => ['value' => 'not.a.uri', 'className' => Uri::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid uri', 'path' => [], 'validation' => 'uri']]];
+        yield 'from string violating format "date"' => ['value' => 'not.a.date', 'className' => Date::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date', 'path' => [], 'validation' => 'date']]];
+        yield 'from string violating format "date" because value contains time part' => ['value' => '2025-02-15Z13:12:11', 'className' => Date::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date', 'path' => [], 'validation' => 'date']]];
+        yield 'from string custom "date" validation' => ['value' => (new DateTimeImmutable('+1 day'))->format('Y-m-d'), 'className' => Date::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Future dates are not allowed', 'path' => [], 'params' => ['some' => 'param']]]];
         yield 'from string violating format "uuid"' => ['value' => 'not.a.uuid', 'className' => Uuid::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid uuid', 'path' => [], 'validation' => 'uuid']]];
 
         yield 'from string violating multiple constraints' => ['value' => 'invalid', 'className' => ImpossibleString::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'String must contain at least 10 character(s)', 'path' => [], 'type' => 'string', 'minimum' => 10, 'inclusive' => true, 'exact' => false], ['code' => 'too_big', 'message' => 'String must contain at most 2 character(s)', 'path' => [], 'type' => 'string', 'maximum' => 2, 'inclusive' => true, 'exact' => false], ['code' => 'invalid_string', 'message' => 'Value does not match regular expression', 'path' => [], 'validation' => 'regex'], ['code' => 'invalid_string', 'message' => 'Invalid email', 'path' => [], 'validation' => 'email']]];
@@ -705,11 +729,31 @@ final class IntegrationTest extends TestCase
             }
         }, 'className' => GivenName::class, 'expectedResult' => 'from object'];
 
-        yield 'from string matching format "email"' => ['value' => 'a.valid@email.com', 'className' => EmailAddress::class, 'expectedResult' => 'a.valid@email.com'];
-        yield 'from string matching format "uri"' => ['value' => 'https://www.some-domain.tld', 'className' => Uri::class, 'expectedResult' => 'https://www.some-domain.tld'];
         yield 'from string matching format "date"' => ['value' => '1980-12-13', 'className' => Date::class, 'expectedResult' => '1980-12-13'];
+
         yield 'from string matching format "date_time"' => ['value' => '2018-11-13T20:20:39+00:00', 'className' => DateTime::class, 'expectedResult' => '2018-11-13T20:20:39+00:00'];
         yield 'from string matching format "date_time" with UTC zone designator' => ['value' => '2018-11-13T20:20:39Z', 'className' => DateTime::class, 'expectedResult' => '2018-11-13T20:20:39Z'];
+
+        yield 'from string matching format "duration"' => ['value' => 'P2MT30M', 'className' => Duration::class, 'expectedResult' => 'P2MT30M'];
+        yield 'from string matching format "duration" time component only' => ['value' => 'PT6H', 'className' => Duration::class, 'expectedResult' => 'PT6H'];
+
+        yield 'from string matching format "hostname"' => ['value' => 'abc', 'className' => Hostname::class, 'expectedResult' => 'abc'];
+        yield 'from string matching format "hostname" with max length' => ['value' => 'o12345670123456701234567012345670123456701234567012345670123456', 'className' => Hostname::class, 'expectedResult' => 'o12345670123456701234567012345670123456701234567012345670123456'];
+
+        yield 'from string matching format "idn_email"' => ['value' => 'válid@émail.com', 'className' => IdnEmailAddress::class, 'expectedResult' => 'válid@émail.com'];
+
+        yield 'from string matching format "ipv4"' => ['value' => '127.0.0.1', 'className' => Ipv4::class, 'expectedResult' => '127.0.0.1'];
+
+        yield 'from string matching format "ipv6"' => ['value' => '2001:0db8:85a3:08d3:1319:8a2e:0370:7334', 'className' => Ipv6::class, 'expectedResult' => '2001:0db8:85a3:08d3:1319:8a2e:0370:7334'];
+
+        yield 'from string matching format "regex"' => ['value' => '[0-9]{1,3}', 'className' => Regex::class, 'expectedResult' => '[0-9]{1,3}'];
+
+        yield 'from string matching format "email"' => ['value' => 'a.valid@email.com', 'className' => EmailAddress::class, 'expectedResult' => 'a.valid@email.com'];
+
+        yield 'from string matching format "time"' => ['value' => '20:20:39+00:00', 'className' => Time::class, 'expectedResult' => '20:20:39+00:00'];
+        yield 'from string matching format "time" without timezone offset' => ['value' => '20:20:39', 'className' => Time::class, 'expectedResult' => '20:20:39'];
+        yield 'from string matching format "time" with UTC zone designator' => ['value' => '20:20:39Z', 'className' => Time::class, 'expectedResult' => '20:20:39Z'];
+        yield 'from string matching format "uri"' => ['value' => 'https://www.some-domain.tld', 'className' => Uri::class, 'expectedResult' => 'https://www.some-domain.tld'];
         yield 'from string matching format "uuid"' => ['value' => '3cafa54b-f9c3-4470-8c0e-31612cb70f61', 'className' => Uuid::class, 'expectedResult' => '3cafa54b-f9c3-4470-8c0e-31612cb70f61'];
     }
 
@@ -955,6 +999,46 @@ final class EmailAddress
     }
 }
 
+#[StringBased(format: StringTypeFormat::idn_email)]
+final class IdnEmailAddress
+{
+    private function __construct(public readonly string $value)
+    {
+    }
+}
+
+#[StringBased(format: StringTypeFormat::hostname)]
+final class Hostname
+{
+    private function __construct(public readonly string $value)
+    {
+    }
+}
+
+#[StringBased(format: StringTypeFormat::ipv4)]
+final class Ipv4
+{
+    private function __construct(public readonly string $value)
+    {
+    }
+}
+
+#[StringBased(format: StringTypeFormat::ipv6)]
+final class Ipv6
+{
+    private function __construct(public readonly string $value)
+    {
+    }
+}
+
+#[StringBased(format: StringTypeFormat::regex)]
+final class Regex
+{
+    private function __construct(public readonly string $value)
+    {
+    }
+}
+
 #[StringBased(format: StringTypeFormat::uri)]
 final class Uri implements JsonSerializable
 {
@@ -980,8 +1064,24 @@ final class Date
     }
 }
 
+#[StringBased(format: StringTypeFormat::time)]
+final class Time
+{
+    private function __construct(public readonly string $value)
+    {
+    }
+}
+
 #[StringBased(format: StringTypeFormat::date_time)]
 final class DateTime
+{
+    private function __construct(public readonly string $value)
+    {
+    }
+}
+
+#[StringBased(format: StringTypeFormat::duration)]
+final class Duration
 {
     private function __construct(public readonly string $value)
     {
