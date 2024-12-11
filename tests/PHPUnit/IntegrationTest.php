@@ -686,7 +686,7 @@ final class IntegrationTest extends TestCase
 
         yield 'from string violating format "ipv6"' => ['value' => 'not.an.ipv6', 'className' => Ipv6::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid ipv6', 'path' => [], 'validation' => 'ipv6']]];
 
-        yield 'from string violating format "regex"' => ['value' => 'not.a.regex', 'className' => Regex::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid regex', 'path' => [], 'validation' => 'regex']]];
+        yield 'from string violating format "regex"' => ['value' => '(not.a.regex', 'className' => Regex::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid regex', 'path' => [], 'validation' => 'regex']]];
 
         yield 'from string violating format "time"' => ['value' => 'not.a.time', 'className' => Time::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid time', 'path' => [], 'validation' => 'time']]];
         yield 'from string violating format "time" because value contains date part' => ['value' => '2025-02-15Z13:12:11', 'className' => Time::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid time', 'path' => [], 'validation' => 'time']]];
