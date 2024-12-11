@@ -35,14 +35,20 @@
   "require-dev": {
     "roave/security-advisories": "dev-latest",
     "phpstan/phpstan": "^1.10",
-    "squizlabs/php_codesniffer": "^4.0.x-dev",
     "phpunit/phpunit": "^10.1",
-    "phpbench/phpbench": "84.x-dev"
+    "phpbench/phpbench": "84.x-dev",
+    "friendsofphp/php-cs-fixer": "^3.65"
   },
   "scripts": {
     "test:phpstan": "phpstan",
-    "test:cs": "phpcs --colors --standard=PSR12 --exclude=Generic.Files.LineLength src",
-    "test:cs:fix": "phpcbf --colors --standard=PSR12 --exclude=Generic.Files.LineLength src",
+    "test:cs": [
+      "@putenv PHP_CS_FIXER_IGNORE_ENV=1",
+      "php-cs-fixer check"
+    ],
+    "test:cs:fix": [
+      "@putenv PHP_CS_FIXER_IGNORE_ENV=1",
+      "php-cs-fixer fix"
+    ],
     "test:phpunit": "phpunit tests/PHPUnit",
     "test:phpbench": "phpbench run tests/PHPBench --progress=dots --report=default",
     "test": [

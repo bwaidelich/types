@@ -16,14 +16,14 @@ enum StringTypeFormat
     //case idn_hostname;
     case ipv4;
     case ipv6;
-//    case iri;
-//    case iri_reference;
-//    case json_pointer;
+    //    case iri;
+    //    case iri_reference;
+    //    case json_pointer;
     case regex;
-//    case relative_json_pointer;
+    //    case relative_json_pointer;
     case time;
     case uri;
-//    case uri_reference;
-//    case uri_template;
+    //    case uri_reference;
+    //    case uri_template;
     case uuid;
 }

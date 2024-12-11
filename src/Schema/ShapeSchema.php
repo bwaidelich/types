@@ -74,7 +74,7 @@ final class ShapeSchema implements Schema
         try {
             $instance = $this->reflectionClass->newInstanceWithoutConstructor();
             $constructor->invoke($instance, ...$arrayValue);
-        // @codeCoverageIgnoreStart
+            // @codeCoverageIgnoreStart
         } catch (ReflectionException $e) {
             throw new RuntimeException(sprintf('Failed to instantiate "%s": %s', $this->getName(), $e->getMessage()), 1688570532, $e);
         }

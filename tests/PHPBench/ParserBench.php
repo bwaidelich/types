@@ -24,7 +24,6 @@ use Wwwision\Types\Schema\StringTypeFormat;
 
 final class ParserBench
 {
-
     public function class_names(): Generator
     {
         yield 'Enum' => ['className' => Title::class, 'input' => 'MR'];
@@ -56,27 +55,21 @@ final class ParserBench
 #[Description('First name of a person')]
 final class GivenName
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[StringBased(minLength: 3, maxLength: 20)]
 #[Description('Last name of a person')]
 final class FamilyName
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[IntegerBased(minimum: 1, maximum: 120)]
 #[Description('The age of a person in years')]
 final class Age
 {
-    private function __construct(public readonly int $value)
-    {
-    }
+    private function __construct(public readonly int $value) {}
 }
 
 #[Description('First and last name of a person')]
@@ -86,16 +79,13 @@ final class FullName
         #[Description('Overridden given name description')]
         public readonly GivenName $givenName,
         public readonly FamilyName $familyName,
-    )
-    {
-    }
+    ) {}
 }
 
 /** @implements IteratorAggregate<FullName> */
 #[ListBased(itemClassName: FullName::class, minCount: 2, maxCount: 5)]
 final class FullNames implements IteratorAggregate
 {
-
     private array $fullNames;
 
     /** @param array<FullName> $fullNames */
@@ -113,11 +103,8 @@ final class FullNames implements IteratorAggregate
 #[ListBased(itemClassName: GivenName::class, maxCount: 4)]
 final class GivenNames implements IteratorAggregate, JsonSerializable
 {
-
     /** @param array<GivenName> $givenNames */
-    private function __construct(private readonly array $givenNames)
-    {
-    }
+    private function __construct(private readonly array $givenNames) {}
 
     public function getIterator(): Traversable
     {
@@ -133,25 +120,19 @@ final class GivenNames implements IteratorAggregate, JsonSerializable
 #[StringBased(pattern: '^(?!magic).*')]
 final class NotMagic
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[StringBased(format: StringTypeFormat::email)]
 final class EmailAddress
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[StringBased(format: StringTypeFormat::uri)]
 final class Uri
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[StringBased(format: StringTypeFormat::date)]
@@ -169,17 +150,13 @@ final class Date
 #[StringBased(format: StringTypeFormat::date_time)]
 final class DateTime
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[StringBased(format: StringTypeFormat::uuid)]
 final class Uuid
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[Description('honorific title of a person')]
@@ -224,32 +201,34 @@ final class ShapeWithOptionalTypes
         public readonly ?int $optionalInt = null,
         public readonly ?bool $optionalBool = false,
         public readonly ?string $optionalString = null,
-    ) {
-    }
+    ) {}
 }
 
-final class ShapeWithInvalidObjectProperty {
+final class ShapeWithInvalidObjectProperty
+{
     public function __construct(
         public readonly stdClass $someProperty,
-    ) {
-    }
+    ) {}
 }
 
-final class ShapeWithBool {
+final class ShapeWithBool
+{
     private function __construct(
         #[Description('Description for literal bool')]
         public readonly bool $value,
     ) {}
 }
 
-final class ShapeWithInt {
+final class ShapeWithInt
+{
     private function __construct(
         #[Description('Description for literal int')]
         public readonly int $value,
     ) {}
 }
 
-final class ShapeWithString {
+final class ShapeWithString
+{
     private function __construct(
         #[Description('Description for literal string')]
         public readonly string $value,

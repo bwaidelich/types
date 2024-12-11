@@ -56,9 +56,7 @@ final class Parser
     /**
      * @codeCoverageIgnore
      */
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 
     /**
      * @template T of object
@@ -115,7 +113,7 @@ final class Parser
                 self::getDescription($reflectionClass),
                 self::getSchema($baseTypeAttribute->itemClassName),
                 $baseTypeAttribute->minCount,
-                $baseTypeAttribute->maxCount
+                $baseTypeAttribute->maxCount,
             ),
             default => throw new InvalidArgumentException(sprintf('BaseType attribute for class "%s" has an invalid type of %s', $reflectionClass->getName(), get_debug_type($baseTypeAttribute)), 1688559710),
         };

@@ -12,6 +12,5 @@ final class IntegerBased implements TypeBased
     public function __construct(
         public readonly ?int $minimum = null,
         public readonly ?int $maximum = null,
-    ) {
-    }
+    ) {}
 }

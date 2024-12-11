@@ -10,8 +10,7 @@ final class LiteralBooleanSchema implements Schema
 {
     public function __construct(
         public readonly ?string $description,
-    ) {
-    }
+    ) {}
 
     public function getType(): string
     {

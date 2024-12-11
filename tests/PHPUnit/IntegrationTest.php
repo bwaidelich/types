@@ -90,7 +90,6 @@ use const JSON_THROW_ON_ERROR;
 #[CoversFunction('Wwwision\\Types\\instantiate')]
 final class IntegrationTest extends TestCase
 {
-
     public function test_getSchema_throws_if_className_is_empty(): void
     {
         $this->expectException(InvalidArgumentException::class);
@@ -633,8 +632,18 @@ final class IntegrationTest extends TestCase
         yield 'from iterable matching all constraints' => ['value' => new ArrayIterator(['givenName' => 'Some first name', 'familyName' => 'Some last name']), 'className' => FullName::class, 'expectedResult' => '{"givenName":"Some first name","familyName":"Some last name"}'];
         yield 'from array without optionals' => ['value' => ['stringBased' => 'Some value'], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":null,"optionalInt":null,"optionalBool":false,"optionalString":null}'];
         yield 'from array with optionals' => ['value' => ['stringBased' => 'Some value', 'optionalString' => 'optionalString value', 'optionalStringBased' => 'oSB value', 'optionalInt' => 42, 'optionalBool' => true], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":42,"optionalBool":true,"optionalString":"optionalString value"}'];
-        yield 'from array with optionals and coercion' => ['value' => ['stringBased' => 'Some value', 'optionalString' => new class { public function __toString() { return 'optionalString value'; }}, 'optionalStringBased' => 'oSB value', 'optionalInt' => '123', 'optionalBool' => 1], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":123,"optionalBool":true,"optionalString":"optionalString value"}'];
-        yield 'from array with optionals and coercion 2' => ['value' => ['stringBased' => 'Some value', 'optionalString' => new class { public function __toString() { return 'optionalString value'; }}, 'optionalStringBased' => 'oSB value', 'optionalInt' => 55.0, 'optionalBool' => '0'], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":55,"optionalBool":false,"optionalString":"optionalString value"}'];
+        yield 'from array with optionals and coercion' => ['value' => ['stringBased' => 'Some value', 'optionalString' => new class {
+            public function __toString()
+            {
+                return 'optionalString value';
+            }
+        }, 'optionalStringBased' => 'oSB value', 'optionalInt' => '123', 'optionalBool' => 1], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":123,"optionalBool":true,"optionalString":"optionalString value"}'];
+        yield 'from array with optionals and coercion 2' => ['value' => ['stringBased' => 'Some value', 'optionalString' => new class {
+            public function __toString()
+            {
+                return 'optionalString value';
+            }
+        }, 'optionalStringBased' => 'oSB value', 'optionalInt' => 55.0, 'optionalBool' => '0'], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":55,"optionalBool":false,"optionalString":"optionalString value"}'];
         yield 'from array with null-values for optionals' => ['value' => ['stringBased' => 'Some value', 'optionalStringBased' => null, 'optionalInt' => null, 'optionalBool' => null, 'optionalString' => null], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":null,"optionalInt":null,"optionalBool":null,"optionalString":null}'];
         yield 'todo' => ['value' => ['latitude' => 33, 'longitude' => '123.45'], 'className' => GeoCoordinates::class, 'expectedResult' => '{"longitude":{"value":123.45},"latitude":{"value":33}}'];
         $class = new stdClass();
@@ -816,7 +825,7 @@ final class IntegrationTest extends TestCase
         $interfaceSchema = Parser::getSchema(SomeInterface::class);
         self::assertInstanceOf(InterfaceSchema::class, $interfaceSchema);
 
-        $implementationSchemaNames = array_map(static fn (Schema $schema) => $schema->getName(), $interfaceSchema->implementationSchemas());
+        $implementationSchemaNames = array_map(static fn(Schema $schema) => $schema->getName(), $interfaceSchema->implementationSchemas());
         self::assertSame(['GivenName', 'FamilyName', 'FullName'], $implementationSchemaNames);
     }
 
@@ -846,9 +855,7 @@ final class IntegrationTest extends TestCase
 #[Description('First name of a person')]
 final class GivenName implements SomeInterface, JsonSerializable
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 
     public function someMethod(): string
     {
@@ -870,9 +877,7 @@ final class GivenName implements SomeInterface, JsonSerializable
 #[Description('Last name of a person')]
 final class FamilyName implements JsonSerializable, SomeInterface
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 
     public function someMethod(): string
     {
@@ -894,9 +899,7 @@ final class FamilyName implements JsonSerializable, SomeInterface
 #[Description('The age of a person in years')]
 final class Age
 {
-    private function __construct(public readonly int $value)
-    {
-    }
+    private function __construct(public readonly int $value) {}
 }
 
 
@@ -907,9 +910,7 @@ final class FullName implements SomeInterface
         #[Description('Overridden given name description')]
         public readonly GivenName $givenName,
         public readonly FamilyName $familyName,
-    )
-    {
-    }
+    ) {}
 
     public function someMethod(): string
     {
@@ -926,7 +927,6 @@ final class FullName implements SomeInterface
 #[ListBased(itemClassName: FullName::class, minCount: 2, maxCount: 5)]
 final class FullNames implements IteratorAggregate
 {
-
     private array $fullNames;
 
     /** @param array<FullName> $fullNames */
@@ -944,11 +944,8 @@ final class FullNames implements IteratorAggregate
 #[ListBased(itemClassName: GivenName::class, maxCount: 4)]
 final class GivenNames implements IteratorAggregate, JsonSerializable
 {
-
     /** @param array<GivenName> $givenNames */
-    private function __construct(private readonly array $givenNames)
-    {
-    }
+    private function __construct(private readonly array $givenNames) {}
 
     public function getIterator(): Traversable
     {
@@ -986,65 +983,49 @@ final class UriMap implements IteratorAggregate, JsonSerializable
 #[StringBased(pattern: '^(?!magic).*')]
 final class NotMagic
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[StringBased(format: StringTypeFormat::email)]
 final class EmailAddress
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[StringBased(format: StringTypeFormat::idn_email)]
 final class IdnEmailAddress
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[StringBased(format: StringTypeFormat::hostname)]
 final class Hostname
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[StringBased(format: StringTypeFormat::ipv4)]
 final class Ipv4
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[StringBased(format: StringTypeFormat::ipv6)]
 final class Ipv6
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[StringBased(format: StringTypeFormat::regex)]
 final class Regex
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[StringBased(format: StringTypeFormat::uri)]
 final class Uri implements JsonSerializable
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 
     public function jsonSerialize(): string
     {
@@ -1067,33 +1048,25 @@ final class Date
 #[StringBased(format: StringTypeFormat::time)]
 final class Time
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[StringBased(format: StringTypeFormat::date_time)]
 final class DateTime
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[StringBased(format: StringTypeFormat::duration)]
 final class Duration
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[StringBased(format: StringTypeFormat::uuid)]
 final class Uuid
 {
-    private function __construct(public readonly string $value)
-    {
-    }
+    private function __construct(public readonly string $value) {}
 }
 
 #[Description('honorific title of a person')]
@@ -1129,12 +1102,12 @@ enum RomanNumber: string
     case IV = '4';
 }
 
-final class NestedShape {
+final class NestedShape
+{
     public function __construct(
         public readonly ShapeWithOptionalTypes $shapeWithOptionalTypes,
         public readonly ShapeWithBool $shapeWithBool,
-    ) {
-    }
+    ) {}
 }
 
 final class ShapeWithOptionalTypes
@@ -1146,39 +1119,42 @@ final class ShapeWithOptionalTypes
         public readonly ?int $optionalInt = null,
         public readonly ?bool $optionalBool = false,
         public readonly ?string $optionalString = null,
-    ) {
-    }
+    ) {}
 }
 
-final class ShapeWithInvalidObjectProperty {
+final class ShapeWithInvalidObjectProperty
+{
     public function __construct(
         public readonly stdClass $someProperty,
-    ) {
-    }
+    ) {}
 }
 
-final class ShapeWithBool {
+final class ShapeWithBool
+{
     private function __construct(
         #[Description('Description for literal bool')]
         public readonly bool $value,
     ) {}
 }
 
-final class ShapeWithInt {
+final class ShapeWithInt
+{
     private function __construct(
         #[Description('Description for literal int')]
         public readonly int $value,
     ) {}
 }
 
-final class ShapeWithString {
+final class ShapeWithString
+{
     private function __construct(
         #[Description('Description for literal string')]
         public readonly string $value,
     ) {}
 }
 
-final class ShapeWithFloat {
+final class ShapeWithFloat
+{
     private function __construct(
         #[Description('Description for literal float')]
         public readonly float $value,
@@ -1186,7 +1162,8 @@ final class ShapeWithFloat {
 }
 
 #[Description('SomeInterface description')]
-interface SomeInterface {
+interface SomeInterface
+{
     #[Description('Custom description for "someMethod"')]
     public function someMethod(): string;
     #[Description('Custom description for "someOtherMethod"')]
@@ -1194,28 +1171,32 @@ interface SomeInterface {
 }
 
 #[FloatBased(minimum: -180.0, maximum: 180.5)]
-final class Longitude {
+final class Longitude
+{
     private function __construct(
         public readonly float $value,
     ) {}
 }
 
 #[FloatBased(minimum: -90, maximum: 90)]
-final class Latitude {
+final class Latitude
+{
     private function __construct(
         public readonly float $value,
     ) {}
 }
 
-final class GeoCoordinates {
+final class GeoCoordinates
+{
     public function __construct(
         public readonly Longitude $longitude,
-        public readonly Latitude $latitude
+        public readonly Latitude $latitude,
     ) {}
 }
 
 
-interface SomeInvalidInterface {
+interface SomeInvalidInterface
+{
     public function methodWithParameters(string $param = null): string;
 }
 
@@ -1243,11 +1224,11 @@ final class ImpossibleList
     private function __construct(private readonly array $items) {}
 }
 
-final class ShapeWithArray {
+final class ShapeWithArray
+{
     public function __construct(
         public readonly GivenName $givenName,
         #[Description('We can use arrays, too')]
         public readonly array $someArray,
-    ) {
-    }
+    ) {}
 }

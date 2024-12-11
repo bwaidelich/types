@@ -8,8 +8,7 @@ final class OptionalSchema implements Schema
 {
     public function __construct(
         public readonly Schema $wrapped,
-    ) {
-    }
+    ) {}
 
     public function getType(): string
     {

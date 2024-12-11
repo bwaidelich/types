@@ -16,6 +16,5 @@ final class ListBased implements TypeBased
         public readonly string $itemClassName,
         public readonly ?int $minCount = null,
         public readonly ?int $maxCount = null,
-    ) {
-    }
+    ) {}
 }

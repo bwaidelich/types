@@ -68,7 +68,7 @@ final class CoerceException extends InvalidArgumentException implements JsonSeri
             $normalizedSchemaName = $schema->getName();
         }
         $issueMessages = $issues->map(function (Issue $issue) {
-            $path = $issue->path() === [] ? '' : 'At "' . implode('.', array_map(static fn (string|int $segment) => trim((string)$segment, '\''), $issue->path())) . '": ';
+            $path = $issue->path() === [] ? '' : 'At "' . implode('.', array_map(static fn(string|int $segment) => trim((string) $segment, '\''), $issue->path())) . '": ';
             return $path . $issue->code()->name . ' (' . $issue->message() . ')';
         });
         return sprintf('Failed to cast %s to %s: %s', $normalizedValue, $normalizedSchemaName, implode('. ', $issueMessages));
@@ -177,7 +177,7 @@ final class CoerceException extends InvalidArgumentException implements JsonSeri
      */
     private static function normalizeArrayValues(array $values): array
     {
-        return array_map(static fn (int|string $value) => is_string($value) ? '\'' . $value . '\'' : $value, $values);
+        return array_map(static fn(int|string $value) => is_string($value) ? '\'' . $value . '\'' : $value, $values);
     }
 
     /**

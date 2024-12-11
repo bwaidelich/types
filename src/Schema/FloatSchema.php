@@ -28,8 +28,7 @@ final class FloatSchema implements Schema
         public readonly ?string $description,
         public readonly float|int|null $minimum = null,
         public readonly float|int|null $maximum = null,
-    ) {
-    }
+    ) {}
 
     public function getType(): string
     {
@@ -63,7 +62,7 @@ final class FloatSchema implements Schema
         try {
             $instance = $this->reflectionClass->newInstanceWithoutConstructor();
             $constructor->invoke($instance, $intValue);
-        // @codeCoverageIgnoreStart
+            // @codeCoverageIgnoreStart
         } catch (ReflectionException $e) {
             throw new RuntimeException(sprintf('Failed to instantiate "%s": %s', $this->getName(), $e->getMessage()), 1688570532, $e);
         }
@@ -74,14 +73,14 @@ final class FloatSchema implements Schema
     private function coerce(mixed $value): float
     {
         if (is_string($value) || $value instanceof Stringable) {
-            $stringValue = (string)$value;
+            $stringValue = (string) $value;
             if (ctype_digit($stringValue) || preg_match('/^[+-]?(\d+([.]\d*)?([eE][+-]?\d+)?|[.]\d+([eE][+-]?\d+)?)$/', $stringValue) === 1) {
-                $floatValue = (float)$stringValue;
+                $floatValue = (float) $stringValue;
             } else {
                 throw CoerceException::invalidType($value, $this);
             }
         } elseif (is_int($value) || is_float($value)) {
-            $floatValue = (float)$value;
+            $floatValue = (float) $value;
         } else {
             throw CoerceException::invalidType($value, $this);
         }

@@ -25,8 +25,7 @@ final class EnumSchema implements Schema
         private readonly ReflectionEnum $reflectionClass,
         public readonly ?string $description,
         public readonly array $caseSchemas,
-    ) {
-    }
+    ) {}
 
     public function getType(): string
     {
@@ -85,13 +84,13 @@ final class EnumSchema implements Schema
     {
         if ($this->getBackingType() === 'int') {
             if (is_string($value) || $value instanceof Stringable) {
-                $intValue = (int)((string)$value);
-                if ((string)$intValue !== (string)$value) {
+                $intValue = (int) ((string) $value);
+                if ((string) $intValue !== (string) $value) {
                     throw CoerceException::invalidType($value, $this);
                 }
             } elseif (is_float($value)) {
-                $intValue = (int)$value;
-                if (((float)$intValue) !== $value) {
+                $intValue = (int) $value;
+                if (((float) $intValue) !== $value) {
                     throw CoerceException::invalidType($value, $this);
                 }
             } else {
@@ -103,7 +102,7 @@ final class EnumSchema implements Schema
             return $intValue;
         }
         if (is_int($value) || $value instanceof Stringable) {
-            $value = (string)$value;
+            $value = (string) $value;
         }
         if (!is_string($value)) {
             throw CoerceException::invalidType($value, $this);
