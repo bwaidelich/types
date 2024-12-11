@@ -39,7 +39,7 @@ final class ReadmeCodeBlockTest extends TestCase
     }
 
     #[DataProvider('code_blocks_dataProvider')]
-    public function test_code_blocks(string $code, int $lineNumber, string $expectedExceptionMessage = null): void
+    public function test_code_blocks(string $code, int $lineNumber, string|null $expectedExceptionMessage = null): void
     {
         if (self::$previousNamespace !== null && str_starts_with(trim($code), '// ...')) {
             $namespace = self::$previousNamespace;

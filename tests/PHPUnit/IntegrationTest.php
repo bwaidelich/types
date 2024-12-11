@@ -1197,7 +1197,7 @@ final class GeoCoordinates
 
 interface SomeInvalidInterface
 {
-    public function methodWithParameters(string $param = null): string;
+    public function methodWithParameters(string|null $param = null): string;
 }
 
 #[StringBased(minLength: 10, maxLength: 2, pattern: '^foo$', format: StringTypeFormat::email)]
