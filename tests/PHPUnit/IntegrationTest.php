@@ -737,8 +737,8 @@ final class IntegrationTest extends TestCase
         yield 'from string matching format "duration"' => ['value' => 'P2MT30M', 'className' => Duration::class, 'expectedResult' => 'P2MT30M'];
         yield 'from string matching format "duration" time component only' => ['value' => 'PT6H', 'className' => Duration::class, 'expectedResult' => 'PT6H'];
 
-//        yield 'from string matching format "hostname"' => ['value' => 'abc', 'className' => Hostname::class, 'expectedResult' => 'abc'];
-//        yield 'from string matching format "hostname" with max length' => ['value' => 'o12345670123456701234567012345670123456701234567012345670123456', 'className' => Hostname::class, 'expectedResult' => 'o12345670123456701234567012345670123456701234567012345670123456'];
+        yield 'from string matching format "hostname"' => ['value' => 'abc', 'className' => Hostname::class, 'expectedResult' => 'abc'];
+        yield 'from string matching format "hostname" with max length' => ['value' => 'o12345670123456701234567012345670123456701234567012345670123456', 'className' => Hostname::class, 'expectedResult' => 'o12345670123456701234567012345670123456701234567012345670123456'];
 
         yield 'from string matching format "idn_email"' => ['value' => 'válid@émail.com', 'className' => IdnEmailAddress::class, 'expectedResult' => 'válid@émail.com'];
 
