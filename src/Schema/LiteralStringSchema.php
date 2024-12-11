@@ -14,8 +14,7 @@ final class LiteralStringSchema implements Schema
 {
     public function __construct(
         public readonly ?string $description,
-    ) {
-    }
+    ) {}
 
     public function getType(): string
     {
@@ -49,7 +48,7 @@ final class LiteralStringSchema implements Schema
     private function coerce(mixed $value): string
     {
         if (is_int($value) || $value instanceof Stringable) {
-            $value = (string)$value;
+            $value = (string) $value;
         } else {
             throw CoerceException::invalidType($value, $this);
         }

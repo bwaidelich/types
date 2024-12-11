@@ -15,6 +15,5 @@ final class StringBased implements TypeBased
         public readonly ?int $maxLength = null,
         public readonly ?string $pattern = null,
         public readonly ?StringTypeFormat $format = null,
-    ) {
-    }
+    ) {}
 }

@@ -28,8 +28,7 @@ final class IntegerSchema implements Schema
         public readonly ?string $description,
         public readonly ?int $minimum = null,
         public readonly ?int $maximum = null,
-    ) {
-    }
+    ) {}
 
     public function getType(): string
     {
@@ -63,7 +62,7 @@ final class IntegerSchema implements Schema
         try {
             $instance = $this->reflectionClass->newInstanceWithoutConstructor();
             $constructor->invoke($instance, $intValue);
-        // @codeCoverageIgnoreStart
+            // @codeCoverageIgnoreStart
         } catch (ReflectionException $e) {
             throw new RuntimeException(sprintf('Failed to instantiate "%s": %s', $this->getName(), $e->getMessage()), 1688570532, $e);
         }
@@ -74,13 +73,13 @@ final class IntegerSchema implements Schema
     private function coerce(mixed $value): int
     {
         if (is_string($value) || $value instanceof Stringable) {
-            $intValue = (int)((string)$value);
-            if ((string)$intValue !== (string)$value) {
+            $intValue = (int) ((string) $value);
+            if ((string) $intValue !== (string) $value) {
                 throw CoerceException::invalidType($value, $this);
             }
         } elseif (is_float($value)) {
-            $intValue = (int)$value;
-            if (((float)$intValue) !== $value) {
+            $intValue = (int) $value;
+            if (((float) $intValue) !== $value) {
                 throw CoerceException::invalidType($value, $this);
             }
         } else {

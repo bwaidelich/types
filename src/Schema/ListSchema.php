@@ -26,8 +26,7 @@ final class ListSchema implements Schema
         public readonly Schema $itemSchema,
         public readonly ?int $minCount = null,
         public readonly ?int $maxCount = null,
-    ) {
-    }
+    ) {}
 
     public function getType(): string
     {
@@ -61,7 +60,7 @@ final class ListSchema implements Schema
         try {
             $instance = $this->reflectionClass->newInstanceWithoutConstructor();
             $constructor->invoke($instance, $arrayValue);
-        // @codeCoverageIgnoreStart
+            // @codeCoverageIgnoreStart
         } catch (ReflectionException $e) {
             throw new RuntimeException(sprintf('Failed to instantiate "%s": %s', $this->getName(), $e->getMessage()), 1688570532, $e);
         }

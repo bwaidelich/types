@@ -78,7 +78,7 @@ final class Issues implements IteratorAggregate, JsonSerializable
 
     public function withPrependedPathSegment(string|int $pathSegment): self
     {
-        return new self(...array_map(static fn (Issue $issue) => $issue->withPrependedPathSegment($pathSegment), $this->items));
+        return new self(...array_map(static fn(Issue $issue) => $issue->withPrependedPathSegment($pathSegment), $this->items));
     }
 
     /**

@@ -13,8 +13,7 @@ final class EnumCaseSchema implements Schema
     public function __construct(
         private readonly ReflectionEnumUnitCase $reflectionClass,
         public readonly ?string $description,
-    ) {
-    }
+    ) {}
 
     public function getType(): string
     {

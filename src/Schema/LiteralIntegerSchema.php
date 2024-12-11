@@ -15,8 +15,7 @@ final class LiteralIntegerSchema implements Schema
 {
     public function __construct(
         public readonly ?string $description,
-    ) {
-    }
+    ) {}
 
     public function getType(): string
     {
@@ -50,13 +49,13 @@ final class LiteralIntegerSchema implements Schema
     private function coerce(mixed $value): int
     {
         if (is_string($value) || $value instanceof Stringable) {
-            $intValue = (int)((string)$value);
-            if ((string)$intValue !== (string)$value) {
+            $intValue = (int) ((string) $value);
+            if ((string) $intValue !== (string) $value) {
                 throw CoerceException::invalidType($value, $this);
             }
         } elseif (is_float($value)) {
-            $intValue = (int)$value;
-            if (((float)$intValue) !== $value) {
+            $intValue = (int) $value;
+            if (((float) $intValue) !== $value) {
                 throw CoerceException::invalidType($value, $this);
             }
         } else {
