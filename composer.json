@@ -37,7 +37,7 @@
     "phpstan/phpstan": "^1.10",
     "squizlabs/php_codesniffer": "^4.0.x-dev",
     "phpunit/phpunit": "^10.1",
-    "phpbench/phpbench": "^1.2"
+    "phpbench/phpbench": "84.x-dev"
   },
   "scripts": {
     "test:phpstan": "phpstan",
