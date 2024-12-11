@@ -585,6 +585,47 @@ assert($objects->map(fn (SimpleOrComplexObject $o) => $o->render()) === ['Simple
 
 </details>
 
+## Union types
+
+Starting with version [1.4](https://github.com/bwaidelich/types/releases/tag/1.4.0), this package allows to refer to union types (aka "oneOf").
+
+Like with [interfaces](#Interfaces), to instantiate object-based union types, the concrete type has to be specified via the `__type` key:
+
+```php
+#[StringBased]
+final class GivenName {
+    private function __construct(public readonly string $value) {}
+}
+#[StringBased]
+final class FamilyName {
+    private function __construct(public readonly string $value) {}
+}
+
+final class ShapeWithUnionType {
+    private function __construct(
+        public readonly GivenName|FamilyName $givenOrFamilyName
+    ) {}
+}
+
+$instance = instantiate(ShapeWithUnionType::class, ['givenOrFamilyName' => ['__type' => FamilyName::class, '__value' => 'Doe']]);
+assert($instance instanceof ShapeWithUnionType);
+assert($instance->givenOrFamilyName instanceof FamilyName);
+```
+
+For simple union types, the type discrimination is not required of course:
+
+```php
+final class ShapeWithSimpleUnionType {
+    private function __construct(
+        public readonly string|int $stringOrInteger
+    ) {}
+}
+
+$instance = instantiate(ShapeWithSimpleUnionType::class, ['stringOrInteger' => 123]);
+assert($instance instanceof ShapeWithSimpleUnionType);
+assert(is_int($instance->stringOrInteger));
+```
+
 ## Error handling
 
 Errors that occur during the instantiation of objects lead to an `InvalidArgumentException` to be thrown.
