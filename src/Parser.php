@@ -195,7 +195,7 @@ final class Parser
         return new InterfaceSchema($interfaceReflection, self::getDescription($interfaceReflection), $propertySchemas, $overriddenPropertyDescriptions);
     }
 
-    private static function reflectionTypeToSchema(ReflectionNamedType $reflectionType, string $description = null): Schema
+    private static function reflectionTypeToSchema(ReflectionNamedType $reflectionType, string|null $description = null): Schema
     {
         if ($reflectionType->isBuiltin()) {
             return match ($reflectionType->getName()) {
