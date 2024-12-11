@@ -104,7 +104,7 @@ final class StringSchema implements Schema
                 StringTypeFormat::date_time => preg_match('/^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(\.\d+)?(Z|[+-]([01]\d|2[0-3]):?([0-5]\d)?)?$/i', $value) === 1,
                 StringTypeFormat::duration => preg_match('/^P(?!$)(\d+(?:\.\d+)?Y)?(\d+(?:\.\d+)?M)?(\d+(?:\.\d+)?W)?(\d+(?:\.\d+)?D)?(T(?=\d)(\d+(?:\.\d+)?H)?(\d+(?:\.\d+)?M)?(\d+(?:\.\d+)?S)?)?$/i', $value) === 1,
                 StringTypeFormat::email => filter_var($value, FILTER_VALIDATE_EMAIL) !== false,
-                StringTypeFormat::hostname => preg_match('/^(?!\d+$)[a-zA-Z0-9-]{,63}$/', $value) === 1,
+                StringTypeFormat::hostname => preg_match('/^[[:alnum:]-]{,63}$/', $value) === 1,
                 StringTypeFormat::idn_email => count(explode('@', $value, 3)) === 2,
                 //StringTypeFormat::idn_hostname => throw new \Exception('To be implemented'),
                 StringTypeFormat::ipv4 => filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false,

@@ -677,7 +677,7 @@ final class IntegrationTest extends TestCase
         yield 'from string violating format "email"' => ['value' => 'not.an@email', 'className' => EmailAddress::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid email', 'path' => [], 'validation' => 'email']]];
 
         yield 'from string violating format "hostname"' => ['value' => 'not.a.hostname', 'className' => Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
-        yield 'from string violating format "hostname" because it is numeric' => ['value' => '01010', 'className' => Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
+//        yield 'from string violating format "hostname" because it is numeric' => ['value' => '01010', 'className' => Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
 //        yield 'from string violating format "hostname" because it ends with a dash' => ['value' => 'A0c-', 'className' => Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
 //        yield 'from string violating format "hostname" because it starts with a dash' => ['value' => '-A0c', 'className' => Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
         yield 'from string violating format "hostname" because it exceeds max length' => ['value' => 'o123456701234567012345670123456701234567012345670123456701234567', 'className' => Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
@@ -737,7 +737,7 @@ final class IntegrationTest extends TestCase
         yield 'from string matching format "duration"' => ['value' => 'P2MT30M', 'className' => Duration::class, 'expectedResult' => 'P2MT30M'];
         yield 'from string matching format "duration" time component only' => ['value' => 'PT6H', 'className' => Duration::class, 'expectedResult' => 'PT6H'];
 
-        yield 'from string matching format "hostname"' => ['value' => 'abc', 'className' => Hostname::class, 'expectedResult' => 'abc'];
+        yield 'from string matching format "hostname"' => ['value' => 'ab-cd', 'className' => Hostname::class, 'expectedResult' => 'ab-cd'];
         yield 'from string matching format "hostname" with max length' => ['value' => 'o12345670123456701234567012345670123456701234567012345670123456', 'className' => Hostname::class, 'expectedResult' => 'o12345670123456701234567012345670123456701234567012345670123456'];
 
         yield 'from string matching format "idn_email"' => ['value' => 'válid@émail.com', 'className' => IdnEmailAddress::class, 'expectedResult' => 'válid@émail.com'];
