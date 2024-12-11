@@ -57,6 +57,9 @@ use function Wwwision\Types\instantiate;
 
 use const JSON_THROW_ON_ERROR;
 
+/**
+ * @phpstan-type CoercionIssue array{'code':'case invalid_type'|'unrecognized_keys'|'invalid_enum_value'|'invalid_return_type'|'invalid_string'|'too_small'|'too_big'|'custom', message: string, path: string[]}
+ */
 #[CoversClass(ArraySchema::class)]
 #[CoversClass(CoerceException::class)]
 #[CoversClass(Custom::class)]
@@ -96,14 +99,14 @@ final class IntegrationTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Failed to get schema for empty class name');
-        Parser::getSchema('');
+        Parser::getSchema(''); // @phpstan-ignore-line
     }
 
     public function test_getSchema_throws_if_className_is_not_a_className(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Failed to get schema for class "notAClass" because that class does not exist');
-        Parser::getSchema('notAClass');
+        Parser::getSchema('notAClass'); // @phpstan-ignore-line
     }
 
     public function test_getSchema_throws_if_given_class_is_shape_with_invalid_properties(): void
@@ -151,6 +154,9 @@ final class IntegrationTest extends TestCase
         yield 'interface' => ['className' => SomeInterface::class, 'expectedResult' => '{"description":"SomeInterface description","name":"SomeInterface","properties":[{"description":"Custom description for \"someMethod\"","name":"someMethod","type":"string"},{"description":"Custom description for \"someOtherMethod\"","name":"someOtherMethod","optional":true,"type":"FamilyName"}],"type":"interface"}'];
     }
 
+    /**
+     * @param class-string $className
+     */
     #[DataProvider('getSchema_dataProvider')]
     public function test_getSchema(string $className, string $expectedResult): void
     {
@@ -173,6 +179,9 @@ final class IntegrationTest extends TestCase
         yield 'interface' => ['className' => SomeInterface::class, 'value' => instantiate(GivenName::class, 'Jane')];
     }
 
+    /**
+     * @param class-string $className
+     */
     #[DataProvider('isInstance_dataProvider')]
     public function test_isInstance(string $className, mixed $value): void
     {
@@ -283,14 +292,14 @@ final class IntegrationTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Failed to get schema for empty class name');
-        instantiate('', null);
+        instantiate('', null); // @phpstan-ignore-line
     }
 
     public function test_instantiate_throws_if_className_is_not_a_className(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Failed to get schema for class "notAClass" because that class does not exist');
-        instantiate('notAClass', null);
+        instantiate('notAClass', null); // @phpstan-ignore-line
     }
 
     public static function instantiate_enum_failing_dataProvider(): Generator
@@ -305,6 +314,9 @@ final class IntegrationTest extends TestCase
         yield 'from float with fraction' => ['value' => 2.5, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected \'MR\' | \'MRS\' | \'MISS\' | \'MS\' | \'OTHER\', received double', 'path' => [], 'expected' => 'enum', 'received' => 'double']]];
     }
 
+    /**
+     * @param array<CoercionIssue[]> $expectedIssues
+     */
     #[DataProvider('instantiate_enum_failing_dataProvider')]
     public function test_instantiate_enum_failing(mixed $value, array $expectedIssues): void
     {
@@ -370,6 +382,9 @@ final class IntegrationTest extends TestCase
         yield 'from int that matches no case' => ['value' => 5, 'expectedIssues' => [['code' => 'invalid_enum_value', 'message' => 'Invalid enum value. Expected 1 | 2 | 3, received integer', 'path' => [], 'received' => 'integer', 'options' => [1, 2, 3]]]];
     }
 
+    /**
+     * @param array<CoercionIssue[]> $expectedIssues
+     */
     #[DataProvider('instantiate_int_backed_enum_failing_dataProvider')]
     public function test_instantiate_int_backed_enum_failing(mixed $value, array $expectedIssues): void
     {
@@ -409,6 +424,9 @@ final class IntegrationTest extends TestCase
         yield 'from float with fraction' => ['value' => 2.5, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected \'1\' | \'2\' | \'3\' | \'4\', received double', 'path' => [], 'expected' => 'enum', 'received' => 'double']]];
     }
 
+    /**
+     * @param array<CoercionIssue[]> $expectedIssues
+     */
     #[DataProvider('instantiate_string_backed_enum_failing_dataProvider')]
     public function test_instantiate_string_backed_enum_failing(mixed $value, array $expectedIssues): void
     {
@@ -453,6 +471,7 @@ final class IntegrationTest extends TestCase
 
     /**
      * @param class-string<object> $className
+     * @param array<CoercionIssue[]> $expectedIssues
      */
     #[DataProvider('instantiate_float_based_object_failing_dataProvider')]
     public function test_instantiate_float_based_object_failing(mixed $value, string $className, array $expectedIssues): void
@@ -470,19 +489,18 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_float_based_object_dataProvider(): Generator
     {
-        yield 'from instance' => ['value' => instantiate(Longitude::class, 120), 'className' => Longitude::class, 'expectedResult' => 120.0];
-        yield 'from integer that matches constraints' => ['value' => 120, 'className' => Longitude::class, 'expectedResult' => 120];
-        yield 'from numeric string that matches constraints' => ['value' => '1', 'className' => Longitude::class, 'expectedResult' => 1];
-        yield 'from numeric string with floating point that matches constraints' => ['value' => '1.234', 'className' => Longitude::class, 'expectedResult' => 1.234];
-        yield 'from float without fraction' => ['value' => 4.0, 'className' => Longitude::class, 'expectedResult' => 4];
-        yield 'from float with fraction' => ['value' => 4.456, 'className' => Longitude::class, 'expectedResult' => 4.456];
+        yield 'from instance' => ['value' => instantiate(Longitude::class, 120), 'expectedResult' => 120.0];
+        yield 'from integer that matches constraints' => ['value' => 120, 'expectedResult' => 120];
+        yield 'from numeric string that matches constraints' => ['value' => '1', 'expectedResult' => 1];
+        yield 'from numeric string with floating point that matches constraints' => ['value' => '1.234', 'expectedResult' => 1.234];
+        yield 'from float without fraction' => ['value' => 4.0, 'expectedResult' => 4];
+        yield 'from float with fraction' => ['value' => 4.456, 'expectedResult' => 4.456];
     }
 
     #[DataProvider('instantiate_float_based_object_dataProvider')]
-    public function test_instantiate_float_based_object(mixed $value, string $className, float $expectedResult): void
+    public function test_instantiate_float_based_object(mixed $value, float $expectedResult): void
     {
-        /** @var class-string<object> $className */
-        self::assertSame($expectedResult, instantiate($className, $value)->value);
+        self::assertSame($expectedResult, instantiate(Longitude::class, $value)->value);
     }
 
     public function test_instantiate_float_based_object_returns_same_instance_if_already_valid(): void
@@ -511,6 +529,7 @@ final class IntegrationTest extends TestCase
 
     /**
      * @param class-string<object> $className
+     * @param array<CoercionIssue[]> $expectedIssues
      */
     #[DataProvider('instantiate_int_based_object_failing_dataProvider')]
     public function test_instantiate_int_based_object_failing(mixed $value, string $className, array $expectedIssues): void
@@ -528,17 +547,16 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_int_based_object_dataProvider(): Generator
     {
-        yield 'from instance' => ['value' => instantiate(Age::class, 120), 'className' => Age::class, 'expectedResult' => 120];
-        yield 'from integer that matches constraints' => ['value' => 120, 'className' => Age::class, 'expectedResult' => 120];
-        yield 'from numeric string that matches constraints' => ['value' => '1', 'className' => Age::class, 'expectedResult' => 1];
-        yield 'from float without fraction' => ['value' => 4.0, 'className' => Age::class, 'expectedResult' => 4];
+        yield 'from instance' => ['value' => instantiate(Age::class, 120), 'expectedResult' => 120];
+        yield 'from integer that matches constraints' => ['value' => 120, 'expectedResult' => 120];
+        yield 'from numeric string that matches constraints' => ['value' => '1', 'expectedResult' => 1];
+        yield 'from float without fraction' => ['value' => 4.0, 'expectedResult' => 4];
     }
 
     #[DataProvider('instantiate_int_based_object_dataProvider')]
-    public function test_instantiate_int_based_object(mixed $value, string $className, int $expectedResult): void
+    public function test_instantiate_int_based_object(mixed $value, int $expectedResult): void
     {
-        /** @var class-string<object> $className */
-        self::assertSame($expectedResult, instantiate($className, $value)->value);
+        self::assertSame($expectedResult, instantiate(Age::class, $value)->value);
     }
 
     public static function instantiate_list_object_failing_dataProvider(): Generator
@@ -558,6 +576,10 @@ final class IntegrationTest extends TestCase
         yield 'from array violating mixCount and maxCount and element constraints' => ['value' => ['a', 'bar', 'c'], 'className' => ImpossibleList::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Array must contain at least 10 element(s)', 'path' => [], 'type' => 'array', 'minimum' => 10, 'inclusive' => true, 'exact' => false], ['code' => 'too_big', 'message' => 'Array must contain at most 2 element(s)', 'path' => [], 'type' => 'array', 'maximum' => 2, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => [0], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => [2], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false]]];
     }
 
+    /**
+     * @param class-string $className
+     * @param array<CoercionIssue[]> $expectedIssues
+     */
     #[DataProvider('instantiate_list_object_failing_dataProvider')]
     public function test_instantiate_list_object_failing(mixed $value, string $className, array $expectedIssues): void
     {
@@ -579,6 +601,9 @@ final class IntegrationTest extends TestCase
         yield 'map of strings' => ['value' => ['wwwision' => 'https://wwwision.de', 'Neos CMS' => 'https://neos.io'], 'className' => UriMap::class, 'expectedResult' => '{"wwwision":"https://wwwision.de","Neos CMS":"https://neos.io"}'];
     }
 
+    /**
+     * @param class-string $className
+     */
     #[DataProvider('instantiate_list_object_dataProvider')]
     public function test_instantiate_list_object(mixed $value, string $className, string $expectedResult): void
     {
@@ -618,6 +643,7 @@ final class IntegrationTest extends TestCase
 
     /**
      * @param class-string<object> $className
+     * @param array<CoercionIssue[]> $expectedIssues
      */
     #[DataProvider('instantiate_shape_object_failing_dataProvider')]
     public function test_instantiate_shape_object_failing(mixed $value, string $className, array $expectedIssues): void
@@ -722,6 +748,7 @@ final class IntegrationTest extends TestCase
 
     /**
      * @param class-string<object> $className
+     * @param array<CoercionIssue[]> $expectedIssues
      */
     #[DataProvider('instantiate_string_based_object_failing_dataProvider')]
     public function test_instantiate_string_based_object_failing(mixed $value, string $className, array $expectedIssues): void
@@ -777,10 +804,12 @@ final class IntegrationTest extends TestCase
         yield 'from string matching format "uuid"' => ['value' => '3cafa54b-f9c3-4470-8c0e-31612cb70f61', 'className' => Uuid::class, 'expectedResult' => '3cafa54b-f9c3-4470-8c0e-31612cb70f61'];
     }
 
+    /**
+     * @param class-string<object{value:mixed}> $className
+     */
     #[DataProvider('instantiate_string_based_object_dataProvider')]
     public function test_instantiate_string_based_object(mixed $value, string $className, string $expectedResult): void
     {
-        /** @var class-string<object> $className */
         self::assertSame($expectedResult, instantiate($className, $value)->value);
     }
 
@@ -801,6 +830,7 @@ final class IntegrationTest extends TestCase
 
     /**
      * @param class-string<object> $className
+     * @param array<CoercionIssue[]> $expectedIssues
      */
     #[DataProvider('instantiate_interface_object_failing_dataProvider')]
     public function test_instantiate_interface_object_failing(mixed $value, string $className, array $expectedIssues): void
@@ -914,6 +944,9 @@ final class IntegrationTest extends TestCase
         yield 'from array with valid __type but missing properties' => ['value' => ['__type' => FullName::class, 'givenName' => 'John'], 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
     }
 
+    /**
+     * @param array<CoercionIssue[]> $expectedIssues
+     */
     #[DataProvider('instantiate_oneOf_failing_dataProvider')]
     public function test_instantiate_oneOf_failing(mixed $value, array $expectedIssues): void
     {
@@ -946,7 +979,6 @@ final class IntegrationTest extends TestCase
             Parser::getSchema(GivenName::class),
             Parser::getSchema(FamilyName::class),
         ], null);
-        /** @var class-string<object> $className */
         self::assertJsonStringEqualsJsonString($expectedResult, json_encode($oneOfSchema->instantiate($value), JSON_THROW_ON_ERROR));
     }
 
@@ -1004,7 +1036,7 @@ final class GivenName implements SomeInterface, JsonSerializable
 
     public function someOtherMethod(): FamilyName
     {
-        return instantiate(self::class, $this->value);
+        return instantiate(FamilyName::class, $this->value);
     }
 
     public function jsonSerialize(): string
@@ -1067,9 +1099,11 @@ final class FullName implements SomeInterface
 #[ListBased(itemClassName: FullName::class, minCount: 2, maxCount: 5)]
 final class FullNames implements IteratorAggregate
 {
+    /**
+     * @var array<FullName>
+     */
     private array $fullNames;
 
-    /** @param array<FullName> $fullNames */
     private function __construct(FullName... $fullNames)
     {
         $this->fullNames = $fullNames;
@@ -1081,6 +1115,9 @@ final class FullNames implements IteratorAggregate
     }
 }
 
+/**
+ * @implements IteratorAggregate<GivenName>
+ */
 #[ListBased(itemClassName: GivenName::class, maxCount: 4)]
 final class GivenNames implements IteratorAggregate, JsonSerializable
 {
@@ -1092,15 +1129,24 @@ final class GivenNames implements IteratorAggregate, JsonSerializable
         return new ArrayIterator($this->givenNames);
     }
 
+    /**
+     * @return array<mixed>
+     */
     public function jsonSerialize(): array
     {
         return $this->givenNames;
     }
 }
 
+/**
+ * @implements IteratorAggregate<Uri>
+ */
 #[ListBased(itemClassName: Uri::class)]
 final class UriMap implements IteratorAggregate, JsonSerializable
 {
+    /**
+     * @param array<Uri> $entries
+     */
     private function __construct(private readonly array $entries)
     {
         if (array_keys($entries) !== array_filter(\array_keys($entries), '\is_string')) {
@@ -1113,6 +1159,9 @@ final class UriMap implements IteratorAggregate, JsonSerializable
         return new ArrayIterator($this->entries);
     }
 
+    /**
+     * @return array<mixed>
+     */
     public function jsonSerialize(): array
     {
         return $this->entries;
@@ -1361,11 +1410,17 @@ final class ImpossibleFloat
 #[ListBased(itemClassName: GivenName::class, minCount: 10, maxCount: 2)]
 final class ImpossibleList
 {
-    private function __construct(private readonly array $items) {}
+    /**
+     * @param array<GivenName> $items
+     */
+    private function __construct(public readonly array $items) {}
 }
 
 final class ShapeWithArray
 {
+    /**
+     * @param array<mixed> $someArray
+     */
     public function __construct(
         public readonly GivenName $givenName,
         #[Description('We can use arrays, too')]
