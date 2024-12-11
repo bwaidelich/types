@@ -14,6 +14,8 @@ use ReflectionFunctionAbstract;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
+use ReflectionType;
+use ReflectionUnionType;
 use RuntimeException;
 use UnitEnum;
 use Webmozart\Assert\Assert;
@@ -34,6 +36,7 @@ use Wwwision\Types\Schema\LiteralBooleanSchema;
 use Wwwision\Types\Schema\LiteralFloatSchema;
 use Wwwision\Types\Schema\LiteralIntegerSchema;
 use Wwwision\Types\Schema\LiteralStringSchema;
+use Wwwision\Types\Schema\OneOfSchema;
 use Wwwision\Types\Schema\OptionalSchema;
 use Wwwision\Types\Schema\Schema;
 use Wwwision\Types\Schema\ShapeSchema;
@@ -148,7 +151,8 @@ final class Parser
             $propertyName = $parameter->getName();
             $parameterType = $parameter->getType();
             Assert::notNull($parameterType, sprintf('Failed to determine type of constructor parameter "%s"', $propertyName));
-            Assert::isInstanceOf($parameterType, ReflectionNamedType::class);
+            Assert::isInstanceOfAny($parameterType, [ReflectionNamedType::class, ReflectionUnionType::class]);
+            /** @var ReflectionNamedType|ReflectionUnionType $parameterType */
             try {
                 $propertySchema = self::reflectionTypeToSchema($parameterType, self::getDescription($parameter));
             } catch (InvalidArgumentException $exception) {
@@ -193,8 +197,16 @@ final class Parser
         return new InterfaceSchema($interfaceReflection, self::getDescription($interfaceReflection), $propertySchemas, $overriddenPropertyDescriptions);
     }
 
-    private static function reflectionTypeToSchema(ReflectionNamedType $reflectionType, string|null $description = null): Schema
+    private static function reflectionTypeToSchema(ReflectionNamedType|ReflectionUnionType $reflectionType, string|null $description = null): Schema
     {
+        if ($reflectionType instanceof ReflectionUnionType) {
+            $subSchemas = array_map(static function (ReflectionType $subReflectionType) {
+                Assert::isInstanceOfAny($subReflectionType, [ReflectionNamedType::class, ReflectionUnionType::class]);
+                /** @var ReflectionNamedType|ReflectionUnionType $subReflectionType */
+                return self::reflectionTypeToSchema($subReflectionType);
+            }, $reflectionType->getTypes());
+            return new OneOfSchema($subSchemas, $description);
+        }
         if ($reflectionType->isBuiltin()) {
             return match ($reflectionType->getName()) {
                 'array' => new ArraySchema($description),

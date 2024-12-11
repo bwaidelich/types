@@ -45,6 +45,7 @@ use Wwwision\Types\Schema\LiteralBooleanSchema;
 use Wwwision\Types\Schema\LiteralFloatSchema;
 use Wwwision\Types\Schema\LiteralIntegerSchema;
 use Wwwision\Types\Schema\LiteralStringSchema;
+use Wwwision\Types\Schema\OneOfSchema;
 use Wwwision\Types\Schema\OptionalSchema;
 use Wwwision\Types\Schema\Schema;
 use Wwwision\Types\Schema\ShapeSchema;
@@ -78,6 +79,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(LiteralFloatSchema::class)]
 #[CoversClass(LiteralIntegerSchema::class)]
 #[CoversClass(LiteralStringSchema::class)]
+#[CoversClass(OneOfSchema::class)]
 #[CoversClass(OptionalSchema::class)]
 #[CoversClass(Parser::class)]
 #[CoversClass(ShapeSchema::class)]
@@ -143,6 +145,8 @@ final class IntegrationTest extends TestCase
         yield 'shape with float' => ['className' => ShapeWithFloat::class, 'expectedResult' => '{"type":"object","name":"ShapeWithFloat","description":null,"properties":[{"type":"float","name":"value","description":"Description for literal float"}]}'];
         yield 'shape with floats' => ['className' => GeoCoordinates::class, 'expectedResult' => '{"type":"object","name":"GeoCoordinates","description":null,"properties":[{"type":"Longitude","name":"longitude","description":null},{"type":"Latitude","name":"latitude","description":null}]}'];
         yield 'shape with array' => ['className' => ShapeWithArray::class, 'expectedResult' => '{"type":"object","name":"ShapeWithArray","description":null,"properties":[{"type":"GivenName","name":"givenName","description":"First name of a person"},{"type":"array","name":"someArray","description":"We can use arrays, too"}]}'];
+        yield 'shape with union type' => ['className' => ShapeWithUnionType::class, 'expectedResult' => '{"type":"object","name":"ShapeWithUnionType","description":null,"properties":[{"type":"GivenName|FamilyName","name":"givenOrFamilyName","description":null}]}'];
+        yield 'shape with simple union type' => ['className' => ShapeWithSimpleUnionType::class, 'expectedResult' => '{"type":"object","name":"ShapeWithSimpleUnionType","description":null,"properties":[{"type":"string|int","name":"integerOrString","description":null}]}'];
 
         yield 'interface' => ['className' => SomeInterface::class, 'expectedResult' => '{"description":"SomeInterface description","name":"SomeInterface","properties":[{"description":"Custom description for \"someMethod\"","name":"someMethod","type":"string"},{"description":"Custom description for \"someOtherMethod\"","name":"someOtherMethod","optional":true,"type":"FamilyName"}],"type":"interface"}'];
     }
@@ -592,6 +596,9 @@ final class IntegrationTest extends TestCase
         yield 'from array with missing keys' => ['value' => [], 'className' => FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['givenName'], 'expected' => 'string', 'received' => 'undefined'], ['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
         yield 'from array with additional key' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Some last name', 'additional' => 'not allowed'], 'className' => FullName::class, 'expectedIssues' => [['code' => 'unrecognized_keys', 'message' => 'Unrecognized key(s) in object: \'additional\'', 'path' => [], 'keys' => ['additional']]]];
         yield 'from array with additional keys' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Some last name', 'additional' => 'not allowed', 'another additional' => 'also not allowed'], 'className' => FullName::class, 'expectedIssues' => [['code' => 'unrecognized_keys', 'message' => 'Unrecognized key(s) in object: \'additional\', \'another additional\'', 'path' => [], 'keys' => ['additional', 'another additional']]]];
+        yield 'from array with missing keys for union type' => ['value' => ['givenOrFamilyName' => ['__type' => GivenName::class]], 'className' => ShapeWithUnionType::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing keys for union of type GivenName|FamilyName', 'path' => ['givenOrFamilyName'], 'params' => []]]];
+        yield 'from array with invalid __type for union type' => ['value' => ['givenOrFamilyName' => ['__type' => EmailAddress::class, '__value' => 'foo@bar.com']], 'className' => ShapeWithUnionType::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'The given "__type" of "Wwwision\\Types\\Tests\\PHPUnit\\EmailAddress" is not an implementation of GivenName|FamilyName', 'path' => ['givenOrFamilyName'], 'params' => []]]];
+        yield 'from array with invalid value for simple union type' => ['value' => ['integerOrString' => 12.34], 'className' => ShapeWithSimpleUnionType::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string|int, received double', 'path' => ['integerOrString'], 'expected' => 'string|int', 'received' => 'double']]];
 
         yield 'from array with property violating constraint' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Ab'], 'className' => FullName::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => ['familyName'], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false]]];
         yield 'from array with properties violating constraints' => ['value' => ['givenName' => 'Ab', 'familyName' => 'Ab'], 'className' => FullName::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => ['givenName'], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => ['familyName'], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false]]];
@@ -653,6 +660,10 @@ final class IntegrationTest extends TestCase
 
         yield 'with array property' => ['value' => ['givenName' => 'John', 'someArray' => ['some', 'array', 'values']], 'className' => ShapeWithArray::class, 'expectedResult' => '{"givenName":"John","someArray":["some","array","values"]}'];
         yield 'with array property from iterable' => ['value' => ['givenName' => 'Jane', 'someArray' => new ArrayIterator(['some', 'iterable', 'values'])], 'className' => ShapeWithArray::class, 'expectedResult' => '{"givenName":"Jane","someArray":["some","iterable","values"]}'];
+
+        yield 'with union type' => ['value' => ['givenOrFamilyName' => ['__type' => GivenName::class, '__value' => 'Jane']], 'className' => ShapeWithUnionType::class, 'expectedResult' => '{"givenOrFamilyName":"Jane"}'];
+        yield 'with simple union type (integer)' => ['value' => ['integerOrString' => 123], 'className' => ShapeWithSimpleUnionType::class, 'expectedResult' => '{"integerOrString":123}'];
+        yield 'with simple union type (string)' => ['value' => ['integerOrString' => 'foo'], 'className' => ShapeWithSimpleUnionType::class, 'expectedResult' => '{"integerOrString":"foo"}'];
     }
 
     #[DataProvider('instantiate_shape_object_dataProvider')]
@@ -848,6 +859,135 @@ final class IntegrationTest extends TestCase
     {
         $instance = Parser::instantiate(GivenName::class, 'John');
         self::assertSame($instance, Parser::getSchema(SomeInterface::class)->instantiate($instance));
+    }
+
+    public function test_oneOfSchema_type(): void
+    {
+        $mockSubSchemas = [
+            $this->getMockBuilder(Schema::class)->getMock(),
+            $this->getMockBuilder(Schema::class)->getMock(),
+        ];
+        $oneOfSchema = new OneOfSchema($mockSubSchemas, null);
+        $mockSubSchemas[0]->expects(self::once())->method('getName')->willReturn('Type1');
+        $mockSubSchemas[1]->expects(self::once())->method('getName')->willReturn('Type2');
+        self::assertSame('Type1|Type2', $oneOfSchema->getType());
+    }
+
+    public function test_oneOfSchema_isInstance_returns_true_if_value_is_instance_of_one_subSchema(): void
+    {
+        $mockSubSchemas = [
+            $this->getMockBuilder(Schema::class)->getMock(),
+            $this->getMockBuilder(Schema::class)->getMock(),
+        ];
+        $oneOfSchema = new OneOfSchema($mockSubSchemas, null);
+        $value = 'some value';
+        $mockSubSchemas[0]->expects(self::once())->method('isInstance')->with($value)->willReturn(false);
+        $mockSubSchemas[1]->expects(self::once())->method('isInstance')->with($value)->willReturn(true);
+        self::assertTrue($oneOfSchema->isInstance($value));
+    }
+
+    public function test_oneOfSchema_isInstance_returns_false_if_value_is_no_instance_of_any_subSchemas(): void
+    {
+        $mockSubSchemas = [
+            $this->getMockBuilder(Schema::class)->getMock(),
+            $this->getMockBuilder(Schema::class)->getMock(),
+        ];
+        $oneOfSchema = new OneOfSchema($mockSubSchemas, null);
+        $value = 'some value';
+        $mockSubSchemas[0]->expects(self::once())->method('isInstance')->with($value)->willReturn(false);
+        $mockSubSchemas[1]->expects(self::once())->method('isInstance')->with($value)->willReturn(false);
+        self::assertFalse($oneOfSchema->isInstance($value));
+    }
+
+    public static function instantiate_oneOf_failing_dataProvider(): Generator
+    {
+        yield 'from null' => ['value' => null, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected GivenName|FamilyName, received null', 'path' => [], 'expected' => 'GivenName|FamilyName', 'received' => 'null']]];
+        yield 'from object' => ['value' => new stdClass(), 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing key "__type"', 'path' => [], 'params' => []]]];
+        yield 'from boolean' => ['value' => false, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected GivenName|FamilyName, received boolean', 'path' => [], 'expected' => 'GivenName|FamilyName', 'received' => 'boolean']]];
+        yield 'from integer' => ['value' => 1234, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected GivenName|FamilyName, received integer', 'path' => [], 'expected' => 'GivenName|FamilyName', 'received' => 'integer']]];
+        yield 'from float' => ['value' => 2.0, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected GivenName|FamilyName, received double', 'path' => [], 'expected' => 'GivenName|FamilyName', 'received' => 'double']]];
+        yield 'from array without __type' => ['value' => ['someKey' => 'someValue'], 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing key "__type"', 'path' => [], 'params' => []]]];
+        yield 'from array with invalid __type' => ['value' => ['__type' => 123], 'expectedIssues' => [['code' => 'custom', 'message' => 'Key "__type" has to be a string, got: int', 'path' => [], 'params' => []]]];
+        yield 'from array with unknown __type' => ['value' => ['__type' => 'NoClassName'], 'expectedIssues' => [['code' => 'custom', 'message' => 'Key "__type" has to be a valid class name, got: "NoClassName"', 'path' => [], 'params' => []]]];
+        yield 'from array with __type that is not an instance of the union' => ['value' => ['__type' => ShapeWithInt::class, 'value' => '123'], 'expectedIssues' => [['code' => 'custom', 'message' => 'The given "__type" of "Wwwision\\Types\\Tests\\PHPUnit\\ShapeWithInt" is not an implementation of GivenName|FamilyName', 'path' => [], 'params' => []]]];
+        yield 'from array with valid __type but invalid remaining values' => ['value' => ['__type' => GivenName::class], 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing keys for union of type GivenName|FamilyName', 'path' => [], 'params' => []]]];
+        yield 'from array with valid __type but missing properties' => ['value' => ['__type' => FullName::class, 'givenName' => 'John'], 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
+    }
+
+    #[DataProvider('instantiate_oneOf_failing_dataProvider')]
+    public function test_instantiate_oneOf_failing(mixed $value, array $expectedIssues): void
+    {
+        $exceptionThrown = false;
+        $expectedIssuesJson = json_encode($expectedIssues, JSON_THROW_ON_ERROR);
+        $oneOfSchema = new OneOfSchema([
+            Parser::getSchema(GivenName::class),
+            Parser::getSchema(FamilyName::class),
+        ], null);
+        try {
+            $oneOfSchema->instantiate($value);
+        } catch (CoerceException $e) {
+            $exceptionThrown = true;
+            self::assertJsonStringEqualsJsonString($expectedIssuesJson, json_encode($e, JSON_THROW_ON_ERROR));
+        }
+        self::assertTrue($exceptionThrown, sprintf('Failed asserting that exception of type "%s" is thrown.', CoerceException::class));
+    }
+
+    public static function instantiate_oneOf_dataProvider(): Generator
+    {
+        yield 'from array with __type and __value' => ['value' => ['__type' => GivenName::class, '__value' => 'this is valid'], 'expectedResult' => '"this is valid"'];
+        yield 'from iterable with __type and __value' => ['value' => new ArrayIterator(['__type' => GivenName::class, '__value' => 'this is valid']), 'expectedResult' => '"this is valid"'];
+        yield 'from valid implementation' => ['value' => Parser::instantiate(GivenName::class, 'John'), 'expectedResult' => '"John"'];
+    }
+
+    #[DataProvider('instantiate_oneOf_dataProvider')]
+    public function test_instantiate_oneOf(mixed $value, string $expectedResult): void
+    {
+        $oneOfSchema = new OneOfSchema([
+            Parser::getSchema(GivenName::class),
+            Parser::getSchema(FamilyName::class),
+        ], null);
+        /** @var class-string<object> $className */
+        self::assertJsonStringEqualsJsonString($expectedResult, json_encode($oneOfSchema->instantiate($value), JSON_THROW_ON_ERROR));
+    }
+
+    public function test_instantiate_returns_same_instance_if_object_is_a_valid_oneOf_type(): void
+    {
+        $oneOfSchema = new OneOfSchema([
+            Parser::getSchema(GivenName::class),
+            Parser::getSchema(FamilyName::class),
+        ], null);
+        $instance = Parser::instantiate(GivenName::class, 'John');
+        self::assertSame($instance, $oneOfSchema->instantiate($instance));
+    }
+
+    public function test_oneOf_serialization(): void
+    {
+        $oneOfSchema = new OneOfSchema([
+            Parser::getSchema(GivenName::class),
+            Parser::getSchema(FamilyName::class),
+        ], null);
+        $expectedResult = '{
+            "description": null,
+            "name": "GivenName|FamilyName",
+            "subSchemas": [
+                {
+                    "description": "First name of a person",
+                    "maxLength": 20,
+                    "minLength": 3,
+                    "name": "GivenName",
+                    "type": "string"
+                },
+                {
+                    "description": "Last name of a person",
+                    "maxLength": 20,
+                    "minLength": 3,
+                    "name": "FamilyName",
+                    "type": "string"
+                }
+            ],
+            "type": "GivenName|FamilyName"
+        }';
+        self::assertJsonStringEqualsJsonString($expectedResult, json_encode($oneOfSchema, JSON_THROW_ON_ERROR));
     }
 }
 
@@ -1230,5 +1370,19 @@ final class ShapeWithArray
         public readonly GivenName $givenName,
         #[Description('We can use arrays, too')]
         public readonly array $someArray,
+    ) {}
+}
+
+final class ShapeWithUnionType
+{
+    public function __construct(
+        public readonly GivenName|FamilyName $givenOrFamilyName,
+    ) {}
+}
+
+final class ShapeWithSimpleUnionType
+{
+    public function __construct(
+        public readonly int|string $integerOrString,
     ) {}
 }
