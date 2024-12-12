@@ -33,6 +33,9 @@ final class ParserBench
         yield 'StringBased' => ['className' => GivenName::class, 'input' => 'Some value'];
     }
 
+    /**
+     * @param array{className: class-string, input: mixed} $params
+     */
     #[Revs(100)]
     #[Iterations(3)]
     #[ParamProviders('class_names')]
@@ -41,6 +44,9 @@ final class ParserBench
         Parser::getSchema($params['className']);
     }
 
+    /**
+     * @param array{className: class-string, input: mixed} $params
+     */
     #[Revs(100)]
     #[Iterations(3)]
     #[ParamProviders('class_names')]
@@ -86,9 +92,11 @@ final class FullName
 #[ListBased(itemClassName: FullName::class, minCount: 2, maxCount: 5)]
 final class FullNames implements IteratorAggregate
 {
+    /**
+     * @var array<FullName>
+     */
     private array $fullNames;
 
-    /** @param array<FullName> $fullNames */
     private function __construct(FullName... $fullNames)
     {
         $this->fullNames = $fullNames;
@@ -100,6 +108,9 @@ final class FullNames implements IteratorAggregate
     }
 }
 
+/**
+ * @implements IteratorAggregate<GivenName>
+ */
 #[ListBased(itemClassName: GivenName::class, maxCount: 4)]
 final class GivenNames implements IteratorAggregate, JsonSerializable
 {
@@ -111,6 +122,9 @@ final class GivenNames implements IteratorAggregate, JsonSerializable
         return new ArrayIterator($this->givenNames);
     }
 
+    /**
+     * @return array<mixed>
+     */
     public function jsonSerialize(): array
     {
         return $this->givenNames;

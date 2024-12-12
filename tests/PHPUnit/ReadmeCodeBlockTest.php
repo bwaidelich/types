@@ -25,6 +25,7 @@ final class ReadmeCodeBlockTest extends TestCase
     public static function code_blocks_dataProvider(): Generator
     {
         $readmeFilePath = realpath(__DIR__ . '/../../README.md');
+        assert(is_string($readmeFilePath));
         $readmeContents = file_get_contents($readmeFilePath);
         if (!is_string($readmeContents)) {
             self::fail(sprintf('Failed to read README file from "%s"', $readmeFilePath));
