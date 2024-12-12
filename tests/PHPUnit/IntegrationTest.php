@@ -141,6 +141,7 @@ final class IntegrationTest extends TestCase
         yield 'shape with array' => ['className' => ShapeWithArray::class, 'expectedResult' => '{"type":"object","name":"ShapeWithArray","description":null,"properties":[{"type":"GivenName","name":"givenName","description":"First name of a person"},{"type":"array","name":"someArray","description":"We can use arrays, too"}]}'];
 
         yield 'interface' => ['className' => SomeInterface::class, 'expectedResult' => '{"description":"SomeInterface description","name":"SomeInterface","properties":[{"description":"Custom description for \"someMethod\"","name":"someMethod","type":"string"},{"description":"Custom description for \"someOtherMethod\"","name":"someOtherMethod","optional":true,"type":"FamilyName"}],"type":"interface"}'];
+        yield 'shape with interface property' => ['className' => ShapeWithInterfaceProperty::class, 'expectedResult' => '{"description":null,"name":"ShapeWithInterfaceProperty","properties":[{"description":"SomeInterface description","name":"property","type":"SomeInterface"}],"type":"object"}'];
     }
 
     #[DataProvider('getSchema_dataProvider')]
@@ -500,6 +501,8 @@ final class IntegrationTest extends TestCase
         yield 'nested shape' => ['value' => ['shapeWithOptionalTypes' => ['stringBased' => '123', 'optionalInt' => 'not an int']], 'className' => NestedShape::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received string', 'path' => ['shapeWithOptionalTypes', 'optionalInt'], 'expected' => 'integer', 'received' => 'string'], ['code' => 'invalid_type', 'message' => 'Required', 'path' => ['shapeWithBool'], 'expected' => 'object', 'received' => 'undefined']]];
 
         yield 'with array property from non-iterable' => ['value' => ['givenName' => 'John', 'someArray' => new stdClass()], 'className' => ShapeWithArray::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected array, received object', 'path' => ['someArray'], 'expected' => 'array', 'received' => 'object']]];
+
+        yield 'from array missing type discriminator for interface property' => ['value' => ['property' => ['value' => 'John']], 'className' => ShapeWithInterfaceProperty::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing key "__type"', 'path' => ['property'], 'params' => []]]];
     }
 
     /**
@@ -536,6 +539,8 @@ final class IntegrationTest extends TestCase
 
         yield 'with array property' => ['value' => ['givenName' => 'John', 'someArray' => ['some', 'array', 'values']], 'className' => ShapeWithArray::class, 'expectedResult' => '{"givenName":"John","someArray":["some","array","values"]}'];
         yield 'with array property from iterable' => ['value' => ['givenName' => 'Jane', 'someArray' => new ArrayIterator(['some', 'iterable', 'values'])], 'className' => ShapeWithArray::class, 'expectedResult' => '{"givenName":"Jane","someArray":["some","iterable","values"]}'];
+
+        yield 'from array for shape with interface property' => ['value' => ['property' => ['__type' => GivenName::class, '__value' => 'Jane']], 'className' => ShapeWithInterfaceProperty::class, 'expectedResult' => '{"property":{"__type":"Wwwision\\\Types\\\Tests\\\PHPUnit\\\GivenName","__value":"Jane"}}'];
     }
 
     #[DataProvider('instantiate_shape_object_dataProvider')]
@@ -1039,5 +1044,25 @@ final class ShapeWithArray {
         #[Description('We can use arrays, too')]
         public readonly array $someArray,
     ) {
+    }
+}
+
+final class ShapeWithInterfaceProperty implements JsonSerializable
+{
+    public function __construct(
+        public readonly SomeInterface $property,
+    ) {}
+
+    /**
+     * @return array<mixed>
+     */
+    public function jsonSerialize(): array
+    {
+        $result = get_object_vars($this);
+        $result['property'] = [
+            '__type' => $this->property::class,
+            '__value' => $result['property'],
+        ];
+        return $result;
     }
 }
