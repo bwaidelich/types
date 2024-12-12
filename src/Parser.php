@@ -20,6 +20,7 @@ use RuntimeException;
 use UnitEnum;
 use Webmozart\Assert\Assert;
 use Wwwision\Types\Attributes\Description;
+use Wwwision\Types\Attributes\Discriminator;
 use Wwwision\Types\Attributes\FloatBased;
 use Wwwision\Types\Attributes\IntegerBased;
 use Wwwision\Types\Attributes\ListBased;
@@ -138,6 +139,21 @@ final class Parser
     }
 
     /**
+     * @param ReflectionClass<object>|ReflectionParameter $reflection
+     * @return Discriminator|null
+     */
+    private static function getDiscriminator(ReflectionClass|ReflectionParameter $reflection): ?Discriminator
+    {
+        $discriminatorAttributes = $reflection->getAttributes(Discriminator::class, ReflectionAttribute::IS_INSTANCEOF);
+        if (!isset($discriminatorAttributes[0])) {
+            return null;
+        }
+        /** @var Discriminator $instance */
+        $instance = $discriminatorAttributes[0]->newInstance();
+        return $instance;
+    }
+
+    /**
      * @template T of object
      * @param ReflectionClass<T> $reflectionClass
      */
@@ -147,6 +163,7 @@ final class Parser
         Assert::isInstanceOf($constructor, ReflectionMethod::class, sprintf('Missing constructor in class "%s"', $reflectionClass->getName()));
         $propertySchemas = [];
         $overriddenPropertyDescriptions = [];
+        $propertyDiscriminators = [];
         foreach ($constructor->getParameters() as $parameter) {
             $propertyName = $parameter->getName();
             $parameterType = $parameter->getType();
@@ -165,9 +182,13 @@ final class Parser
             if ($overwrittenDescription !== null) {
                 $overriddenPropertyDescriptions[$propertyName] = $overwrittenDescription;
             }
+            $propertyDiscriminator = self::getDiscriminator($parameter);
+            if ($propertyDiscriminator !== null) {
+                $propertyDiscriminators[$propertyName] = $propertyDiscriminator;
+            }
             $propertySchemas[$propertyName] = $propertySchema;
         }
-        return new ShapeSchema($reflectionClass, self::getDescription($reflectionClass), $propertySchemas, $overriddenPropertyDescriptions);
+        return new ShapeSchema($reflectionClass, self::getDescription($reflectionClass), $propertySchemas, $overriddenPropertyDescriptions, $propertyDiscriminators);
     }
 
     /**
@@ -194,7 +215,8 @@ final class Parser
             }
             $propertySchemas[$propertyName] = $propertySchema;
         }
-        return new InterfaceSchema($interfaceReflection, self::getDescription($interfaceReflection), $propertySchemas, $overriddenPropertyDescriptions);
+        $discriminator = self::getDiscriminator($interfaceReflection);
+        return new InterfaceSchema($interfaceReflection, self::getDescription($interfaceReflection), $propertySchemas, $overriddenPropertyDescriptions, $discriminator);
     }
 
     private static function reflectionTypeToSchema(ReflectionNamedType|ReflectionUnionType $reflectionType, string|null $description = null): Schema
@@ -205,7 +227,7 @@ final class Parser
                 /** @var ReflectionNamedType|ReflectionUnionType $subReflectionType */
                 return self::reflectionTypeToSchema($subReflectionType);
             }, $reflectionType->getTypes());
-            return new OneOfSchema($subSchemas, $description);
+            return new OneOfSchema($subSchemas, $description, null);
         }
         if ($reflectionType->isBuiltin()) {
             return match ($reflectionType->getName()) {

@@ -15,15 +15,18 @@ use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionEnumUnitCase;
+use RuntimeException;
 use stdClass;
 use Traversable;
 use UnitEnum;
 use Wwwision\Types\Attributes\Description;
+use Wwwision\Types\Attributes\Discriminator;
 use Wwwision\Types\Attributes\FloatBased;
 use Wwwision\Types\Attributes\IntegerBased;
 use Wwwision\Types\Attributes\ListBased;
 use Wwwision\Types\Attributes\StringBased;
 use Wwwision\Types\Exception\CoerceException;
+use Wwwision\Types\Exception\InvalidSchemaException;
 use Wwwision\Types\Exception\Issues\Custom;
 use Wwwision\Types\Exception\Issues\InvalidEnumValue;
 use Wwwision\Types\Exception\Issues\InvalidString;
@@ -64,6 +67,7 @@ use const JSON_THROW_ON_ERROR;
 #[CoversClass(CoerceException::class)]
 #[CoversClass(Custom::class)]
 #[CoversClass(Description::class)]
+#[CoversClass(Discriminator::class)]
 #[CoversClass(EnumCaseSchema::class)]
 #[CoversClass(EnumSchema::class)]
 #[CoversClass(FloatBased::class)]
@@ -160,6 +164,10 @@ final class IntegrationTest extends TestCase
 
         yield 'interface' => ['className' => SomeInterface::class, 'expectedResult' => '{"description":"SomeInterface description","name":"SomeInterface","properties":[{"description":"Custom description for \"someMethod\"","name":"someMethod","type":"string"},{"description":"Custom description for \"someOtherMethod\"","name":"someOtherMethod","optional":true,"type":"FamilyName"}],"type":"interface"}'];
         yield 'shape with interface property' => ['className' => ShapeWithInterfaceProperty::class, 'expectedResult' => '{"description":null,"name":"ShapeWithInterfaceProperty","properties":[{"description":"SomeInterface description","name":"property","type":"SomeInterface"}],"type":"object"}'];
+        yield 'shape with interface property and discriminator' => ['className' => ShapeWithInterfacePropertyAndDiscriminator::class, 'expectedResult' => '{"description":null,"name":"ShapeWithInterfacePropertyAndDiscriminator","properties":[{"description":null,"name":"property","type":"InterfaceWithDiscriminator"}],"type":"object"}'];
+        yield 'shape with interface property and discriminator without mapping' => ['className' => ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping::class, 'expectedResult' => '{"description":null,"name":"ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping","properties":[{"description":null,"name":"property","type":"InterfaceWithDiscriminator"}],"type":"object"}'];
+        yield 'shape with union type and discriminator' => ['className' => ShapeWithUnionTypeAndDiscriminator::class, 'expectedResult' => '{"description":null,"name":"ShapeWithUnionTypeAndDiscriminator","properties":[{"description":null,"name":"givenOrFamilyName","type":"GivenName|FamilyName"}],"type":"object"}'];
+        yield 'interface with discriminator' => ['className' => InterfaceWithDiscriminator::class, 'expectedResult' => '{"type":"interface","name":"InterfaceWithDiscriminator","description":null,"properties":[]}'];
     }
 
     /**
@@ -181,10 +189,13 @@ final class IntegrationTest extends TestCase
         yield 'integer based object' => ['className' => Age::class, 'value' => instantiate(Age::class, 44)];
         yield 'list object' => ['className' => GivenNames::class, 'value' => instantiate(GivenNames::class, ['Jane', 'John'])];
         yield 'shape object' => ['className' => FullName::class, 'value' => instantiate(FullName::class, ['givenName' => 'John', 'familyName' => 'Doe'])];
+        yield 'shape object with interface property and discriminator' => ['className' => ShapeWithInterfacePropertyAndDiscriminator::class, 'value' => instantiate(ShapeWithInterfacePropertyAndDiscriminator::class, ['property' => ['type' => 'g', '__value' => 'Jane']])];
+        yield 'shape object with union type and discriminator' => ['className' => ShapeWithUnionTypeAndDiscriminator::class, 'value' => instantiate(ShapeWithUnionTypeAndDiscriminator::class, ['givenOrFamilyName' => ['type' => 'given', '__value' => 'Jane']])];
 
         yield 'string based object' => ['className' => GivenName::class, 'value' => instantiate(GivenName::class, 'Jane')];
 
         yield 'interface' => ['className' => SomeInterface::class, 'value' => instantiate(GivenName::class, 'Jane')];
+        yield 'interface with discriminator' => ['className' => InterfaceWithDiscriminator::class, 'value' => instantiate(FamilyName::class, 'Doe')];
     }
 
     /**
@@ -648,7 +659,11 @@ final class IntegrationTest extends TestCase
 
         yield 'with array property from non-iterable' => ['value' => ['givenName' => 'John', 'someArray' => new stdClass()], 'className' => ShapeWithArray::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected array, received object', 'path' => ['someArray'], 'expected' => 'array', 'received' => 'object']]];
 
-        yield 'from array missing type discriminator for interface property' => ['value' => ['property' => ['value' => 'John']], 'className' => ShapeWithInterfaceProperty::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing key "__type"', 'path' => ['property'], 'params' => []]]];
+        yield 'from array missing type discriminator for interface property' => ['value' => ['property' => ['value' => 'John']], 'className' => ShapeWithInterfaceProperty::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "__type"', 'path' => ['property'], 'params' => []]]];
+        yield 'from array missing custom type discriminator for interface property' => ['value' => ['property' => ['value' => 'John']], 'className' => ShapeWithInterfacePropertyAndDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "type"', 'path' => ['property'], 'params' => []]]];
+        yield 'from array missing custom type discriminator for interface property without mapping' => ['value' => ['property' => ['value' => 'John']], 'className' => ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "type"', 'path' => ['property'], 'params' => []]]];
+        yield 'from array missing custom type discriminator for union property' => ['value' => ['givenOrFamilyName' => ['value' => 'John']], 'className' => ShapeWithUnionTypeAndDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "type"', 'path' => ['givenOrFamilyName'], 'params' => []]]];
+        yield 'from array missing custom type discriminator for union property without mapping' => ['value' => ['givenOrFamilyName' => ['value' => 'John']], 'className' => ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "type"', 'path' => ['givenOrFamilyName'], 'params' => []]]];
     }
 
     /**
@@ -667,6 +682,13 @@ final class IntegrationTest extends TestCase
             self::assertJsonStringEqualsJsonString($expectedIssuesJson, json_encode($e, JSON_THROW_ON_ERROR));
         }
         self::assertTrue($exceptionThrown, sprintf('Failed asserting that exception of type "%s" is thrown.', CoerceException::class));
+    }
+
+    public function test_instantiate_shape_object_fails_if_discriminator_mapping_cannot_be_resolved_to_a_className(): void
+    {
+        $this->expectException(InvalidSchemaException::class);
+        $this->expectExceptionMessage('Class "ShapeWithInvalidDiscriminatorAttribute" has a Wwwision\Types\Attributes\Discriminator attribute for property "givenName" but the corresponding property schema is of type Wwwision\Types\Schema\StringSchema which is not one of the supported schema types Wwwision\Types\Schema\OneOfSchema, Wwwision\Types\Schema\InterfaceSchema');
+        Parser::instantiate(ShapeWithInvalidDiscriminatorAttribute::class, ['givenName' => ['type' => 'given', '__value' => 'does not matter']]);
     }
 
     public static function instantiate_shape_object_dataProvider(): Generator
@@ -702,6 +724,10 @@ final class IntegrationTest extends TestCase
         yield 'with simple union type (string)' => ['value' => ['integerOrString' => 'foo'], 'className' => ShapeWithSimpleUnionType::class, 'expectedResult' => '{"integerOrString":"foo"}'];
 
         yield 'from array for shape with interface property' => ['value' => ['property' => ['__type' => GivenName::class, '__value' => 'Jane']], 'className' => ShapeWithInterfaceProperty::class, 'expectedResult' => '{"property":{"__type":"Wwwision\\\Types\\\Tests\\\PHPUnit\\\GivenName","__value":"Jane"}}'];
+        yield 'from array for shape with interface property with discriminator' => ['value' => ['property' => ['type' => 'g', '__value' => 'Jane']], 'className' => ShapeWithInterfacePropertyAndDiscriminator::class, 'expectedResult' => '{"property":{"__type":"Wwwision\\\Types\\\Tests\\\PHPUnit\\\GivenName","__value":"Jane"}}'];
+        yield 'from array for shape with interface property with discriminator without mapping' => ['value' => ['property' => ['type' => GivenName::class, '__value' => 'Jane']], 'className' => ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping::class, 'expectedResult' => '{"property":"Jane"}'];
+        yield 'from array for shape with union type property and discriminator' => ['value' => ['givenOrFamilyName' => ['type' => 'given', '__value' => 'Jane']], 'className' => ShapeWithUnionTypeAndDiscriminator::class, 'expectedResult' => '{"givenOrFamilyName":"Jane"}'];
+        yield 'from array for shape with union type property and discriminator without mapping' => ['value' => ['givenOrFamilyName' => ['type' => GivenName::class, '__value' => 'Jane']], 'className' => ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class, 'expectedResult' => '{"givenOrFamilyName":"Jane"}'];
     }
 
     #[DataProvider('instantiate_shape_object_dataProvider')]
@@ -825,19 +851,28 @@ final class IntegrationTest extends TestCase
         self::assertSame($expectedResult, instantiate($className, $value)->value);
     }
 
+    public function test_instantiate_interface_object_fails_if_discriminator_mapping_cannot_be_resolved_to_a_className(): void
+    {
+        $this->expectException(InvalidSchemaException::class);
+        $this->expectExceptionMessage('Discriminator mapping of type "InterfaceWithDiscriminator" refers to non-existing class "NoClassName"');
+        Parser::instantiate(InterfaceWithDiscriminator::class, ['t' => 'invalid', '__value' => 'does not matter']);
+    }
+
     public static function instantiate_interface_object_failing_dataProvider(): Generator
     {
         yield 'from null' => ['value' => null, 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received null', 'path' => [], 'expected' => 'interface', 'received' => 'null']]];
-        yield 'from object' => ['value' => new stdClass(), 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing key "__type"', 'path' => [], 'params' => []]]];
+        yield 'from object' => ['value' => new stdClass(), 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "__type"', 'path' => [], 'params' => []]]];
         yield 'from boolean' => ['value' => false, 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received boolean', 'path' => [], 'expected' => 'interface', 'received' => 'boolean']]];
         yield 'from integer' => ['value' => 1234, 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received integer', 'path' => [], 'expected' => 'interface', 'received' => 'integer']]];
         yield 'from float' => ['value' => 2.0, 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received double', 'path' => [], 'expected' => 'interface', 'received' => 'double']]];
-        yield 'from array without __type' => ['value' => ['someKey' => 'someValue'], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing key "__type"', 'path' => [], 'params' => []]]];
-        yield 'from array with invalid __type' => ['value' => ['__type' => 123], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Key "__type" has to be a string, got: int', 'path' => [], 'params' => []]]];
-        yield 'from array with unknown __type' => ['value' => ['__type' => 'NoClassName'], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Key "__type" has to be a valid class name, got: "NoClassName"', 'path' => [], 'params' => []]]];
+        yield 'from array without __type' => ['value' => ['someKey' => 'someValue'], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "__type"', 'path' => [], 'params' => []]]];
+        yield 'from array with invalid __type' => ['value' => ['__type' => 123], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "__type" has to be a string, got: int', 'path' => [], 'params' => []]]];
+        yield 'from array with unknown __type' => ['value' => ['__type' => 'NoClassName'], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "__type" has to be a valid class name, got: "NoClassName"', 'path' => [], 'params' => []]]];
         yield 'from array with __type that is not an instance of the interface' => ['value' => ['__type' => ShapeWithInt::class, 'value' => '123'], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'The given "__type" of "Wwwision\\Types\\Tests\\PHPUnit\\ShapeWithInt" is not an implementation of SomeInterface', 'path' => [], 'params' => []]]];
         yield 'from array with valid __type but invalid remaining values' => ['value' => ['__type' => GivenName::class], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing keys for interface of type SomeInterface', 'path' => [], 'params' => []]]];
         yield 'from array with valid __type but missing properties' => ['value' => ['__type' => FullName::class, 'givenName' => 'John'], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
+        yield 'from array with invalid discriminator property name' => ['value' => ['__type' => GivenName::class, '__value' => 'John'], 'className' => InterfaceWithDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "t"', 'path' => [], 'params' => []]]];
+        yield 'from array with invalid discriminator property value' => ['value' => ['t' => GivenName::class, '__value' => 'John'], 'className' => InterfaceWithDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "t" has to be one of "givenName", "familyName", "invalid". Got: "Wwwision\\Types\\Tests\\PHPUnit\\GivenName"', 'path' => [], 'params' => []]]];
     }
 
     /**
@@ -864,6 +899,9 @@ final class IntegrationTest extends TestCase
         yield 'from iterable with __type and __value' => ['value' => new ArrayIterator(['__type' => GivenName::class, '__value' => 'this is valid']), 'className' => SomeInterface::class, 'expectedResult' => '"this is valid"'];
         yield 'from array and remaining values' => ['value' => ['__type' => FullName::class, 'givenName' => 'some given name', 'familyName' => 'some family name'], 'className' => SomeInterface::class, 'expectedResult' => '{"givenName":"some given name","familyName":"some family name"}'];
         yield 'from valid implementation' => ['value' => Parser::instantiate(GivenName::class, 'John'), 'className' => SomeInterface::class, 'expectedResult' => '"John"'];
+
+        yield 'with discriminator from array with discriminator property and __value' => ['value' => ['t' => 'givenName', '__value' => 'this is valid'], 'className' => InterfaceWithDiscriminator::class, 'expectedResult' => '"this is valid"'];
+        yield 'with discriminator from valid implementation' => ['value' => Parser::instantiate(GivenName::class, 'John'), 'className' => InterfaceWithDiscriminator::class, 'expectedResult' => '"John"'];
     }
 
     #[DataProvider('instantiate_interface_object_dataProvider')]
@@ -903,13 +941,23 @@ final class IntegrationTest extends TestCase
         self::assertSame($instance, Parser::getSchema(SomeInterface::class)->instantiate($instance));
     }
 
+    public function test_interface_schema_discriminator_can_be_changed(): void
+    {
+        /** @var InterfaceSchema $interfaceSchema */
+        $interfaceSchema = Parser::getSchema(SomeInterface::class);
+        $discriminator = new Discriminator('type', ['givenName' => GivenName::class, 'familyName' => FamilyName::class]);
+        $interfaceSchema = $interfaceSchema->withDiscriminator($discriminator);
+
+        self::assertSame($discriminator, $interfaceSchema->discriminator);
+    }
+
     public function test_oneOfSchema_type(): void
     {
         $mockSubSchemas = [
             $this->getMockBuilder(Schema::class)->getMock(),
             $this->getMockBuilder(Schema::class)->getMock(),
         ];
-        $oneOfSchema = new OneOfSchema($mockSubSchemas, null);
+        $oneOfSchema = new OneOfSchema($mockSubSchemas, null, null);
         $mockSubSchemas[0]->expects(self::once())->method('getName')->willReturn('Type1');
         $mockSubSchemas[1]->expects(self::once())->method('getName')->willReturn('Type2');
         self::assertSame('Type1|Type2', $oneOfSchema->getType());
@@ -921,7 +969,7 @@ final class IntegrationTest extends TestCase
             $this->getMockBuilder(Schema::class)->getMock(),
             $this->getMockBuilder(Schema::class)->getMock(),
         ];
-        $oneOfSchema = new OneOfSchema($mockSubSchemas, null);
+        $oneOfSchema = new OneOfSchema($mockSubSchemas, null, null);
         $value = 'some value';
         $mockSubSchemas[0]->expects(self::once())->method('isInstance')->with($value)->willReturn(false);
         $mockSubSchemas[1]->expects(self::once())->method('isInstance')->with($value)->willReturn(true);
@@ -934,7 +982,7 @@ final class IntegrationTest extends TestCase
             $this->getMockBuilder(Schema::class)->getMock(),
             $this->getMockBuilder(Schema::class)->getMock(),
         ];
-        $oneOfSchema = new OneOfSchema($mockSubSchemas, null);
+        $oneOfSchema = new OneOfSchema($mockSubSchemas, null, null);
         $value = 'some value';
         $mockSubSchemas[0]->expects(self::once())->method('isInstance')->with($value)->willReturn(false);
         $mockSubSchemas[1]->expects(self::once())->method('isInstance')->with($value)->willReturn(false);
@@ -944,13 +992,13 @@ final class IntegrationTest extends TestCase
     public static function instantiate_oneOf_failing_dataProvider(): Generator
     {
         yield 'from null' => ['value' => null, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected GivenName|FamilyName, received null', 'path' => [], 'expected' => 'GivenName|FamilyName', 'received' => 'null']]];
-        yield 'from object' => ['value' => new stdClass(), 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing key "__type"', 'path' => [], 'params' => []]]];
+        yield 'from object' => ['value' => new stdClass(), 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "__type"', 'path' => [], 'params' => []]]];
         yield 'from boolean' => ['value' => false, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected GivenName|FamilyName, received boolean', 'path' => [], 'expected' => 'GivenName|FamilyName', 'received' => 'boolean']]];
         yield 'from integer' => ['value' => 1234, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected GivenName|FamilyName, received integer', 'path' => [], 'expected' => 'GivenName|FamilyName', 'received' => 'integer']]];
         yield 'from float' => ['value' => 2.0, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected GivenName|FamilyName, received double', 'path' => [], 'expected' => 'GivenName|FamilyName', 'received' => 'double']]];
-        yield 'from array without __type' => ['value' => ['someKey' => 'someValue'], 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing key "__type"', 'path' => [], 'params' => []]]];
-        yield 'from array with invalid __type' => ['value' => ['__type' => 123], 'expectedIssues' => [['code' => 'custom', 'message' => 'Key "__type" has to be a string, got: int', 'path' => [], 'params' => []]]];
-        yield 'from array with unknown __type' => ['value' => ['__type' => 'NoClassName'], 'expectedIssues' => [['code' => 'custom', 'message' => 'Key "__type" has to be a valid class name, got: "NoClassName"', 'path' => [], 'params' => []]]];
+        yield 'from array without __type' => ['value' => ['someKey' => 'someValue'], 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "__type"', 'path' => [], 'params' => []]]];
+        yield 'from array with invalid __type' => ['value' => ['__type' => 123], 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "__type" has to be a string, got: int', 'path' => [], 'params' => []]]];
+        yield 'from array with unknown __type' => ['value' => ['__type' => 'NoClassName'], 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "__type" has to be a valid class name, got: "NoClassName"', 'path' => [], 'params' => []]]];
         yield 'from array with __type that is not an instance of the union' => ['value' => ['__type' => ShapeWithInt::class, 'value' => '123'], 'expectedIssues' => [['code' => 'custom', 'message' => 'The given "__type" of "Wwwision\\Types\\Tests\\PHPUnit\\ShapeWithInt" is not an implementation of GivenName|FamilyName', 'path' => [], 'params' => []]]];
         yield 'from array with valid __type but invalid remaining values' => ['value' => ['__type' => GivenName::class], 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing keys for union of type GivenName|FamilyName', 'path' => [], 'params' => []]]];
         yield 'from array with valid __type but missing properties' => ['value' => ['__type' => FullName::class, 'givenName' => 'John'], 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
@@ -967,7 +1015,7 @@ final class IntegrationTest extends TestCase
         $oneOfSchema = new OneOfSchema([
             Parser::getSchema(GivenName::class),
             Parser::getSchema(FamilyName::class),
-        ], null);
+        ], null, null);
         try {
             $oneOfSchema->instantiate($value);
         } catch (CoerceException $e) {
@@ -975,6 +1023,41 @@ final class IntegrationTest extends TestCase
             self::assertJsonStringEqualsJsonString($expectedIssuesJson, json_encode($e, JSON_THROW_ON_ERROR));
         }
         self::assertTrue($exceptionThrown, sprintf('Failed asserting that exception of type "%s" is thrown.', CoerceException::class));
+    }
+
+    public function test_instantiate_oneOf_object_with_discriminator_fails_if_discriminator_propertyName_is_invalid(): void
+    {
+        $this->expectException(CoerceException::class);
+        $this->expectExceptionMessage('Failed to cast value of type array to ShapeWithUnionTypeAndDiscriminator: At "givenOrFamilyName": custom (Missing discriminator key "type")');
+        Parser::instantiate(ShapeWithUnionTypeAndDiscriminator::class, ['givenOrFamilyName' => ['__type' => 'familyName', '__value' => 'does not matter']]);
+    }
+
+    public function test_instantiate_oneOf_object_with_discriminator_fails_if_discriminator_value_is_invalid(): void
+    {
+        $this->expectException(CoerceException::class);
+        $this->expectExceptionMessage('Failed to cast value of type array to ShapeWithUnionTypeAndDiscriminator: At "givenOrFamilyName": custom (Discriminator key "type" has to be one of "given", "family", "invalid". Got: "familyName"');
+        Parser::instantiate(ShapeWithUnionTypeAndDiscriminator::class, ['givenOrFamilyName' => ['type' => 'familyName', '__value' => 'does not matter']]);
+    }
+
+    public function test_instantiate_oneOf_object_with_discriminator_fails_if_discriminator_mapping_cannot_be_resolved_to_a_className(): void
+    {
+        $this->expectException(InvalidSchemaException::class);
+        $this->expectExceptionMessage('Invalid schema for property "givenOrFamilyName" of type "ShapeWithUnionTypeAndDiscriminator": Discriminator mapping refers to non-existing class "NoClassName"');
+        Parser::instantiate(ShapeWithUnionTypeAndDiscriminator::class, ['givenOrFamilyName' => ['type' => 'invalid', '__value' => 'does not matter']]);
+    }
+
+    public function test_instantiate_oneOf_object_with_discriminator_without_mapping_fails_if_discriminator_propertyName_is_invalid(): void
+    {
+        $this->expectException(CoerceException::class);
+        $this->expectExceptionMessage('Failed to cast value of type array to ShapeWithUnionTypeAndDiscriminatorWithoutMapping: At "givenOrFamilyName": custom (Missing discriminator key "type")');
+        Parser::instantiate(ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class, ['givenOrFamilyName' => ['__type' => 'familyName', '__value' => 'does not matter']]);
+    }
+
+    public function test_instantiate_oneOf_object_with_discriminator_without_mapping_fails_if_discriminator_value_is_invalid(): void
+    {
+        $this->expectException(CoerceException::class);
+        $this->expectExceptionMessage('Failed to cast value of type array to ShapeWithUnionTypeAndDiscriminatorWithoutMapping: At "givenOrFamilyName": custom (Discriminator key "type" has to be a valid class name, got: "family")');
+        Parser::instantiate(ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class, ['givenOrFamilyName' => ['type' => 'family', '__value' => 'does not matter']]);
     }
 
     public static function instantiate_oneOf_dataProvider(): Generator
@@ -990,7 +1073,7 @@ final class IntegrationTest extends TestCase
         $oneOfSchema = new OneOfSchema([
             Parser::getSchema(GivenName::class),
             Parser::getSchema(FamilyName::class),
-        ], null);
+        ], null, null);
         self::assertJsonStringEqualsJsonString($expectedResult, json_encode($oneOfSchema->instantiate($value), JSON_THROW_ON_ERROR));
     }
 
@@ -999,7 +1082,7 @@ final class IntegrationTest extends TestCase
         $oneOfSchema = new OneOfSchema([
             Parser::getSchema(GivenName::class),
             Parser::getSchema(FamilyName::class),
-        ], null);
+        ], null, null);
         $instance = Parser::instantiate(GivenName::class, 'John');
         self::assertSame($instance, $oneOfSchema->instantiate($instance));
     }
@@ -1009,7 +1092,7 @@ final class IntegrationTest extends TestCase
         $oneOfSchema = new OneOfSchema([
             Parser::getSchema(GivenName::class),
             Parser::getSchema(FamilyName::class),
-        ], null);
+        ], null, null);
         $expectedResult = '{
             "description": null,
             "name": "GivenName|FamilyName",
@@ -1033,11 +1116,24 @@ final class IntegrationTest extends TestCase
         }';
         self::assertJsonStringEqualsJsonString($expectedResult, json_encode($oneOfSchema, JSON_THROW_ON_ERROR));
     }
+
+    public function test_oneOf_schema_discriminator_can_be_changed(): void
+    {
+        $mockSubSchemas = [
+            Parser::getSchema(GivenName::class),
+            Parser::getSchema(FamilyName::class),
+        ];
+        $oneOfSchema = new OneOfSchema($mockSubSchemas, null, null);
+        $discriminator = new Discriminator('type', ['givenName' => $mockSubSchemas[0]::class, 'familyName' => $mockSubSchemas[1]::class]);
+        $oneOfSchema = $oneOfSchema->withDiscriminator($discriminator);
+
+        self::assertSame($discriminator, $oneOfSchema->discriminator);
+    }
 }
 
 #[StringBased(minLength: 3, maxLength: 20)]
 #[Description('First name of a person')]
-final class GivenName implements SomeInterface, JsonSerializable
+final class GivenName implements SomeInterface, InterfaceWithDiscriminator, JsonSerializable
 {
     private function __construct(public readonly string $value) {}
 
@@ -1059,7 +1155,7 @@ final class GivenName implements SomeInterface, JsonSerializable
 
 #[StringBased(minLength: 3, maxLength: 20)]
 #[Description('Last name of a person')]
-final class FamilyName implements JsonSerializable, SomeInterface
+final class FamilyName implements JsonSerializable, SomeInterface, InterfaceWithDiscriminator
 {
     private function __construct(public readonly string $value) {}
 
@@ -1475,3 +1571,59 @@ final class ShapeWithInterfaceProperty implements JsonSerializable
 }
 
 final class ShapeWithoutConstructor {}
+
+final class ShapeWithInterfacePropertyAndDiscriminator implements JsonSerializable
+{
+    public function __construct(
+        #[Discriminator(propertyName: 'type', mapping: ['g' => GivenName::class, 'f' => FamilyName::class])]
+        public readonly InterfaceWithDiscriminator $property,
+    ) {}
+
+    /**
+     * @return array<mixed>
+     */
+    public function jsonSerialize(): array
+    {
+        $result = get_object_vars($this);
+        $result['property'] = [
+            '__type' => $this->property::class,
+            '__value' => $result['property'],
+        ];
+        return $result;
+    }
+}
+
+final class ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping
+{
+    public function __construct(
+        #[Discriminator(propertyName: 'type')]
+        public readonly InterfaceWithDiscriminator $property,
+    ) {}
+}
+
+final class ShapeWithUnionTypeAndDiscriminator
+{
+    public function __construct(
+        #[Discriminator(propertyName: 'type', mapping: ['given' => GivenName::class, 'family' => FamilyName::class, 'invalid' => 'NoClassName'])] // @phpstan-ignore-line
+        public readonly GivenName|FamilyName $givenOrFamilyName,
+    ) {}
+}
+
+final class ShapeWithUnionTypeAndDiscriminatorWithoutMapping
+{
+    public function __construct(
+        #[Discriminator(propertyName: 'type')]
+        public readonly GivenName|FamilyName $givenOrFamilyName,
+    ) {}
+}
+
+#[Discriminator(propertyName: 't', mapping: ['givenName' => GivenName::class, 'familyName' => FamilyName::class, 'invalid' => 'NoClassName'])] // @phpstan-ignore-line
+interface InterfaceWithDiscriminator {}
+
+final class ShapeWithInvalidDiscriminatorAttribute
+{
+    public function __construct(
+        #[Discriminator(propertyName: 'type', mapping: ['given' => GivenName::class])]
+        public readonly GivenName $givenName,
+    ) {}
+}

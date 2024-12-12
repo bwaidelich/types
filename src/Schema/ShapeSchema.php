@@ -9,7 +9,9 @@ use ReflectionException;
 use ReflectionMethod;
 use RuntimeException;
 use Webmozart\Assert\Assert;
+use Wwwision\Types\Attributes\Discriminator;
 use Wwwision\Types\Exception\CoerceException;
+use Wwwision\Types\Exception\InvalidSchemaException;
 use Wwwision\Types\Exception\Issues\Issues;
 
 use function array_diff_key;
@@ -27,14 +29,17 @@ final class ShapeSchema implements Schema
      * @param ReflectionClass<object> $reflectionClass
      * @param array<non-empty-string, Schema> $propertySchemas
      * @param array<non-empty-string, string> $overriddenPropertyDescriptions
+     * @param array<non-empty-string, Discriminator> $propertyDiscriminators
      */
     public function __construct(
         private readonly ReflectionClass $reflectionClass,
         public readonly ?string $description,
         public readonly array $propertySchemas,
         private readonly array $overriddenPropertyDescriptions,
+        private readonly array $propertyDiscriminators,
     ) {
         Assert::allIsInstanceOf($this->propertySchemas, Schema::class);
+        Assert::allIsInstanceOf($this->propertyDiscriminators, Discriminator::class);
     }
 
     public function getType(): string
@@ -100,8 +105,11 @@ final class ShapeSchema implements Schema
         $result = [];
         foreach ($this->propertySchemas as $propertyName => $propertySchema) {
             if (array_key_exists($propertyName, $array)) {
+                $propertySchema = $this->applyCustomDiscriminator($propertyName, $propertySchema);
                 try {
                     $result[$propertyName] = $propertySchema->instantiate($array[$propertyName]);
+                } catch (InvalidSchemaException $e) {
+                    throw new InvalidSchemaException(sprintf('Invalid schema for property "%s" of type "%s": %s', $propertyName, $this->getName(), $e->getMessage()), 1734008510, $e);
                 } catch (CoerceException $e) {
                     $issues = $issues->add($e->issues, $propertyName);
                 }
@@ -142,5 +150,18 @@ final class ShapeSchema implements Schema
             'description' => $this->getDescription(),
             'properties' => $propertyRefs,
         ];
+    }
+
+    private function applyCustomDiscriminator(string $propertyName, Schema $propertySchema): Schema
+    {
+        if (!array_key_exists($propertyName, $this->propertyDiscriminators)) {
+            return $propertySchema;
+        }
+        $supportedPropertySchemas = [OneOfSchema::class, InterfaceSchema::class];
+        if (!in_array($propertySchema::class, $supportedPropertySchemas, true)) {
+            throw new InvalidSchemaException(sprintf('Class "%s" has a %s attribute for property "%s" but the corresponding property schema is of type %s which is not one of the supported schema types %s', $this->getName(), Discriminator::class, $propertyName, get_debug_type($propertySchema), implode(', ', $supportedPropertySchemas)));
+        }
+        /** @var OneOfSchema|InterfaceSchema $propertySchema */
+        return $propertySchema->withDiscriminator($this->propertyDiscriminators[$propertyName]);
     }
 }

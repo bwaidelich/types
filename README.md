@@ -523,7 +523,7 @@ But it adds some more oddities and I currently don't really need it becaused of 
 
 Starting with version [1.1](https://github.com/bwaidelich/types/releases/tag/1.1.0), this package allows to refer to interface types.
 
-In order to instantiate an object via its interface, the instance class name has to be specified via the `__type` key.
+In order to instantiate an object via its interface, the instance class name has to be specified via the `__type` key (with version [1.4+](https://github.com/bwaidelich/types/releases/tag/1.4.0) the name of this key can be configured, see [Discriminator](#Discriminator))
 All remaining array items will be used as usual. For simple objects, that only expect a single scalar value, the `__value` key can be specified additionally:
 
 ```php
@@ -625,6 +625,59 @@ $instance = instantiate(ShapeWithSimpleUnionType::class, ['stringOrInteger' => 1
 assert($instance instanceof ShapeWithSimpleUnionType);
 assert(is_int($instance->stringOrInteger));
 ```
+
+### Discriminator
+
+By default, in order to instantiate an instance of an interface or union type, the target class has to be specified via the `__type` discriminator (see example above).
+Starting with version [1.4](https://github.com/bwaidelich/types/releases/tag/1.4.0), the name of this discriminator key can be changed with the `Discriminator` attribute.
+Additionally, the mapping from the type value to the fully qualified class name can be specified (optional).
+
+This can be done on the interface level:
+
+```php
+#[Discriminator(propertyName: 'type', mapping: ['given' => GivenName::class, 'family' => FamilyName::class])]
+interface SomeInterface {}
+
+#[StringBased]
+final class GivenName implements SomeInterface {
+    private function __construct(public readonly string $value) {}
+}
+#[StringBased]
+final class FamilyName implements SomeInterface {
+    private function __construct(public readonly string $value) {}
+}
+
+$instance = instantiate(SomeInterface::class, ['type' => 'given', '__value' => 'Jane']);
+assert($instance instanceof GivenName);
+```
+
+...and on interface or union type parameters:
+
+```php
+final class SomeClass {
+  public function __construct(
+    #[Discriminator(propertyName: 'type', mapping: ['given' => GivenName::class, 'family' => FamilyName::class])]
+    public readonly GivenName|FamilyName $givenOrFamilyName,
+  ) {}
+}
+
+#[StringBased]
+final class GivenName {
+    private function __construct(public readonly string $value) {}
+}
+#[StringBased]
+final class FamilyName {
+    private function __construct(public readonly string $value) {}
+}
+
+$instance = instantiate(SomeClass::class, ['givenOrFamilyName' => ['type' => 'family', '__value' => 'Doe']]);
+assert($instance instanceof SomeClass);
+assert($instance->givenOrFamilyName instanceof FamilyName);
+```
+
+> **Note**
+> If a `Discriminator` attribute exists on the parameter as well as on the respective interface within a Shape object,
+> the parameter attribute overrules the one on the interface
 
 ## Error handling
 

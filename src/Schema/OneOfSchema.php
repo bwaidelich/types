@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Wwwision\Types\Schema;
 
+use RuntimeException;
 use Webmozart\Assert\Assert;
+use Wwwision\Types\Attributes\Discriminator;
 use Wwwision\Types\Exception\CoerceException;
+use Wwwision\Types\Exception\InvalidSchemaException;
 use Wwwision\Types\Parser;
 
 use function array_key_exists;
@@ -23,8 +26,14 @@ final class OneOfSchema implements Schema
     public function __construct(
         public readonly array $subSchemas,
         private readonly ?string $description,
+        public readonly ?Discriminator $discriminator,
     ) {
         Assert::allIsInstanceOf($this->subSchemas, Schema::class);
+    }
+
+    public function withDiscriminator(Discriminator $discriminator): self
+    {
+        return new self($this->subSchemas, $this->description, $discriminator);
     }
 
     public function getType(): string
@@ -66,20 +75,29 @@ final class OneOfSchema implements Schema
         } else {
             throw CoerceException::invalidType($value, $this);
         }
-        if (!array_key_exists('__type', $array)) {
-            throw CoerceException::custom('Missing key "__type"', $value, $this);
+        $discriminatorPropertyName = $this->discriminator?->propertyName ?? '__type';
+        if (!array_key_exists($discriminatorPropertyName, $array)) {
+            throw CoerceException::custom('Missing discriminator key "' . $discriminatorPropertyName . '"', $value, $this);
         }
-        $type = $array['__type'];
+        $type = $array[$discriminatorPropertyName];
         if (!is_string($type)) {
-            throw CoerceException::custom(sprintf('Key "__type" has to be a string, got: %s', get_debug_type($type)), $value, $this);
+            throw CoerceException::custom(sprintf('Discriminator key "%s" has to be a string, got: %s', $discriminatorPropertyName, get_debug_type($type)), $value, $this);
         }
-        if (!class_exists($type)) {
-            throw CoerceException::custom(sprintf('Key "__type" has to be a valid class name, got: "%s"', $type), $value, $this);
+        if ($this->discriminator?->mapping !== null) {
+            if (!array_key_exists($type, $this->discriminator->mapping)) {
+                throw CoerceException::custom(sprintf('Discriminator key "%s" has to be one of "%s". Got: "%s"', $discriminatorPropertyName, implode('", "', array_keys($this->discriminator->mapping)), $type), $value, $this);
+            }
+            $type = $this->discriminator->mapping[$type];
+            if (!class_exists($type)) {
+                throw new InvalidSchemaException(sprintf('Discriminator mapping refers to non-existing class "%s"', $type), 1734005363);
+            }
+        } elseif (!class_exists($type)) {
+            throw CoerceException::custom(sprintf('Discriminator key "%s" has to be a valid class name, got: "%s"', $discriminatorPropertyName, $type), $value, $this);
         }
         if (isset($array['__value'])) {
             $array = $array['__value'];
         } else {
-            unset($array['__type']);
+            unset($array[$discriminatorPropertyName]);
         }
         if ($array === []) {
             throw CoerceException::custom(sprintf('Missing keys for union of type %s', $this->getName()), $value, $this);
@@ -94,7 +112,7 @@ final class OneOfSchema implements Schema
                 return $result;
             }
         }
-        throw CoerceException::custom(sprintf('The given "__type" of "%s" is not an implementation of %s', $type, $this->getName()), $value, $this);
+        throw CoerceException::custom(sprintf('The given "%s" of "%s" is not an implementation of %s', $discriminatorPropertyName, $type, $this->getName()), $value, $this);
     }
 
     public function jsonSerialize(): array
