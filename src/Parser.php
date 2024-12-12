@@ -218,7 +218,9 @@ final class Parser
             };
         }
         $typeClassName = $reflectionType->getName();
-        Assert::classExists($typeClassName);
+        if (!class_exists($typeClassName) && !interface_exists($typeClassName)) {
+            throw new InvalidArgumentException(sprintf('Expected an existing class or interface name, got %s', $typeClassName), 1733999133);
+        }
         return self::getSchema($typeClassName);
     }
 
