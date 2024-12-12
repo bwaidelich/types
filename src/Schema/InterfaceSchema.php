@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Wwwision\Types\Schema;
 
 use ReflectionClass;
+use RuntimeException;
 use Webmozart\Assert\Assert;
+use Wwwision\Types\Attributes\Discriminator;
 use Wwwision\Types\Exception\CoerceException;
+use Wwwision\Types\Exception\InvalidSchemaException;
 use Wwwision\Types\Parser;
 
 use function is_array;
@@ -24,8 +27,14 @@ final class InterfaceSchema implements Schema
         public readonly ?string $description,
         public readonly array $propertySchemas,
         private readonly array $overriddenPropertyDescriptions,
+        public readonly ?Discriminator $discriminator,
     ) {
         Assert::allIsInstanceOf($this->propertySchemas, Schema::class);
+    }
+
+    public function withDiscriminator(Discriminator $discriminator): self
+    {
+        return new self($this->reflectionClass, $this->description, $this->propertySchemas, $this->overriddenPropertyDescriptions, $discriminator);
     }
 
     public function getType(): string
@@ -84,20 +93,29 @@ final class InterfaceSchema implements Schema
         } else {
             throw CoerceException::invalidType($value, $this);
         }
-        if (!array_key_exists('__type', $array)) {
-            throw CoerceException::custom('Missing key "__type"', $value, $this);
+        $discriminatorPropertyName = $this->discriminator?->propertyName ?? '__type';
+        if (!array_key_exists($discriminatorPropertyName, $array)) {
+            throw CoerceException::custom('Missing discriminator key "' . $discriminatorPropertyName . '"', $value, $this);
         }
-        $type = $array['__type'];
+        $type = $array[$discriminatorPropertyName];
         if (!is_string($type)) {
-            throw CoerceException::custom(sprintf('Key "__type" has to be a string, got: %s', get_debug_type($type)), $value, $this);
+            throw CoerceException::custom(sprintf('Discriminator key "%s" has to be a string, got: %s', $discriminatorPropertyName, get_debug_type($type)), $value, $this);
         }
-        if (!class_exists($type)) {
-            throw CoerceException::custom(sprintf('Key "__type" has to be a valid class name, got: "%s"', $type), $value, $this);
+        if ($this->discriminator?->mapping !== null) {
+            if (!array_key_exists($type, $this->discriminator->mapping)) {
+                throw CoerceException::custom(sprintf('Discriminator key "%s" has to be one of "%s". Got: "%s"', $discriminatorPropertyName, implode('", "', array_keys($this->discriminator->mapping)), $type), $value, $this);
+            }
+            $type = $this->discriminator->mapping[$type];
+            if (!class_exists($type)) {
+                throw new InvalidSchemaException(sprintf('Discriminator mapping of type "%s" refers to non-existing class "%s"', $this->getName(), $type), 1734001657);
+            }
+        } elseif (!class_exists($type)) {
+            throw CoerceException::custom(sprintf('Discriminator key "%s" has to be a valid class name, got: "%s"', $discriminatorPropertyName, $type), $value, $this);
         }
         if (isset($array['__value'])) {
             $array = $array['__value'];
         } else {
-            unset($array['__type']);
+            unset($array[$discriminatorPropertyName]);
         }
         if ($array === []) {
             throw CoerceException::custom(sprintf('Missing keys for interface of type %s', $this->getName()), $value, $this);
@@ -108,7 +126,7 @@ final class InterfaceSchema implements Schema
             throw CoerceException::fromIssues($e->issues, $value, $this);
         }
         if (!$this->reflectionClass->isInstance($result)) {
-            throw CoerceException::custom(sprintf('The given "__type" of "%s" is not an implementation of %s', $type, $this->getName()), $value, $this);
+            throw CoerceException::custom(sprintf('The given "%s" of "%s" is not an implementation of %s', $discriminatorPropertyName, $type, $this->getName()), $value, $this);
         }
         return $result;
     }
