@@ -126,6 +126,13 @@ final class IntegrationTest extends TestCase
         Parser::getSchema(SomeInvalidInterface::class);
     }
 
+    public function test_getSchema_throws_if_shape_has_no_constructor(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Missing constructor in class "Wwwision\Types\Tests\PHPUnit\ShapeWithoutConstructor"');
+        Parser::getSchema(ShapeWithoutConstructor::class);
+    }
+
     public static function getSchema_dataProvider(): Generator
     {
         yield 'enum' => ['className' => Title::class, 'expectedResult' => '{"type":"enum","name":"Title","description":"honorific title of a person","cases":[{"type":"string","description":"for men, regardless of marital status, who do not have another professional or academic title","name":"MR","value":"MR"},{"type":"string","description":"for married women who do not have another professional or academic title","name":"MRS","value":"MRS"},{"type":"string","description":"for girls, unmarried women and married women who continue to use their maiden name","name":"MISS","value":"MISS"},{"type":"string","description":"for women, regardless of marital status or when marital status is unknown","name":"MS","value":"MS"},{"type":"string","description":"for any other title that does not match the above","name":"OTHER","value":"OTHER"}]}'];
@@ -1466,3 +1473,5 @@ final class ShapeWithInterfaceProperty implements JsonSerializable
         return $result;
     }
 }
+
+final class ShapeWithoutConstructor {}
