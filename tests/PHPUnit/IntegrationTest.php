@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpUnhandledExceptionInspection */
+
 declare(strict_types=1);
 
 namespace Wwwision\Types\Tests\PHPUnit;
@@ -8,17 +10,12 @@ use ArrayIterator;
 use DateTimeImmutable;
 use Generator;
 use InvalidArgumentException;
-use IteratorAggregate;
-use JsonSerializable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use ReflectionClass;
 use ReflectionEnumUnitCase;
-use RuntimeException;
 use stdClass;
-use Traversable;
 use UnitEnum;
 use Wwwision\Types\Attributes\Description;
 use Wwwision\Types\Attributes\Discriminator;
@@ -55,11 +52,14 @@ use Wwwision\Types\Schema\Schema;
 use Wwwision\Types\Schema\ShapeSchema;
 use Wwwision\Types\Schema\StringSchema;
 use Wwwision\Types\Schema\StringTypeFormat;
+use Wwwision\Types\Tests\Fixture;
 
 use function json_encode;
 use function Wwwision\Types\instantiate;
 
 use const JSON_THROW_ON_ERROR;
+
+require_once __DIR__ . '/../Fixture/Fixture.php';
 
 /**
  * @phpstan-type CoercionIssue array{'code':'case invalid_type'|'unrecognized_keys'|'invalid_enum_value'|'invalid_return_type'|'invalid_string'|'too_small'|'too_big'|'custom', message: string, path: string[]}
@@ -118,7 +118,7 @@ final class IntegrationTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Failed to parse constructor argument "someProperty" of class "ShapeWithInvalidObjectProperty": Missing constructor in class "stdClass"');
-        Parser::getSchema(ShapeWithInvalidObjectProperty::class);
+        Parser::getSchema(Fixture\ShapeWithInvalidObjectProperty::class);
     }
 
     /**
@@ -127,49 +127,49 @@ final class IntegrationTest extends TestCase
     public function test_getSchema_throws_if_given_class_is_interface_with_parameterized_methods(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Method "methodWithParameters" of interface "Wwwision\Types\Tests\PHPUnit\SomeInvalidInterface" has at least one parameter, but this is currently not supported');
-        Parser::getSchema(SomeInvalidInterface::class);
+        $this->expectExceptionMessage('Method "methodWithParameters" of interface "Wwwision\Types\Tests\Fixture\SomeInvalidInterface" has at least one parameter, but this is currently not supported');
+        Parser::getSchema(Fixture\SomeInvalidInterface::class);
     }
 
     public function test_getSchema_throws_if_shape_has_no_constructor(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Missing constructor in class "Wwwision\Types\Tests\PHPUnit\ShapeWithoutConstructor"');
-        Parser::getSchema(ShapeWithoutConstructor::class);
+        $this->expectExceptionMessage('Missing constructor in class "Wwwision\Types\Tests\Fixture\ShapeWithoutConstructor"');
+        Parser::getSchema(Fixture\ShapeWithoutConstructor::class);
     }
 
     public static function getSchema_dataProvider(): Generator
     {
-        yield 'enum' => ['className' => Title::class, 'expectedResult' => '{"type":"enum","name":"Title","description":"honorific title of a person","cases":[{"type":"string","description":"for men, regardless of marital status, who do not have another professional or academic title","name":"MR","value":"MR"},{"type":"string","description":"for married women who do not have another professional or academic title","name":"MRS","value":"MRS"},{"type":"string","description":"for girls, unmarried women and married women who continue to use their maiden name","name":"MISS","value":"MISS"},{"type":"string","description":"for women, regardless of marital status or when marital status is unknown","name":"MS","value":"MS"},{"type":"string","description":"for any other title that does not match the above","name":"OTHER","value":"OTHER"}]}'];
-        yield 'int backed enum' => ['className' => Number::class, 'expectedResult' => '{"type":"enum","name":"Number","description":"A number","cases":[{"type":"integer","description":"The number 1","name":"ONE","value":1},{"type":"integer","description":null,"name":"TWO","value":2},{"type":"integer","description":null,"name":"THREE","value":3}]}'];
-        yield 'string backed enum' => ['className' => RomanNumber::class, 'expectedResult' => '{"type":"enum","name":"RomanNumber","description":null,"cases":[{"type":"string","description":null,"name":"I","value":"1"},{"type":"string","description":"random description","name":"II","value":"2"},{"type":"string","description":null,"name":"III","value":"3"},{"type":"string","description":null,"name":"IV","value":"4"}]}'];
+        yield 'enum' => ['className' => Fixture\Title::class, 'expectedResult' => '{"type":"enum","name":"Title","description":"honorific title of a person","cases":[{"type":"string","description":"for men, regardless of marital status, who do not have another professional or academic title","name":"MR","value":"MR"},{"type":"string","description":"for married women who do not have another professional or academic title","name":"MRS","value":"MRS"},{"type":"string","description":"for girls, unmarried women and married women who continue to use their maiden name","name":"MISS","value":"MISS"},{"type":"string","description":"for women, regardless of marital status or when marital status is unknown","name":"MS","value":"MS"},{"type":"string","description":"for any other title that does not match the above","name":"OTHER","value":"OTHER"}]}'];
+        yield 'int backed enum' => ['className' => Fixture\Number::class, 'expectedResult' => '{"type":"enum","name":"Number","description":"A number","cases":[{"type":"integer","description":"The number 1","name":"ONE","value":1},{"type":"integer","description":null,"name":"TWO","value":2},{"type":"integer","description":null,"name":"THREE","value":3}]}'];
+        yield 'string backed enum' => ['className' => Fixture\RomanNumber::class, 'expectedResult' => '{"type":"enum","name":"RomanNumber","description":null,"cases":[{"type":"string","description":null,"name":"I","value":"1"},{"type":"string","description":"random description","name":"II","value":"2"},{"type":"string","description":null,"name":"III","value":"3"},{"type":"string","description":null,"name":"IV","value":"4"}]}'];
 
-        yield 'float based object' => ['className' => Longitude::class, 'expectedResult' => '{"type":"float","name":"Longitude","description":null,"minimum":-180,"maximum":180.5}'];
-        yield 'integer based object' => ['className' => Age::class, 'expectedResult' => '{"type":"integer","name":"Age","description":"The age of a person in years","minimum":1,"maximum":120}'];
-        yield 'list object' => ['className' => FullNames::class, 'expectedResult' => '{"type":"array","name":"FullNames","description":null,"itemType":"FullName","minCount":2,"maxCount":5}'];
-        yield 'shape object' => ['className' => FullName::class, 'expectedResult' => '{"type":"object","name":"FullName","description":"First and last name of a person","properties":[{"type":"GivenName","name":"givenName","description":"First name of a person"},{"type":"FamilyName","name":"familyName","description":"Last name of a person"}]}'];
-        yield 'shape object with optional properties' => ['className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"type":"object","name":"ShapeWithOptionalTypes","description":null,"properties":[{"type":"FamilyName","name":"stringBased","description":"Last name of a person"},{"type":"FamilyName","name":"optionalStringBased","description":"Last name of a person","optional":true},{"type":"int","name":"optionalInt","description":"Some description","optional":true},{"type":"boolean","name":"optionalBool","description":null,"optional":true},{"type":"string","name":"optionalString","description":null,"optional":true}]}'];
+        yield 'float based object' => ['className' => Fixture\Longitude::class, 'expectedResult' => '{"type":"float","name":"Longitude","description":null,"minimum":-180,"maximum":180.5}'];
+        yield 'integer based object' => ['className' => Fixture\Age::class, 'expectedResult' => '{"type":"integer","name":"Age","description":"The age of a person in years","minimum":1,"maximum":120}'];
+        yield 'list object' => ['className' => Fixture\FullNames::class, 'expectedResult' => '{"type":"array","name":"FullNames","description":null,"itemType":"FullName","minCount":2,"maxCount":5}'];
+        yield 'shape object' => ['className' => Fixture\FullName::class, 'expectedResult' => '{"type":"object","name":"FullName","description":"First and last name of a person","properties":[{"type":"GivenName","name":"givenName","description":"First name of a person"},{"type":"FamilyName","name":"familyName","description":"Last name of a person"}]}'];
+        yield 'shape object with optional properties' => ['className' => Fixture\ShapeWithOptionalTypes::class, 'expectedResult' => '{"type":"object","name":"ShapeWithOptionalTypes","description":null,"properties":[{"type":"FamilyName","name":"stringBased","description":"Last name of a person"},{"type":"FamilyName","name":"optionalStringBased","description":"Last name of a person","optional":true},{"type":"int","name":"optionalInt","description":"Some description","optional":true},{"type":"boolean","name":"optionalBool","description":null,"optional":true},{"type":"string","name":"optionalString","description":null,"optional":true}]}'];
 
-        yield 'string based object' => ['className' => GivenName::class, 'expectedResult' => '{"type":"string","name":"GivenName","description":"First name of a person","minLength":3,"maxLength":20}'];
-        yield 'string based object with format' => ['className' => EmailAddress::class, 'expectedResult' => '{"type":"string","name":"EmailAddress","description":null,"format":"email"}'];
-        yield 'string based object with pattern' => ['className' => NotMagic::class, 'expectedResult' => '{"type":"string","name":"NotMagic","description":null,"pattern":"^(?!magic).*"}'];
+        yield 'string based object' => ['className' => Fixture\GivenName::class, 'expectedResult' => '{"type":"string","name":"GivenName","description":"First name of a person","minLength":3,"maxLength":20}'];
+        yield 'string based object with format' => ['className' => Fixture\EmailAddress::class, 'expectedResult' => '{"type":"string","name":"EmailAddress","description":null,"format":"email"}'];
+        yield 'string based object with pattern' => ['className' => Fixture\NotMagic::class, 'expectedResult' => '{"type":"string","name":"NotMagic","description":null,"pattern":"^(?!magic).*"}'];
 
-        yield 'shape with bool' => ['className' => ShapeWithBool::class, 'expectedResult' => '{"type":"object","name":"ShapeWithBool","description":null,"properties":[{"type":"boolean","name":"value","description":"Description for literal bool"}]}'];
-        yield 'shape with int' => ['className' => ShapeWithInt::class, 'expectedResult' => '{"type":"object","name":"ShapeWithInt","description":null,"properties":[{"type":"int","name":"value","description":"Description for literal int"}]}'];
-        yield 'shape with string' => ['className' => ShapeWithString::class, 'expectedResult' => '{"type":"object","name":"ShapeWithString","description":null,"properties":[{"type":"string","name":"value","description":"Description for literal string"}]}'];
-        yield 'shape with float' => ['className' => ShapeWithFloat::class, 'expectedResult' => '{"type":"object","name":"ShapeWithFloat","description":null,"properties":[{"type":"float","name":"value","description":"Description for literal float"}]}'];
-        yield 'shape with floats' => ['className' => GeoCoordinates::class, 'expectedResult' => '{"type":"object","name":"GeoCoordinates","description":null,"properties":[{"type":"Longitude","name":"longitude","description":null},{"type":"Latitude","name":"latitude","description":null}]}'];
-        yield 'shape with array' => ['className' => ShapeWithArray::class, 'expectedResult' => '{"type":"object","name":"ShapeWithArray","description":null,"properties":[{"type":"GivenName","name":"givenName","description":"First name of a person"},{"type":"array","name":"someArray","description":"We can use arrays, too"}]}'];
-        yield 'shape with union type' => ['className' => ShapeWithUnionType::class, 'expectedResult' => '{"type":"object","name":"ShapeWithUnionType","description":null,"properties":[{"type":"GivenName|FamilyName","name":"givenOrFamilyName","description":null}]}'];
-        yield 'shape with simple union type' => ['className' => ShapeWithSimpleUnionType::class, 'expectedResult' => '{"type":"object","name":"ShapeWithSimpleUnionType","description":null,"properties":[{"type":"string|int","name":"integerOrString","description":null}]}'];
+        yield 'shape with bool' => ['className' => Fixture\ShapeWithBool::class, 'expectedResult' => '{"type":"object","name":"ShapeWithBool","description":null,"properties":[{"type":"boolean","name":"value","description":"Description for literal bool"}]}'];
+        yield 'shape with int' => ['className' => Fixture\ShapeWithInt::class, 'expectedResult' => '{"type":"object","name":"ShapeWithInt","description":null,"properties":[{"type":"int","name":"value","description":"Description for literal int"}]}'];
+        yield 'shape with string' => ['className' => Fixture\ShapeWithString::class, 'expectedResult' => '{"type":"object","name":"ShapeWithString","description":null,"properties":[{"type":"string","name":"value","description":"Description for literal string"}]}'];
+        yield 'shape with float' => ['className' => Fixture\ShapeWithFloat::class, 'expectedResult' => '{"type":"object","name":"ShapeWithFloat","description":null,"properties":[{"type":"float","name":"value","description":"Description for literal float"}]}'];
+        yield 'shape with floats' => ['className' => Fixture\GeoCoordinates::class, 'expectedResult' => '{"type":"object","name":"GeoCoordinates","description":null,"properties":[{"type":"Longitude","name":"longitude","description":null},{"type":"Latitude","name":"latitude","description":null}]}'];
+        yield 'shape with array' => ['className' => Fixture\ShapeWithArray::class, 'expectedResult' => '{"type":"object","name":"ShapeWithArray","description":null,"properties":[{"type":"GivenName","name":"givenName","description":"First name of a person"},{"type":"array","name":"someArray","description":"We can use arrays, too"}]}'];
+        yield 'shape with union type' => ['className' => Fixture\ShapeWithUnionType::class, 'expectedResult' => '{"type":"object","name":"ShapeWithUnionType","description":null,"properties":[{"type":"GivenName|FamilyName","name":"givenOrFamilyName","description":null}]}'];
+        yield 'shape with simple union type' => ['className' => Fixture\ShapeWithSimpleUnionType::class, 'expectedResult' => '{"type":"object","name":"ShapeWithSimpleUnionType","description":null,"properties":[{"type":"string|int","name":"integerOrString","description":null}]}'];
 
-        yield 'interface' => ['className' => SomeInterface::class, 'expectedResult' => '{"description":"SomeInterface description","name":"SomeInterface","properties":[{"description":"Custom description for \"someMethod\"","name":"someMethod","type":"string"},{"description":"Custom description for \"someOtherMethod\"","name":"someOtherMethod","optional":true,"type":"FamilyName"}],"type":"interface"}'];
-        yield 'shape with interface property' => ['className' => ShapeWithInterfaceProperty::class, 'expectedResult' => '{"description":null,"name":"ShapeWithInterfaceProperty","properties":[{"description":"SomeInterface description","name":"property","type":"SomeInterface"}],"type":"object"}'];
-        yield 'shape with interface property and discriminator' => ['className' => ShapeWithInterfacePropertyAndDiscriminator::class, 'expectedResult' => '{"description":null,"name":"ShapeWithInterfacePropertyAndDiscriminator","properties":[{"description":null,"name":"property","type":"InterfaceWithDiscriminator"}],"type":"object"}'];
-        yield 'shape with interface property and discriminator without mapping' => ['className' => ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping::class, 'expectedResult' => '{"description":null,"name":"ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping","properties":[{"description":null,"name":"property","type":"InterfaceWithDiscriminator"}],"type":"object"}'];
-        yield 'shape with union type and discriminator' => ['className' => ShapeWithUnionTypeAndDiscriminator::class, 'expectedResult' => '{"description":null,"name":"ShapeWithUnionTypeAndDiscriminator","properties":[{"description":null,"name":"givenOrFamilyName","type":"GivenName|FamilyName"}],"type":"object"}'];
-        yield 'shape with optional interface property and custom discriminator' => ['className' => ShapeWithOptionalInterfacePropertyAndCustomDiscriminator::class, 'expectedResult' => '{"description":null,"name":"ShapeWithOptionalInterfacePropertyAndCustomDiscriminator","properties":[{"description":"SomeInterface description","name":"property","optional":true,"type":"SomeInterface"}],"type":"object"}'];
-        yield 'interface with discriminator' => ['className' => InterfaceWithDiscriminator::class, 'expectedResult' => '{"type":"interface","name":"InterfaceWithDiscriminator","description":null,"properties":[]}'];
+        yield 'interface' => ['className' => Fixture\SomeInterface::class, 'expectedResult' => '{"description":"SomeInterface description","name":"SomeInterface","properties":[{"description":"Custom description for \"someMethod\"","name":"someMethod","type":"string"},{"description":"Custom description for \"someOtherMethod\"","name":"someOtherMethod","optional":true,"type":"FamilyName"}],"type":"interface"}'];
+        yield 'shape with interface property' => ['className' => Fixture\ShapeWithInterfaceProperty::class, 'expectedResult' => '{"description":null,"name":"ShapeWithInterfaceProperty","properties":[{"description":"SomeInterface description","name":"property","type":"SomeInterface"}],"type":"object"}'];
+        yield 'shape with interface property and discriminator' => ['className' => Fixture\ShapeWithInterfacePropertyAndDiscriminator::class, 'expectedResult' => '{"description":null,"name":"ShapeWithInterfacePropertyAndDiscriminator","properties":[{"description":null,"name":"property","type":"InterfaceWithDiscriminator"}],"type":"object"}'];
+        yield 'shape with interface property and discriminator without mapping' => ['className' => Fixture\ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping::class, 'expectedResult' => '{"description":null,"name":"ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping","properties":[{"description":null,"name":"property","type":"InterfaceWithDiscriminator"}],"type":"object"}'];
+        yield 'shape with union type and discriminator' => ['className' => Fixture\ShapeWithUnionTypeAndDiscriminator::class, 'expectedResult' => '{"description":null,"name":"ShapeWithUnionTypeAndDiscriminator","properties":[{"description":null,"name":"givenOrFamilyName","type":"GivenName|FamilyName"}],"type":"object"}'];
+        yield 'shape with optional interface property and custom discriminator' => ['className' => Fixture\ShapeWithOptionalInterfacePropertyAndCustomDiscriminator::class, 'expectedResult' => '{"description":null,"name":"ShapeWithOptionalInterfacePropertyAndCustomDiscriminator","properties":[{"description":"SomeInterface description","name":"property","optional":true,"type":"SomeInterface"}],"type":"object"}'];
+        yield 'interface with discriminator' => ['className' => Fixture\InterfaceWithDiscriminator::class, 'expectedResult' => '{"type":"interface","name":"InterfaceWithDiscriminator","description":null,"properties":[]}'];
     }
 
     /**
@@ -184,20 +184,20 @@ final class IntegrationTest extends TestCase
 
     public static function isInstance_dataProvider(): Generator
     {
-        yield 'enum' => ['className' => Title::class, 'value' => Title::MISS];
-        yield 'int backed enum' => ['className' => Number::class, 'value' => Number::TWO];
-        yield 'string backed enum' => ['className' => RomanNumber::class, 'value' => RomanNumber::IV];
+        yield 'enum' => ['className' => Fixture\Title::class, 'value' => Fixture\Title::MISS];
+        yield 'int backed enum' => ['className' => Fixture\Number::class, 'value' => Fixture\Number::TWO];
+        yield 'string backed enum' => ['className' => Fixture\RomanNumber::class, 'value' => Fixture\RomanNumber::IV];
 
-        yield 'integer based object' => ['className' => Age::class, 'value' => instantiate(Age::class, 44)];
-        yield 'list object' => ['className' => GivenNames::class, 'value' => instantiate(GivenNames::class, ['Jane', 'John'])];
-        yield 'shape object' => ['className' => FullName::class, 'value' => instantiate(FullName::class, ['givenName' => 'John', 'familyName' => 'Doe'])];
-        yield 'shape object with interface property and discriminator' => ['className' => ShapeWithInterfacePropertyAndDiscriminator::class, 'value' => instantiate(ShapeWithInterfacePropertyAndDiscriminator::class, ['property' => ['type' => 'g', '__value' => 'Jane']])];
-        yield 'shape object with union type and discriminator' => ['className' => ShapeWithUnionTypeAndDiscriminator::class, 'value' => instantiate(ShapeWithUnionTypeAndDiscriminator::class, ['givenOrFamilyName' => ['type' => 'given', '__value' => 'Jane']])];
+        yield 'integer based object' => ['className' => Fixture\Age::class, 'value' => instantiate(Fixture\Age::class, 44)];
+        yield 'list object' => ['className' => Fixture\GivenNames::class, 'value' => instantiate(Fixture\GivenNames::class, ['Jane', 'John'])];
+        yield 'shape object' => ['className' => Fixture\FullName::class, 'value' => instantiate(Fixture\FullName::class, ['givenName' => 'John', 'familyName' => 'Doe'])];
+        yield 'shape object with interface property and discriminator' => ['className' => Fixture\ShapeWithInterfacePropertyAndDiscriminator::class, 'value' => instantiate(Fixture\ShapeWithInterfacePropertyAndDiscriminator::class, ['property' => ['type' => 'g', '__value' => 'Jane']])];
+        yield 'shape object with union type and discriminator' => ['className' => Fixture\ShapeWithUnionTypeAndDiscriminator::class, 'value' => instantiate(Fixture\ShapeWithUnionTypeAndDiscriminator::class, ['givenOrFamilyName' => ['type' => 'given', '__value' => 'Jane']])];
 
-        yield 'string based object' => ['className' => GivenName::class, 'value' => instantiate(GivenName::class, 'Jane')];
+        yield 'string based object' => ['className' => Fixture\GivenName::class, 'value' => instantiate(Fixture\GivenName::class, 'Jane')];
 
-        yield 'interface' => ['className' => SomeInterface::class, 'value' => instantiate(GivenName::class, 'Jane')];
-        yield 'interface with discriminator' => ['className' => InterfaceWithDiscriminator::class, 'value' => instantiate(FamilyName::class, 'Doe')];
+        yield 'interface' => ['className' => Fixture\SomeInterface::class, 'value' => instantiate(Fixture\GivenName::class, 'Jane')];
+        yield 'interface with discriminator' => ['className' => Fixture\InterfaceWithDiscriminator::class, 'value' => instantiate(Fixture\FamilyName::class, 'Doe')];
     }
 
     /**
@@ -213,7 +213,7 @@ final class IntegrationTest extends TestCase
 
     public function test_getSchema_for_shape_object_allows_to_retrieve_overridden_property_descriptions(): void
     {
-        $schema = Parser::getSchema(ShapeWithOptionalTypes::class);
+        $schema = Parser::getSchema(Fixture\ShapeWithOptionalTypes::class);
         self::assertInstanceOf(ShapeSchema::class, $schema);
         self::assertNull($schema->overriddenPropertyDescription('unknown'));
         self::assertNull($schema->overriddenPropertyDescription('stringBased'));
@@ -344,7 +344,7 @@ final class IntegrationTest extends TestCase
         $exceptionThrown = false;
         $expectedIssuesJson = json_encode($expectedIssues, JSON_THROW_ON_ERROR);
         try {
-            instantiate(Title::class, $value);
+            instantiate(Fixture\Title::class, $value);
         } catch (CoerceException $e) {
             $exceptionThrown = true;
             self::assertJsonStringEqualsJsonString($expectedIssuesJson, json_encode($e, JSON_THROW_ON_ERROR));
@@ -354,35 +354,35 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_enum_dataProvider(): Generator
     {
-        yield 'from instance' => ['value' => Title::MR, 'expectedResult' => Title::MR];
-        yield 'from string matching a case' => ['value' => 'MRS', 'expectedResult' => Title::MRS];
+        yield 'from instance' => ['value' => Fixture\Title::MR, 'expectedResult' => Fixture\Title::MR];
+        yield 'from string matching a case' => ['value' => 'MRS', 'expectedResult' => Fixture\Title::MRS];
         yield 'from stringable object matching a case' => ['value' => new class {
             public function __toString()
             {
                 return 'MISS';
             }
-        }, 'expectedResult' => Title::MISS];
-        yield 'from already converted instance' => ['value' => Title::MS, 'expectedResult' => Title::MS];
+        }, 'expectedResult' => Fixture\Title::MISS];
+        yield 'from already converted instance' => ['value' => Fixture\Title::MS, 'expectedResult' => Fixture\Title::MS];
     }
 
     #[DataProvider('instantiate_enum_dataProvider')]
-    public function test_instantiate_enum(mixed $value, Title $expectedResult): void
+    public function test_instantiate_enum(mixed $value, Fixture\Title $expectedResult): void
     {
-        self::assertSame($expectedResult, instantiate(Title::class, $value));
+        self::assertSame($expectedResult, instantiate(Fixture\Title::class, $value));
     }
 
     public static function instantiate_enumCase_dataProvider(): Generator
     {
-        yield 'unit enum from string' => ['unitEnum' => Title::MISS, 'value' => 'MISS', 'requiresCoercion' => true];
-        yield 'unit enum from unit enum' => ['unitEnum' => Title::MISS, 'value' => Title::MISS, 'requiresCoercion' => false];
+        yield 'unit enum from string' => ['unitEnum' => Fixture\Title::MISS, 'value' => 'MISS', 'requiresCoercion' => true];
+        yield 'unit enum from unit enum' => ['unitEnum' => Fixture\Title::MISS, 'value' => Fixture\Title::MISS, 'requiresCoercion' => false];
 
-        yield 'int-backed enum from string' => ['unitEnum' => Number::TWO, 'value' => '2', 'requiresCoercion' => true];
-        yield 'int-backed enum from int' => ['unitEnum' => Number::TWO, 'value' => 2, 'requiresCoercion' => true];
-        yield 'int-backed enum from unit enum' => ['unitEnum' => Number::TWO, 'value' => Number::TWO, 'requiresCoercion' => false];
+        yield 'int-backed enum from string' => ['unitEnum' => Fixture\Number::TWO, 'value' => '2', 'requiresCoercion' => true];
+        yield 'int-backed enum from int' => ['unitEnum' => Fixture\Number::TWO, 'value' => 2, 'requiresCoercion' => true];
+        yield 'int-backed enum from unit enum' => ['unitEnum' => Fixture\Number::TWO, 'value' => Fixture\Number::TWO, 'requiresCoercion' => false];
 
-        yield 'string-backed enum from string' => ['unitEnum' => Number::TWO, 'value' => '2', 'requiresCoercion' => true];
-        yield 'string-backed enum from int' => ['unitEnum' => Number::TWO, 'value' => 2, 'requiresCoercion' => true];
-        yield 'string-backed enum from unit enum' => ['unitEnum' => Number::TWO, 'value' => Number::TWO, 'requiresCoercion' => false];
+        yield 'string-backed enum from string' => ['unitEnum' => Fixture\Number::TWO, 'value' => '2', 'requiresCoercion' => true];
+        yield 'string-backed enum from int' => ['unitEnum' => Fixture\Number::TWO, 'value' => 2, 'requiresCoercion' => true];
+        yield 'string-backed enum from unit enum' => ['unitEnum' => Fixture\Number::TWO, 'value' => Fixture\Number::TWO, 'requiresCoercion' => false];
     }
 
     #[DataProvider('instantiate_enumCase_dataProvider')]
@@ -412,7 +412,7 @@ final class IntegrationTest extends TestCase
         $exceptionThrown = false;
         $expectedIssuesJson = json_encode($expectedIssues, JSON_THROW_ON_ERROR);
         try {
-            instantiate(Number::class, $value);
+            instantiate(Fixture\Number::class, $value);
         } catch (CoerceException $e) {
             $exceptionThrown = true;
             self::assertJsonStringEqualsJsonString($expectedIssuesJson, json_encode($e, JSON_THROW_ON_ERROR));
@@ -422,16 +422,16 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_int_backed_enum_dataProvider(): Generator
     {
-        yield 'from instance' => ['value' => Number::ONE, 'expectedResult' => Number::ONE];
-        yield 'from numeric string' => ['value' => '2', 'expectedResult' => Number::TWO];
-        yield 'from integer' => ['value' => 3, 'expectedResult' => Number::THREE];
-        yield 'from float without fraction' => ['value' => 1.0, 'expectedResult' => Number::ONE];
+        yield 'from instance' => ['value' => Fixture\Number::ONE, 'expectedResult' => Fixture\Number::ONE];
+        yield 'from numeric string' => ['value' => '2', 'expectedResult' => Fixture\Number::TWO];
+        yield 'from integer' => ['value' => 3, 'expectedResult' => Fixture\Number::THREE];
+        yield 'from float without fraction' => ['value' => 1.0, 'expectedResult' => Fixture\Number::ONE];
     }
 
     #[DataProvider('instantiate_int_backed_enum_dataProvider')]
-    public function test_instantiate_int_backed_enum(mixed $value, Number $expectedResult): void
+    public function test_instantiate_int_backed_enum(mixed $value, Fixture\Number $expectedResult): void
     {
-        self::assertSame($expectedResult, instantiate(Number::class, $value));
+        self::assertSame($expectedResult, instantiate(Fixture\Number::class, $value));
     }
 
     public static function instantiate_string_backed_enum_failing_dataProvider(): Generator
@@ -454,7 +454,7 @@ final class IntegrationTest extends TestCase
         $exceptionThrown = false;
         $expectedIssuesJson = json_encode($expectedIssues, JSON_THROW_ON_ERROR);
         try {
-            instantiate(RomanNumber::class, $value);
+            instantiate(Fixture\RomanNumber::class, $value);
         } catch (CoerceException $e) {
             $exceptionThrown = true;
             self::assertJsonStringEqualsJsonString($expectedIssuesJson, json_encode($e, JSON_THROW_ON_ERROR));
@@ -464,30 +464,30 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_string_backed_enum_dataProvider(): Generator
     {
-        yield 'from instance' => ['value' => RomanNumber::I, 'expectedResult' => RomanNumber::I];
-        yield 'from string that is a case' => ['value' => '2', 'expectedResult' => RomanNumber::II];
-        yield 'from integer matching a case' => ['value' => 4, 'expectedResult' => RomanNumber::IV];
+        yield 'from instance' => ['value' => Fixture\RomanNumber::I, 'expectedResult' => Fixture\RomanNumber::I];
+        yield 'from string that is a case' => ['value' => '2', 'expectedResult' => Fixture\RomanNumber::II];
+        yield 'from integer matching a case' => ['value' => 4, 'expectedResult' => Fixture\RomanNumber::IV];
     }
 
     #[DataProvider('instantiate_string_backed_enum_dataProvider')]
-    public function test_instantiate_string_backed_enum(mixed $value, RomanNumber $expectedResult): void
+    public function test_instantiate_string_backed_enum(mixed $value, Fixture\RomanNumber $expectedResult): void
     {
-        self::assertSame($expectedResult, instantiate(RomanNumber::class, $value));
+        self::assertSame($expectedResult, instantiate(Fixture\RomanNumber::class, $value));
     }
 
     public static function instantiate_float_based_object_failing_dataProvider(): Generator
     {
-        yield 'from null' => ['value' => null, 'className' => Longitude::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected float, received null', 'path' => [], 'expected' => 'float', 'received' => 'null']]];
-        yield 'from object' => ['value' => new stdClass(), 'className' => Longitude::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected float, received object', 'path' => [], 'expected' => 'float', 'received' => 'object']]];
-        yield 'from boolean' => ['value' => false, 'className' => Longitude::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected float, received boolean', 'path' => [], 'expected' => 'float', 'received' => 'boolean']]];
-        yield 'from string' => ['value' => 'not numeric', 'className' => Longitude::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected float, received string', 'path' => [], 'expected' => 'float', 'received' => 'string']]];
+        yield 'from null' => ['value' => null, 'className' => Fixture\Longitude::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected float, received null', 'path' => [], 'expected' => 'float', 'received' => 'null']]];
+        yield 'from object' => ['value' => new stdClass(), 'className' => Fixture\Longitude::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected float, received object', 'path' => [], 'expected' => 'float', 'received' => 'object']]];
+        yield 'from boolean' => ['value' => false, 'className' => Fixture\Longitude::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected float, received boolean', 'path' => [], 'expected' => 'float', 'received' => 'boolean']]];
+        yield 'from string' => ['value' => 'not numeric', 'className' => Fixture\Longitude::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected float, received string', 'path' => [], 'expected' => 'float', 'received' => 'string']]];
 
-        yield 'from float violating minimum' => ['value' => -181.0, 'className' => Longitude::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Number must be greater than or equal to -180.000', 'path' => [], 'type' => 'double', 'minimum' => -180, 'inclusive' => true, 'exact' => false]]];
-        yield 'from float with fraction violating minimum' => ['value' => -90.123, 'className' => Latitude::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Number must be greater than or equal to -90.000', 'path' => [], 'type' => 'double', 'minimum' => -90, 'inclusive' => true, 'exact' => false]]];
-        yield 'from float violating maximum' => ['value' => 181.0, 'className' => Longitude::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Number must be less than or equal to 180.500', 'path' => [], 'type' => 'double', 'maximum' => 180.5, 'inclusive' => true, 'exact' => false]]];
-        yield 'from float with fraction violating maximum' => ['value' => 90.123, 'className' => Latitude::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Number must be less than or equal to 90.000', 'path' => [], 'type' => 'double', 'maximum' => 90, 'inclusive' => true, 'exact' => false]]];
+        yield 'from float violating minimum' => ['value' => -181.0, 'className' => Fixture\Longitude::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Number must be greater than or equal to -180.000', 'path' => [], 'type' => 'double', 'minimum' => -180, 'inclusive' => true, 'exact' => false]]];
+        yield 'from float with fraction violating minimum' => ['value' => -90.123, 'className' => Fixture\Latitude::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Number must be greater than or equal to -90.000', 'path' => [], 'type' => 'double', 'minimum' => -90, 'inclusive' => true, 'exact' => false]]];
+        yield 'from float violating maximum' => ['value' => 181.0, 'className' => Fixture\Longitude::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Number must be less than or equal to 180.500', 'path' => [], 'type' => 'double', 'maximum' => 180.5, 'inclusive' => true, 'exact' => false]]];
+        yield 'from float with fraction violating maximum' => ['value' => 90.123, 'className' => Fixture\Latitude::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Number must be less than or equal to 90.000', 'path' => [], 'type' => 'double', 'maximum' => 90, 'inclusive' => true, 'exact' => false]]];
 
-        yield 'from float with fraction violating multiple constraints' => ['value' => 5.34, 'className' => ImpossibleFloat::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Number must be less than or equal to 2.450', 'path' => [], 'type' => 'double', 'maximum' => 2.45, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'Number must be greater than or equal to 10.230', 'path' => [], 'type' => 'double', 'minimum' => 10.23, 'inclusive' => true, 'exact' => false]]];
+        yield 'from float with fraction violating multiple constraints' => ['value' => 5.34, 'className' => Fixture\ImpossibleFloat::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Number must be less than or equal to 2.450', 'path' => [], 'type' => 'double', 'maximum' => 2.45, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'Number must be greater than or equal to 10.230', 'path' => [], 'type' => 'double', 'minimum' => 10.23, 'inclusive' => true, 'exact' => false]]];
     }
 
     /**
@@ -510,7 +510,7 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_float_based_object_dataProvider(): Generator
     {
-        yield 'from instance' => ['value' => instantiate(Longitude::class, 120), 'expectedResult' => 120.0];
+        yield 'from instance' => ['value' => instantiate(Fixture\Longitude::class, 120), 'expectedResult' => 120.0];
         yield 'from integer that matches constraints' => ['value' => 120, 'expectedResult' => 120];
         yield 'from numeric string that matches constraints' => ['value' => '1', 'expectedResult' => 1];
         yield 'from numeric string with floating point that matches constraints' => ['value' => '1.234', 'expectedResult' => 1.234];
@@ -521,13 +521,13 @@ final class IntegrationTest extends TestCase
     #[DataProvider('instantiate_float_based_object_dataProvider')]
     public function test_instantiate_float_based_object(mixed $value, float $expectedResult): void
     {
-        self::assertSame($expectedResult, instantiate(Longitude::class, $value)->value);
+        self::assertSame($expectedResult, instantiate(Fixture\Longitude::class, $value)->value);
     }
 
     public function test_instantiate_float_based_object_returns_same_instance_if_already_valid(): void
     {
-        $instance = instantiate(Longitude::class, 120);
-        $schema = Parser::getSchema(Longitude::class);
+        $instance = instantiate(Fixture\Longitude::class, 120);
+        $schema = Parser::getSchema(Fixture\Longitude::class);
         $converted = $schema->instantiate($instance);
 
         self::assertSame($instance, $converted);
@@ -535,17 +535,17 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_int_based_object_failing_dataProvider(): Generator
     {
-        yield 'from null' => ['value' => null, 'className' => Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received null', 'path' => [], 'expected' => 'integer', 'received' => 'null']]];
-        yield 'from object' => ['value' => new stdClass(), 'className' => Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received object', 'path' => [], 'expected' => 'integer', 'received' => 'object']]];
-        yield 'from boolean' => ['value' => false, 'className' => Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received boolean', 'path' => [], 'expected' => 'integer', 'received' => 'boolean']]];
-        yield 'from string' => ['value' => 'not numeric', 'className' => Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received string', 'path' => [], 'expected' => 'integer', 'received' => 'string']]];
-        yield 'from string with float' => ['value' => '2.0', 'className' => Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received string', 'path' => [], 'expected' => 'integer', 'received' => 'string']]];
-        yield 'from float with fraction' => ['value' => 2.5, 'className' => Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received double', 'path' => [], 'expected' => 'integer', 'received' => 'double']]];
+        yield 'from null' => ['value' => null, 'className' => Fixture\Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received null', 'path' => [], 'expected' => 'integer', 'received' => 'null']]];
+        yield 'from object' => ['value' => new stdClass(), 'className' => Fixture\Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received object', 'path' => [], 'expected' => 'integer', 'received' => 'object']]];
+        yield 'from boolean' => ['value' => false, 'className' => Fixture\Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received boolean', 'path' => [], 'expected' => 'integer', 'received' => 'boolean']]];
+        yield 'from string' => ['value' => 'not numeric', 'className' => Fixture\Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received string', 'path' => [], 'expected' => 'integer', 'received' => 'string']]];
+        yield 'from string with float' => ['value' => '2.0', 'className' => Fixture\Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received string', 'path' => [], 'expected' => 'integer', 'received' => 'string']]];
+        yield 'from float with fraction' => ['value' => 2.5, 'className' => Fixture\Age::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received double', 'path' => [], 'expected' => 'integer', 'received' => 'double']]];
 
-        yield 'from integer violating minimum' => ['value' => 0, 'className' => Age::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Number must be greater than or equal to 1', 'path' => [], 'type' => 'integer', 'minimum' => 1, 'inclusive' => true, 'exact' => false]]];
-        yield 'from integer violating maximum' => ['value' => 121, 'className' => Age::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Number must be less than or equal to 120', 'path' => [], 'type' => 'integer', 'maximum' => 120, 'inclusive' => true, 'exact' => false]]];
+        yield 'from integer violating minimum' => ['value' => 0, 'className' => Fixture\Age::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Number must be greater than or equal to 1', 'path' => [], 'type' => 'integer', 'minimum' => 1, 'inclusive' => true, 'exact' => false]]];
+        yield 'from integer violating maximum' => ['value' => 121, 'className' => Fixture\Age::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Number must be less than or equal to 120', 'path' => [], 'type' => 'integer', 'maximum' => 120, 'inclusive' => true, 'exact' => false]]];
 
-        yield 'from integer violating multiple constraints' => ['value' => 5, 'className' => ImpossibleInt::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Number must be less than or equal to 2', 'path' => [], 'type' => 'integer', 'maximum' => 2, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'Number must be greater than or equal to 10', 'path' => [], 'type' => 'integer', 'minimum' => 10, 'inclusive' => true, 'exact' => false]]];
+        yield 'from integer violating multiple constraints' => ['value' => 5, 'className' => Fixture\ImpossibleInt::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Number must be less than or equal to 2', 'path' => [], 'type' => 'integer', 'maximum' => 2, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'Number must be greater than or equal to 10', 'path' => [], 'type' => 'integer', 'minimum' => 10, 'inclusive' => true, 'exact' => false]]];
     }
 
     /**
@@ -568,7 +568,7 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_int_based_object_dataProvider(): Generator
     {
-        yield 'from instance' => ['value' => instantiate(Age::class, 120), 'expectedResult' => 120];
+        yield 'from instance' => ['value' => instantiate(Fixture\Age::class, 120), 'expectedResult' => 120];
         yield 'from integer that matches constraints' => ['value' => 120, 'expectedResult' => 120];
         yield 'from numeric string that matches constraints' => ['value' => '1', 'expectedResult' => 1];
         yield 'from float without fraction' => ['value' => 4.0, 'expectedResult' => 4];
@@ -577,24 +577,24 @@ final class IntegrationTest extends TestCase
     #[DataProvider('instantiate_int_based_object_dataProvider')]
     public function test_instantiate_int_based_object(mixed $value, int $expectedResult): void
     {
-        self::assertSame($expectedResult, instantiate(Age::class, $value)->value);
+        self::assertSame($expectedResult, instantiate(Fixture\Age::class, $value)->value);
     }
 
     public static function instantiate_list_object_failing_dataProvider(): Generator
     {
-        yield 'from null' => ['value' => null, 'className' => FullNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected array, received null', 'path' => [], 'expected' => 'array', 'received' => 'null']]];
-        yield 'from object' => ['value' => new stdClass(), 'className' => FullNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected array, received object', 'path' => [], 'expected' => 'array', 'received' => 'object']]];
-        yield 'from boolean' => ['value' => false, 'className' => FullNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected array, received boolean', 'path' => [], 'expected' => 'array', 'received' => 'boolean']]];
-        yield 'from string' => ['value' => 'some string', 'className' => FullNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected array, received string', 'path' => [], 'expected' => 'array', 'received' => 'string']]];
+        yield 'from null' => ['value' => null, 'className' => Fixture\FullNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected array, received null', 'path' => [], 'expected' => 'array', 'received' => 'null']]];
+        yield 'from object' => ['value' => new stdClass(), 'className' => Fixture\FullNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected array, received object', 'path' => [], 'expected' => 'array', 'received' => 'object']]];
+        yield 'from boolean' => ['value' => false, 'className' => Fixture\FullNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected array, received boolean', 'path' => [], 'expected' => 'array', 'received' => 'boolean']]];
+        yield 'from string' => ['value' => 'some string', 'className' => Fixture\FullNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected array, received string', 'path' => [], 'expected' => 'array', 'received' => 'string']]];
 
-        yield 'from array with invalid item' => ['value' => [123.45], 'className' => GivenNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received double', 'path' => [0], 'expected' => 'string', 'received' => 'double']]];
-        yield 'from array with invalid items' => ['value' => ['Some value', 'Some other value'], 'className' => FullNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received string', 'path' => [0], 'expected' => 'object', 'received' => 'string'], ['code' => 'invalid_type', 'message' => 'Expected object, received string', 'path' => [1], 'expected' => 'object', 'received' => 'string']]];
-        yield 'from non-assoc array with custom exception' => ['value' => ['https://wwwision.de', 'https://neos.io'], 'className' => UriMap::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Expected associative array with string keys', 'path' => [], 'params' => []]]];
-        yield 'from array violating minCount' => ['value' => [], 'className' => FullNames::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Array must contain at least 2 element(s)', 'path' => [], 'type' => 'array', 'minimum' => 2, 'inclusive' => true, 'exact' => false]]];
-        yield 'from array violating minCount 2' => ['value' => [['givenName' => 'John', 'familyName' => 'Doe']], 'className' => FullNames::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Array must contain at least 2 element(s)', 'path' => [], 'type' => 'array', 'minimum' => 2, 'inclusive' => true, 'exact' => false]]];
-        yield 'from array violating maxCount' => ['value' => ['John', 'Jane', 'Max', 'Jack', 'Fred'], 'className' => GivenNames::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Array must contain at most 4 element(s)', 'path' => [], 'type' => 'array', 'maximum' => 4, 'inclusive' => true, 'exact' => false]]];
-        yield 'from array violating mixCount and maxCount' => ['value' => ['foo', 'bar', 'baz'], 'className' => ImpossibleList::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Array must contain at least 10 element(s)', 'path' => [], 'type' => 'array', 'minimum' => 10, 'inclusive' => true, 'exact' => false], ['code' => 'too_big', 'message' => 'Array must contain at most 2 element(s)', 'path' => [], 'type' => 'array', 'maximum' => 2, 'inclusive' => true, 'exact' => false]]];
-        yield 'from array violating mixCount and maxCount and element constraints' => ['value' => ['a', 'bar', 'c'], 'className' => ImpossibleList::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Array must contain at least 10 element(s)', 'path' => [], 'type' => 'array', 'minimum' => 10, 'inclusive' => true, 'exact' => false], ['code' => 'too_big', 'message' => 'Array must contain at most 2 element(s)', 'path' => [], 'type' => 'array', 'maximum' => 2, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => [0], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => [2], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false]]];
+        yield 'from array with invalid item' => ['value' => [123.45], 'className' => Fixture\GivenNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received double', 'path' => [0], 'expected' => 'string', 'received' => 'double']]];
+        yield 'from array with invalid items' => ['value' => ['Some value', 'Some other value'], 'className' => Fixture\FullNames::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received string', 'path' => [0], 'expected' => 'object', 'received' => 'string'], ['code' => 'invalid_type', 'message' => 'Expected object, received string', 'path' => [1], 'expected' => 'object', 'received' => 'string']]];
+        yield 'from non-assoc array with custom exception' => ['value' => ['https://wwwision.de', 'https://neos.io'], 'className' => Fixture\UriMap::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Expected associative array with string keys', 'path' => [], 'params' => []]]];
+        yield 'from array violating minCount' => ['value' => [], 'className' => Fixture\FullNames::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Array must contain at least 2 element(s)', 'path' => [], 'type' => 'array', 'minimum' => 2, 'inclusive' => true, 'exact' => false]]];
+        yield 'from array violating minCount 2' => ['value' => [['givenName' => 'John', 'familyName' => 'Doe']], 'className' => Fixture\FullNames::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Array must contain at least 2 element(s)', 'path' => [], 'type' => 'array', 'minimum' => 2, 'inclusive' => true, 'exact' => false]]];
+        yield 'from array violating maxCount' => ['value' => ['John', 'Jane', 'Max', 'Jack', 'Fred'], 'className' => Fixture\GivenNames::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Array must contain at most 4 element(s)', 'path' => [], 'type' => 'array', 'maximum' => 4, 'inclusive' => true, 'exact' => false]]];
+        yield 'from array violating mixCount and maxCount' => ['value' => ['foo', 'bar', 'baz'], 'className' => Fixture\ImpossibleList::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Array must contain at least 10 element(s)', 'path' => [], 'type' => 'array', 'minimum' => 10, 'inclusive' => true, 'exact' => false], ['code' => 'too_big', 'message' => 'Array must contain at most 2 element(s)', 'path' => [], 'type' => 'array', 'maximum' => 2, 'inclusive' => true, 'exact' => false]]];
+        yield 'from array violating mixCount and maxCount and element constraints' => ['value' => ['a', 'bar', 'c'], 'className' => Fixture\ImpossibleList::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Array must contain at least 10 element(s)', 'path' => [], 'type' => 'array', 'minimum' => 10, 'inclusive' => true, 'exact' => false], ['code' => 'too_big', 'message' => 'Array must contain at most 2 element(s)', 'path' => [], 'type' => 'array', 'maximum' => 2, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => [0], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => [2], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false]]];
     }
 
     /**
@@ -617,9 +617,9 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_list_object_dataProvider(): Generator
     {
-        yield 'from instance' => ['value' => instantiate(GivenNames::class, ['John', 'Jack', 'Jane']), 'className' => GivenNames::class, 'expectedResult' => '["John","Jack","Jane"]'];
-        yield 'from strings' => ['value' => ['John', 'Jack', 'Jane'], 'className' => GivenNames::class, 'expectedResult' => '["John","Jack","Jane"]'];
-        yield 'map of strings' => ['value' => ['wwwision' => 'https://wwwision.de', 'Neos CMS' => 'https://neos.io'], 'className' => UriMap::class, 'expectedResult' => '{"wwwision":"https://wwwision.de","Neos CMS":"https://neos.io"}'];
+        yield 'from instance' => ['value' => instantiate(Fixture\GivenNames::class, ['John', 'Jack', 'Jane']), 'className' => Fixture\GivenNames::class, 'expectedResult' => '["John","Jack","Jane"]'];
+        yield 'from strings' => ['value' => ['John', 'Jack', 'Jane'], 'className' => Fixture\GivenNames::class, 'expectedResult' => '["John","Jack","Jane"]'];
+        yield 'map of strings' => ['value' => ['wwwision' => 'https://wwwision.de', 'Neos CMS' => 'https://neos.io'], 'className' => Fixture\UriMap::class, 'expectedResult' => '{"wwwision":"https://wwwision.de","Neos CMS":"https://neos.io"}'];
     }
 
     /**
@@ -633,40 +633,40 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_shape_object_failing_dataProvider(): Generator
     {
-        yield 'from null' => ['value' => null, 'className' => FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received null', 'path' => [], 'expected' => 'object', 'received' => 'null']]];
-        yield 'from empty object' => ['value' => new stdClass(), 'className' => FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['givenName'], 'expected' => 'string', 'received' => 'undefined'], ['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
-        yield 'from boolean' => ['value' => false, 'className' => FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received boolean', 'path' => [], 'expected' => 'object', 'received' => 'boolean']]];
-        yield 'from string' => ['value' => 'some string', 'className' => FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received string', 'path' => [], 'expected' => 'object', 'received' => 'string']]];
+        yield 'from null' => ['value' => null, 'className' => Fixture\FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received null', 'path' => [], 'expected' => 'object', 'received' => 'null']]];
+        yield 'from empty object' => ['value' => new stdClass(), 'className' => Fixture\FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['givenName'], 'expected' => 'string', 'received' => 'undefined'], ['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
+        yield 'from boolean' => ['value' => false, 'className' => Fixture\FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received boolean', 'path' => [], 'expected' => 'object', 'received' => 'boolean']]];
+        yield 'from string' => ['value' => 'some string', 'className' => Fixture\FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received string', 'path' => [], 'expected' => 'object', 'received' => 'string']]];
 
-        yield 'from array with missing key' => ['value' => ['givenName' => 'Some first name'], 'className' => FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
-        yield 'from array with missing keys' => ['value' => [], 'className' => FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['givenName'], 'expected' => 'string', 'received' => 'undefined'], ['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
-        yield 'from array with additional key' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Some last name', 'additional' => 'not allowed'], 'className' => FullName::class, 'expectedIssues' => [['code' => 'unrecognized_keys', 'message' => 'Unrecognized key(s) in object: \'additional\'', 'path' => [], 'keys' => ['additional']]]];
-        yield 'from array with additional keys' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Some last name', 'additional' => 'not allowed', 'another additional' => 'also not allowed'], 'className' => FullName::class, 'expectedIssues' => [['code' => 'unrecognized_keys', 'message' => 'Unrecognized key(s) in object: \'additional\', \'another additional\'', 'path' => [], 'keys' => ['additional', 'another additional']]]];
-        yield 'from array with missing keys for union type' => ['value' => ['givenOrFamilyName' => ['__type' => GivenName::class]], 'className' => ShapeWithUnionType::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing keys for union of type GivenName|FamilyName', 'path' => ['givenOrFamilyName'], 'params' => []]]];
-        yield 'from array with invalid __type for union type' => ['value' => ['givenOrFamilyName' => ['__type' => EmailAddress::class, '__value' => 'foo@bar.com']], 'className' => ShapeWithUnionType::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'The given "__type" of "Wwwision\\Types\\Tests\\PHPUnit\\EmailAddress" is not an implementation of GivenName|FamilyName', 'path' => ['givenOrFamilyName'], 'params' => []]]];
-        yield 'from array with invalid value for simple union type' => ['value' => ['integerOrString' => 12.34], 'className' => ShapeWithSimpleUnionType::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string|int, received double', 'path' => ['integerOrString'], 'expected' => 'string|int', 'received' => 'double']]];
+        yield 'from array with missing key' => ['value' => ['givenName' => 'Some first name'], 'className' => Fixture\FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
+        yield 'from array with missing keys' => ['value' => [], 'className' => Fixture\FullName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['givenName'], 'expected' => 'string', 'received' => 'undefined'], ['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
+        yield 'from array with additional key' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Some last name', 'additional' => 'not allowed'], 'className' => Fixture\FullName::class, 'expectedIssues' => [['code' => 'unrecognized_keys', 'message' => 'Unrecognized key(s) in object: \'additional\'', 'path' => [], 'keys' => ['additional']]]];
+        yield 'from array with additional keys' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Some last name', 'additional' => 'not allowed', 'another additional' => 'also not allowed'], 'className' => Fixture\FullName::class, 'expectedIssues' => [['code' => 'unrecognized_keys', 'message' => 'Unrecognized key(s) in object: \'additional\', \'another additional\'', 'path' => [], 'keys' => ['additional', 'another additional']]]];
+        yield 'from array with missing keys for union type' => ['value' => ['givenOrFamilyName' => ['__type' => Fixture\GivenName::class]], 'className' => Fixture\ShapeWithUnionType::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing keys for union of type GivenName|FamilyName', 'path' => ['givenOrFamilyName'], 'params' => []]]];
+        yield 'from array with invalid __type for union type' => ['value' => ['givenOrFamilyName' => ['__type' => Fixture\EmailAddress::class, '__value' => 'foo@bar.com']], 'className' => Fixture\ShapeWithUnionType::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'The given "__type" of "Wwwision\\Types\\Tests\\Fixture\\EmailAddress" is not an implementation of GivenName|FamilyName', 'path' => ['givenOrFamilyName'], 'params' => []]]];
+        yield 'from array with invalid value for simple union type' => ['value' => ['integerOrString' => 12.34], 'className' => Fixture\ShapeWithSimpleUnionType::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string|int, received double', 'path' => ['integerOrString'], 'expected' => 'string|int', 'received' => 'double']]];
 
-        yield 'from array with property violating constraint' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Ab'], 'className' => FullName::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => ['familyName'], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false]]];
-        yield 'from array with properties violating constraints' => ['value' => ['givenName' => 'Ab', 'familyName' => 'Ab'], 'className' => FullName::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => ['givenName'], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => ['familyName'], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false]]];
+        yield 'from array with property violating constraint' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Ab'], 'className' => Fixture\FullName::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => ['familyName'], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false]]];
+        yield 'from array with properties violating constraints' => ['value' => ['givenName' => 'Ab', 'familyName' => 'Ab'], 'className' => Fixture\FullName::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => ['givenName'], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => ['familyName'], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false]]];
 
-        yield 'bool from string' => ['value' => ['value' => 'not a bool'], 'className' => ShapeWithBool::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected boolean, received string', 'path' => ['value'], 'expected' => 'boolean', 'received' => 'string']]];
-        yield 'bool from int' => ['value' => ['value' => 123], 'className' => ShapeWithBool::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected boolean, received integer', 'path' => ['value'], 'expected' => 'boolean', 'received' => 'integer']]];
-        yield 'bool from object' => ['value' => ['value' => new stdClass()], 'className' => ShapeWithBool::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected boolean, received object', 'path' => ['value'], 'expected' => 'boolean', 'received' => 'object']]];
-        yield 'string from float' => ['value' => ['value' => 123.45], 'className' => ShapeWithString::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received double', 'path' => ['value'], 'expected' => 'string', 'received' => 'double']]];
-        yield 'integer from float' => ['value' => ['value' => 123.45], 'className' => ShapeWithInt::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received double', 'path' => ['value'], 'expected' => 'integer', 'received' => 'double']]];
-        yield 'integer from string' => ['value' => ['value' => 'not numeric'], 'className' => ShapeWithInt::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received string', 'path' => ['value'], 'expected' => 'integer', 'received' => 'string']]];
-        yield 'integer from object' => ['value' => ['value' => new stdClass()], 'className' => ShapeWithInt::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received object', 'path' => ['value'], 'expected' => 'integer', 'received' => 'object']]];
+        yield 'bool from string' => ['value' => ['value' => 'not a bool'], 'className' => Fixture\ShapeWithBool::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected boolean, received string', 'path' => ['value'], 'expected' => 'boolean', 'received' => 'string']]];
+        yield 'bool from int' => ['value' => ['value' => 123], 'className' => Fixture\ShapeWithBool::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected boolean, received integer', 'path' => ['value'], 'expected' => 'boolean', 'received' => 'integer']]];
+        yield 'bool from object' => ['value' => ['value' => new stdClass()], 'className' => Fixture\ShapeWithBool::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected boolean, received object', 'path' => ['value'], 'expected' => 'boolean', 'received' => 'object']]];
+        yield 'string from float' => ['value' => ['value' => 123.45], 'className' => Fixture\ShapeWithString::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received double', 'path' => ['value'], 'expected' => 'string', 'received' => 'double']]];
+        yield 'integer from float' => ['value' => ['value' => 123.45], 'className' => Fixture\ShapeWithInt::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received double', 'path' => ['value'], 'expected' => 'integer', 'received' => 'double']]];
+        yield 'integer from string' => ['value' => ['value' => 'not numeric'], 'className' => Fixture\ShapeWithInt::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received string', 'path' => ['value'], 'expected' => 'integer', 'received' => 'string']]];
+        yield 'integer from object' => ['value' => ['value' => new stdClass()], 'className' => Fixture\ShapeWithInt::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received object', 'path' => ['value'], 'expected' => 'integer', 'received' => 'object']]];
 
-        yield 'nested shape' => ['value' => ['shapeWithOptionalTypes' => ['stringBased' => '123', 'optionalInt' => 'not an int']], 'className' => NestedShape::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received string', 'path' => ['shapeWithOptionalTypes', 'optionalInt'], 'expected' => 'integer', 'received' => 'string'], ['code' => 'invalid_type', 'message' => 'Required', 'path' => ['shapeWithBool'], 'expected' => 'object', 'received' => 'undefined']]];
+        yield 'nested shape' => ['value' => ['shapeWithOptionalTypes' => ['stringBased' => '123', 'optionalInt' => 'not an int']], 'className' => Fixture\NestedShape::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected integer, received string', 'path' => ['shapeWithOptionalTypes', 'optionalInt'], 'expected' => 'integer', 'received' => 'string'], ['code' => 'invalid_type', 'message' => 'Required', 'path' => ['shapeWithBool'], 'expected' => 'object', 'received' => 'undefined']]];
 
-        yield 'with array property from non-iterable' => ['value' => ['givenName' => 'John', 'someArray' => new stdClass()], 'className' => ShapeWithArray::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected array, received object', 'path' => ['someArray'], 'expected' => 'array', 'received' => 'object']]];
+        yield 'with array property from non-iterable' => ['value' => ['givenName' => 'John', 'someArray' => new stdClass()], 'className' => Fixture\ShapeWithArray::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected array, received object', 'path' => ['someArray'], 'expected' => 'array', 'received' => 'object']]];
 
-        yield 'from array missing type discriminator for interface property' => ['value' => ['property' => ['value' => 'John']], 'className' => ShapeWithInterfaceProperty::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "__type"', 'path' => ['property'], 'params' => []]]];
-        yield 'from array missing custom type discriminator for interface property' => ['value' => ['property' => ['value' => 'John']], 'className' => ShapeWithInterfacePropertyAndDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "type"', 'path' => ['property'], 'params' => []]]];
-        yield 'from array missing custom type discriminator for interface property without mapping' => ['value' => ['property' => ['value' => 'John']], 'className' => ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "type"', 'path' => ['property'], 'params' => []]]];
-        yield 'from array with invalid discriminator type for optional interface property' => ['value' => ['property' => ['value' => 'John', 'type' => 'fullName']], 'className' => ShapeWithOptionalInterfacePropertyAndCustomDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "type" has to be one of "givenName", "familyName". Got: "fullName"', 'path' => ['property'], 'params' => []]]];
-        yield 'from array missing custom type discriminator for union property' => ['value' => ['givenOrFamilyName' => ['value' => 'John']], 'className' => ShapeWithUnionTypeAndDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "type"', 'path' => ['givenOrFamilyName'], 'params' => []]]];
-        yield 'from array missing custom type discriminator for union property without mapping' => ['value' => ['givenOrFamilyName' => ['value' => 'John']], 'className' => ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "type"', 'path' => ['givenOrFamilyName'], 'params' => []]]];
+        yield 'from array missing type discriminator for interface property' => ['value' => ['property' => ['value' => 'John']], 'className' => Fixture\ShapeWithInterfaceProperty::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "__type"', 'path' => ['property'], 'params' => []]]];
+        yield 'from array missing custom type discriminator for interface property' => ['value' => ['property' => ['value' => 'John']], 'className' => Fixture\ShapeWithInterfacePropertyAndDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "type"', 'path' => ['property'], 'params' => []]]];
+        yield 'from array missing custom type discriminator for interface property without mapping' => ['value' => ['property' => ['value' => 'John']], 'className' => Fixture\ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "type"', 'path' => ['property'], 'params' => []]]];
+        yield 'from array with invalid discriminator type for optional interface property' => ['value' => ['property' => ['value' => 'John', 'type' => 'fullName']], 'className' => Fixture\ShapeWithOptionalInterfacePropertyAndCustomDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "type" has to be one of "givenName", "familyName". Got: "fullName"', 'path' => ['property'], 'params' => []]]];
+        yield 'from array missing custom type discriminator for union property' => ['value' => ['givenOrFamilyName' => ['value' => 'John']], 'className' => Fixture\ShapeWithUnionTypeAndDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "type"', 'path' => ['givenOrFamilyName'], 'params' => []]]];
+        yield 'from array missing custom type discriminator for union property without mapping' => ['value' => ['givenOrFamilyName' => ['value' => 'John']], 'className' => Fixture\ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "type"', 'path' => ['givenOrFamilyName'], 'params' => []]]];
     }
 
     /**
@@ -691,54 +691,54 @@ final class IntegrationTest extends TestCase
     {
         $this->expectException(InvalidSchemaException::class);
         $this->expectExceptionMessage('Class "ShapeWithInvalidDiscriminatorAttribute" has a Wwwision\Types\Attributes\Discriminator attribute for property "givenName" but the corresponding property schema is of type Wwwision\Types\Schema\StringSchema which is not one of the supported schema types Wwwision\Types\Schema\OneOfSchema, Wwwision\Types\Schema\InterfaceSchema');
-        Parser::instantiate(ShapeWithInvalidDiscriminatorAttribute::class, ['givenName' => ['type' => 'given', '__value' => 'does not matter']]);
+        Parser::instantiate(Fixture\ShapeWithInvalidDiscriminatorAttribute::class, ['givenName' => ['type' => 'given', '__value' => 'does not matter']]);
     }
 
     public function test_instantiate_shape_object_fails_if_discriminator_attribute_is_added_to_optional_property_of_invalid_type(): void
     {
         $this->expectException(InvalidSchemaException::class);
         $this->expectExceptionMessage('Class "ShapeWithInvalidDiscriminatorAttributeOnOptionalProperty" incorrectly has a Wwwision\Types\Attributes\Discriminator attribute for property "givenName": The schema for type "GivenName" is of type Wwwision\Types\Schema\StringSchema which is not one of the supported schema types Wwwision\Types\Schema\OneOfSchema, Wwwision\Types\Schema\InterfaceSchema');
-        Parser::instantiate(ShapeWithInvalidDiscriminatorAttributeOnOptionalProperty::class, ['givenName' => ['type' => 'given', '__value' => 'does not matter']]);
+        Parser::instantiate(Fixture\ShapeWithInvalidDiscriminatorAttributeOnOptionalProperty::class, ['givenName' => ['type' => 'given', '__value' => 'does not matter']]);
     }
 
     public static function instantiate_shape_object_dataProvider(): Generator
     {
-        yield 'from array matching all constraints' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Some last name'], 'className' => FullName::class, 'expectedResult' => '{"givenName":"Some first name","familyName":"Some last name"}'];
-        yield 'from iterable matching all constraints' => ['value' => new ArrayIterator(['givenName' => 'Some first name', 'familyName' => 'Some last name']), 'className' => FullName::class, 'expectedResult' => '{"givenName":"Some first name","familyName":"Some last name"}'];
-        yield 'from array without optionals' => ['value' => ['stringBased' => 'Some value'], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":null,"optionalInt":null,"optionalBool":false,"optionalString":null}'];
-        yield 'from array with optionals' => ['value' => ['stringBased' => 'Some value', 'optionalString' => 'optionalString value', 'optionalStringBased' => 'oSB value', 'optionalInt' => 42, 'optionalBool' => true], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":42,"optionalBool":true,"optionalString":"optionalString value"}'];
+        yield 'from array matching all constraints' => ['value' => ['givenName' => 'Some first name', 'familyName' => 'Some last name'], 'className' => Fixture\FullName::class, 'expectedResult' => '{"givenName":"Some first name","familyName":"Some last name"}'];
+        yield 'from iterable matching all constraints' => ['value' => new ArrayIterator(['givenName' => 'Some first name', 'familyName' => 'Some last name']), 'className' => Fixture\FullName::class, 'expectedResult' => '{"givenName":"Some first name","familyName":"Some last name"}'];
+        yield 'from array without optionals' => ['value' => ['stringBased' => 'Some value'], 'className' => Fixture\ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":null,"optionalInt":null,"optionalBool":false,"optionalString":null}'];
+        yield 'from array with optionals' => ['value' => ['stringBased' => 'Some value', 'optionalString' => 'optionalString value', 'optionalStringBased' => 'oSB value', 'optionalInt' => 42, 'optionalBool' => true], 'className' => Fixture\ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":42,"optionalBool":true,"optionalString":"optionalString value"}'];
         yield 'from array with optionals and coercion' => ['value' => ['stringBased' => 'Some value', 'optionalString' => new class {
             public function __toString()
             {
                 return 'optionalString value';
             }
-        }, 'optionalStringBased' => 'oSB value', 'optionalInt' => '123', 'optionalBool' => 1], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":123,"optionalBool":true,"optionalString":"optionalString value"}'];
+        }, 'optionalStringBased' => 'oSB value', 'optionalInt' => '123', 'optionalBool' => 1], 'className' => Fixture\ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":123,"optionalBool":true,"optionalString":"optionalString value"}'];
         yield 'from array with optionals and coercion 2' => ['value' => ['stringBased' => 'Some value', 'optionalString' => new class {
             public function __toString()
             {
                 return 'optionalString value';
             }
-        }, 'optionalStringBased' => 'oSB value', 'optionalInt' => 55.0, 'optionalBool' => '0'], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":55,"optionalBool":false,"optionalString":"optionalString value"}'];
-        yield 'from array with null-values for optionals' => ['value' => ['stringBased' => 'Some value', 'optionalStringBased' => null, 'optionalInt' => null, 'optionalBool' => null, 'optionalString' => null], 'className' => ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":null,"optionalInt":null,"optionalBool":null,"optionalString":null}'];
-        yield 'todo' => ['value' => ['latitude' => 33, 'longitude' => '123.45'], 'className' => GeoCoordinates::class, 'expectedResult' => '{"longitude":{"value":123.45},"latitude":{"value":33}}'];
+        }, 'optionalStringBased' => 'oSB value', 'optionalInt' => 55.0, 'optionalBool' => '0'], 'className' => Fixture\ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":55,"optionalBool":false,"optionalString":"optionalString value"}'];
+        yield 'from array with null-values for optionals' => ['value' => ['stringBased' => 'Some value', 'optionalStringBased' => null, 'optionalInt' => null, 'optionalBool' => null, 'optionalString' => null], 'className' => Fixture\ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":null,"optionalInt":null,"optionalBool":null,"optionalString":null}'];
+        yield 'todo' => ['value' => ['latitude' => 33, 'longitude' => '123.45'], 'className' => Fixture\GeoCoordinates::class, 'expectedResult' => '{"longitude":{"value":123.45},"latitude":{"value":33}}'];
         $class = new stdClass();
         $class->givenName = 'Some first name';
         $class->familyName = 'Some last name';
-        yield 'from stdClass matching all constraints' => ['value' => $class, 'className' => FullName::class, 'expectedResult' => '{"givenName":"Some first name","familyName":"Some last name"}'];
+        yield 'from stdClass matching all constraints' => ['value' => $class, 'className' => Fixture\FullName::class, 'expectedResult' => '{"givenName":"Some first name","familyName":"Some last name"}'];
 
-        yield 'with array property' => ['value' => ['givenName' => 'John', 'someArray' => ['some', 'array', 'values']], 'className' => ShapeWithArray::class, 'expectedResult' => '{"givenName":"John","someArray":["some","array","values"]}'];
-        yield 'with array property from iterable' => ['value' => ['givenName' => 'Jane', 'someArray' => new ArrayIterator(['some', 'iterable', 'values'])], 'className' => ShapeWithArray::class, 'expectedResult' => '{"givenName":"Jane","someArray":["some","iterable","values"]}'];
+        yield 'with array property' => ['value' => ['givenName' => 'John', 'someArray' => ['some', 'array', 'values']], 'className' => Fixture\ShapeWithArray::class, 'expectedResult' => '{"givenName":"John","someArray":["some","array","values"]}'];
+        yield 'with array property from iterable' => ['value' => ['givenName' => 'Jane', 'someArray' => new ArrayIterator(['some', 'iterable', 'values'])], 'className' => Fixture\ShapeWithArray::class, 'expectedResult' => '{"givenName":"Jane","someArray":["some","iterable","values"]}'];
 
-        yield 'with union type' => ['value' => ['givenOrFamilyName' => ['__type' => GivenName::class, '__value' => 'Jane']], 'className' => ShapeWithUnionType::class, 'expectedResult' => '{"givenOrFamilyName":"Jane"}'];
-        yield 'with simple union type (integer)' => ['value' => ['integerOrString' => 123], 'className' => ShapeWithSimpleUnionType::class, 'expectedResult' => '{"integerOrString":123}'];
-        yield 'with simple union type (string)' => ['value' => ['integerOrString' => 'foo'], 'className' => ShapeWithSimpleUnionType::class, 'expectedResult' => '{"integerOrString":"foo"}'];
+        yield 'with union type' => ['value' => ['givenOrFamilyName' => ['__type' => Fixture\GivenName::class, '__value' => 'Jane']], 'className' => Fixture\ShapeWithUnionType::class, 'expectedResult' => '{"givenOrFamilyName":"Jane"}'];
+        yield 'with simple union type (integer)' => ['value' => ['integerOrString' => 123], 'className' => Fixture\ShapeWithSimpleUnionType::class, 'expectedResult' => '{"integerOrString":123}'];
+        yield 'with simple union type (string)' => ['value' => ['integerOrString' => 'foo'], 'className' => Fixture\ShapeWithSimpleUnionType::class, 'expectedResult' => '{"integerOrString":"foo"}'];
 
-        yield 'from array for shape with interface property' => ['value' => ['property' => ['__type' => GivenName::class, '__value' => 'Jane']], 'className' => ShapeWithInterfaceProperty::class, 'expectedResult' => '{"property":{"__type":"Wwwision\\\Types\\\Tests\\\PHPUnit\\\GivenName","__value":"Jane"}}'];
-        yield 'from array for shape with interface property with discriminator' => ['value' => ['property' => ['type' => 'g', '__value' => 'Jane']], 'className' => ShapeWithInterfacePropertyAndDiscriminator::class, 'expectedResult' => '{"property":{"__type":"Wwwision\\\Types\\\Tests\\\PHPUnit\\\GivenName","__value":"Jane"}}'];
-        yield 'from array for shape with interface property with discriminator without mapping' => ['value' => ['property' => ['type' => GivenName::class, '__value' => 'Jane']], 'className' => ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping::class, 'expectedResult' => '{"property":"Jane"}'];
-        yield 'from array for shape with union type property and discriminator' => ['value' => ['givenOrFamilyName' => ['type' => 'given', '__value' => 'Jane']], 'className' => ShapeWithUnionTypeAndDiscriminator::class, 'expectedResult' => '{"givenOrFamilyName":"Jane"}'];
-        yield 'from array for shape with union type property and discriminator without mapping' => ['value' => ['givenOrFamilyName' => ['type' => GivenName::class, '__value' => 'Jane']], 'className' => ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class, 'expectedResult' => '{"givenOrFamilyName":"Jane"}'];
-        yield 'from array for shape with optional interface property and custom discriminator' => ['value' => ['property' => ['type' => 'givenName', '__value' => 'Jane']], 'className' => ShapeWithOptionalInterfacePropertyAndCustomDiscriminator::class, 'expectedResult' => '{"property":"Jane"}'];
+        yield 'from array for shape with interface property' => ['value' => ['property' => ['__type' => Fixture\GivenName::class, '__value' => 'Jane']], 'className' => Fixture\ShapeWithInterfaceProperty::class, 'expectedResult' => '{"property":{"__type":"Wwwision\\\Types\\\Tests\\\Fixture\\\GivenName","__value":"Jane"}}'];
+        yield 'from array for shape with interface property with discriminator' => ['value' => ['property' => ['type' => 'g', '__value' => 'Jane']], 'className' => Fixture\ShapeWithInterfacePropertyAndDiscriminator::class, 'expectedResult' => '{"property":{"__type":"Wwwision\\\Types\\\Tests\\\Fixture\\\GivenName","__value":"Jane"}}'];
+        yield 'from array for shape with interface property with discriminator without mapping' => ['value' => ['property' => ['type' => Fixture\GivenName::class, '__value' => 'Jane']], 'className' => Fixture\ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping::class, 'expectedResult' => '{"property":"Jane"}'];
+        yield 'from array for shape with union type property and discriminator' => ['value' => ['givenOrFamilyName' => ['type' => 'given', '__value' => 'Jane']], 'className' => Fixture\ShapeWithUnionTypeAndDiscriminator::class, 'expectedResult' => '{"givenOrFamilyName":"Jane"}'];
+        yield 'from array for shape with union type property and discriminator without mapping' => ['value' => ['givenOrFamilyName' => ['type' => Fixture\GivenName::class, '__value' => 'Jane']], 'className' => Fixture\ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class, 'expectedResult' => '{"givenOrFamilyName":"Jane"}'];
+        yield 'from array for shape with optional interface property and custom discriminator' => ['value' => ['property' => ['type' => 'givenName', '__value' => 'Jane']], 'className' => Fixture\ShapeWithOptionalInterfacePropertyAndCustomDiscriminator::class, 'expectedResult' => '{"property":"Jane"}'];
     }
 
     #[DataProvider('instantiate_shape_object_dataProvider')]
@@ -750,49 +750,49 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_string_based_object_failing_dataProvider(): Generator
     {
-        yield 'from null' => ['value' => null, 'className' => GivenName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received null', 'path' => [], 'expected' => 'string', 'received' => 'null']]];
-        yield 'from object' => ['value' => new stdClass(), 'className' => GivenName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received object', 'path' => [], 'expected' => 'string', 'received' => 'object']]];
-        yield 'from boolean' => ['value' => false, 'className' => GivenName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received boolean', 'path' => [], 'expected' => 'string', 'received' => 'boolean']]];
-        yield 'from float' => ['value' => 2.0, 'className' => GivenName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received double', 'path' => [], 'expected' => 'string', 'received' => 'double']]];
+        yield 'from null' => ['value' => null, 'className' => Fixture\GivenName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received null', 'path' => [], 'expected' => 'string', 'received' => 'null']]];
+        yield 'from object' => ['value' => new stdClass(), 'className' => Fixture\GivenName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received object', 'path' => [], 'expected' => 'string', 'received' => 'object']]];
+        yield 'from boolean' => ['value' => false, 'className' => Fixture\GivenName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received boolean', 'path' => [], 'expected' => 'string', 'received' => 'boolean']]];
+        yield 'from float' => ['value' => 2.0, 'className' => Fixture\GivenName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received double', 'path' => [], 'expected' => 'string', 'received' => 'double']]];
 
-        yield 'from string violating minLength' => ['value' => 'ab', 'className' => GivenName::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => [], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false]]];
-        yield 'from string violating maxLength' => ['value' => 'This is a bit too long', 'className' => GivenName::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'String must contain at most 20 character(s)', 'path' => [], 'type' => 'string', 'maximum' => 20, 'inclusive' => true, 'exact' => false]]];
-        yield 'from string violating pattern' => ['value' => 'magic foo', 'className' => NotMagic::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Value does not match regular expression', 'path' => [], 'validation' => 'regex']]];
+        yield 'from string violating minLength' => ['value' => 'ab', 'className' => Fixture\GivenName::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => [], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false]]];
+        yield 'from string violating maxLength' => ['value' => 'This is a bit too long', 'className' => Fixture\GivenName::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'String must contain at most 20 character(s)', 'path' => [], 'type' => 'string', 'maximum' => 20, 'inclusive' => true, 'exact' => false]]];
+        yield 'from string violating pattern' => ['value' => 'magic foo', 'className' => Fixture\NotMagic::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Value does not match regular expression', 'path' => [], 'validation' => 'regex']]];
 
-        yield 'from string violating format "date_time"' => ['value' => 'not.a.date', 'className' => DateTime::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date_time', 'path' => [], 'validation' => 'date_time']]];
-        yield 'from string violating format "date_time" because time part is missing' => ['value' => '2025-02-15', 'className' => DateTime::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date_time', 'path' => [], 'validation' => 'date_time']]];
+        yield 'from string violating format "date_time"' => ['value' => 'not.a.date', 'className' => Fixture\DateTime::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date_time', 'path' => [], 'validation' => 'date_time']]];
+        yield 'from string violating format "date_time" because time part is missing' => ['value' => '2025-02-15', 'className' => Fixture\DateTime::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date_time', 'path' => [], 'validation' => 'date_time']]];
 
-        yield 'from string violating format "duration"' => ['value' => 'not.a.duration', 'className' => Duration::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid duration', 'path' => [], 'validation' => 'duration']]];
-        yield 'from string violating format "duration" empty components' => ['value' => 'PT', 'className' => Duration::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid duration', 'path' => [], 'validation' => 'duration']]];
-        yield 'from string violating format "duration" missing time component' => ['value' => 'P3MT', 'className' => Duration::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid duration', 'path' => [], 'validation' => 'duration']]];
+        yield 'from string violating format "duration"' => ['value' => 'not.a.duration', 'className' => Fixture\Duration::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid duration', 'path' => [], 'validation' => 'duration']]];
+        yield 'from string violating format "duration" empty components' => ['value' => 'PT', 'className' => Fixture\Duration::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid duration', 'path' => [], 'validation' => 'duration']]];
+        yield 'from string violating format "duration" missing time component' => ['value' => 'P3MT', 'className' => Fixture\Duration::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid duration', 'path' => [], 'validation' => 'duration']]];
 
-        yield 'from string violating format "idn_email"' => ['value' => 'not.an.idn.email', 'className' => IdnEmailAddress::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid idn_email', 'path' => [], 'validation' => 'idn_email']]];
-        yield 'from string violating format "idn_email" more than one @' => ['value' => 'not@an@idn.email', 'className' => IdnEmailAddress::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid idn_email', 'path' => [], 'validation' => 'idn_email']]];
+        yield 'from string violating format "idn_email"' => ['value' => 'not.an.idn.email', 'className' => Fixture\IdnEmailAddress::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid idn_email', 'path' => [], 'validation' => 'idn_email']]];
+        yield 'from string violating format "idn_email" more than one @' => ['value' => 'not@an@idn.email', 'className' => Fixture\IdnEmailAddress::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid idn_email', 'path' => [], 'validation' => 'idn_email']]];
 
-        yield 'from string violating format "email"' => ['value' => 'not.an@email', 'className' => EmailAddress::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid email', 'path' => [], 'validation' => 'email']]];
+        yield 'from string violating format "email"' => ['value' => 'not.an@email', 'className' => Fixture\EmailAddress::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid email', 'path' => [], 'validation' => 'email']]];
 
-        yield 'from string violating format "hostname"' => ['value' => 'not.a.hostname', 'className' => Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
-        yield 'from string violating format "hostname" because it is numeric' => ['value' => '01010', 'className' => Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
-        yield 'from string violating format "hostname" because it ends with a dash' => ['value' => 'A0c-', 'className' => Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
-        yield 'from string violating format "hostname" because it starts with a dash' => ['value' => '-A0c', 'className' => Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
-        yield 'from string violating format "hostname" because it exceeds max length' => ['value' => 'o123456701234567012345670123456701234567012345670123456701234567', 'className' => Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
+        yield 'from string violating format "hostname"' => ['value' => 'not.a.hostname', 'className' => Fixture\Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
+        yield 'from string violating format "hostname" because it is numeric' => ['value' => '01010', 'className' => Fixture\Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
+        yield 'from string violating format "hostname" because it ends with a dash' => ['value' => 'A0c-', 'className' => Fixture\Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
+        yield 'from string violating format "hostname" because it starts with a dash' => ['value' => '-A0c', 'className' => Fixture\Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
+        yield 'from string violating format "hostname" because it exceeds max length' => ['value' => 'o123456701234567012345670123456701234567012345670123456701234567', 'className' => Fixture\Hostname::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid hostname', 'path' => [], 'validation' => 'hostname']]];
 
-        yield 'from string violating format "ipv4"' => ['value' => 'not.an.ipv4', 'className' => Ipv4::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid ipv4', 'path' => [], 'validation' => 'ipv4']]];
+        yield 'from string violating format "ipv4"' => ['value' => 'not.an.ipv4', 'className' => Fixture\Ipv4::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid ipv4', 'path' => [], 'validation' => 'ipv4']]];
 
-        yield 'from string violating format "ipv6"' => ['value' => 'not.an.ipv6', 'className' => Ipv6::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid ipv6', 'path' => [], 'validation' => 'ipv6']]];
+        yield 'from string violating format "ipv6"' => ['value' => 'not.an.ipv6', 'className' => Fixture\Ipv6::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid ipv6', 'path' => [], 'validation' => 'ipv6']]];
 
-        yield 'from string violating format "regex"' => ['value' => '(not.a.regex', 'className' => Regex::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid regex', 'path' => [], 'validation' => 'regex']]];
+        yield 'from string violating format "regex"' => ['value' => '(not.a.regex', 'className' => Fixture\Regex::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid regex', 'path' => [], 'validation' => 'regex']]];
 
-        yield 'from string violating format "time"' => ['value' => 'not.a.time', 'className' => Time::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid time', 'path' => [], 'validation' => 'time']]];
-        yield 'from string violating format "time" because value contains date part' => ['value' => '2025-02-15Z13:12:11', 'className' => Time::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid time', 'path' => [], 'validation' => 'time']]];
+        yield 'from string violating format "time"' => ['value' => 'not.a.time', 'className' => Fixture\Time::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid time', 'path' => [], 'validation' => 'time']]];
+        yield 'from string violating format "time" because value contains date part' => ['value' => '2025-02-15Z13:12:11', 'className' => Fixture\Time::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid time', 'path' => [], 'validation' => 'time']]];
 
-        yield 'from string violating format "uri"' => ['value' => 'not.a.uri', 'className' => Uri::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid uri', 'path' => [], 'validation' => 'uri']]];
-        yield 'from string violating format "date"' => ['value' => 'not.a.date', 'className' => Date::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date', 'path' => [], 'validation' => 'date']]];
-        yield 'from string violating format "date" because value contains time part' => ['value' => '2025-02-15Z13:12:11', 'className' => Date::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date', 'path' => [], 'validation' => 'date']]];
-        yield 'from string custom "date" validation' => ['value' => (new DateTimeImmutable('+1 day'))->format('Y-m-d'), 'className' => Date::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Future dates are not allowed', 'path' => [], 'params' => ['some' => 'param']]]];
-        yield 'from string violating format "uuid"' => ['value' => 'not.a.uuid', 'className' => Uuid::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid uuid', 'path' => [], 'validation' => 'uuid']]];
+        yield 'from string violating format "uri"' => ['value' => 'not.a.uri', 'className' => Fixture\Uri::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid uri', 'path' => [], 'validation' => 'uri']]];
+        yield 'from string violating format "date"' => ['value' => 'not.a.date', 'className' => Fixture\Date::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date', 'path' => [], 'validation' => 'date']]];
+        yield 'from string violating format "date" because value contains time part' => ['value' => '2025-02-15Z13:12:11', 'className' => Fixture\Date::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid date', 'path' => [], 'validation' => 'date']]];
+        yield 'from string custom "date" validation' => ['value' => (new DateTimeImmutable('+1 day'))->format('Y-m-d'), 'className' => Fixture\Date::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Future dates are not allowed', 'path' => [], 'params' => ['some' => 'param']]]];
+        yield 'from string violating format "uuid"' => ['value' => 'not.a.uuid', 'className' => Fixture\Uuid::class, 'expectedIssues' => [['code' => 'invalid_string', 'message' => 'Invalid uuid', 'path' => [], 'validation' => 'uuid']]];
 
-        yield 'from string violating multiple constraints' => ['value' => 'invalid', 'className' => ImpossibleString::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'String must contain at least 10 character(s)', 'path' => [], 'type' => 'string', 'minimum' => 10, 'inclusive' => true, 'exact' => false], ['code' => 'too_big', 'message' => 'String must contain at most 2 character(s)', 'path' => [], 'type' => 'string', 'maximum' => 2, 'inclusive' => true, 'exact' => false], ['code' => 'invalid_string', 'message' => 'Value does not match regular expression', 'path' => [], 'validation' => 'regex'], ['code' => 'invalid_string', 'message' => 'Invalid email', 'path' => [], 'validation' => 'email']]];
+        yield 'from string violating multiple constraints' => ['value' => 'invalid', 'className' => Fixture\ImpossibleString::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'String must contain at least 10 character(s)', 'path' => [], 'type' => 'string', 'minimum' => 10, 'inclusive' => true, 'exact' => false], ['code' => 'too_big', 'message' => 'String must contain at most 2 character(s)', 'path' => [], 'type' => 'string', 'maximum' => 2, 'inclusive' => true, 'exact' => false], ['code' => 'invalid_string', 'message' => 'Value does not match regular expression', 'path' => [], 'validation' => 'regex'], ['code' => 'invalid_string', 'message' => 'Invalid email', 'path' => [], 'validation' => 'email']]];
     }
 
     /**
@@ -815,42 +815,42 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_string_based_object_dataProvider(): Generator
     {
-        yield 'from string that matches constraints' => ['value' => 'this is valid', 'className' => GivenName::class, 'expectedResult' => 'this is valid'];
-        yield 'from string that matches pattern' => ['value' => 'this is not magic', 'className' => NotMagic::class, 'expectedResult' => 'this is not magic'];
-        yield 'from integer' => ['value' => 123, 'className' => NotMagic::class, 'expectedResult' => '123'];
+        yield 'from string that matches constraints' => ['value' => 'this is valid', 'className' => Fixture\GivenName::class, 'expectedResult' => 'this is valid'];
+        yield 'from string that matches pattern' => ['value' => 'this is not magic', 'className' => Fixture\NotMagic::class, 'expectedResult' => 'this is not magic'];
+        yield 'from integer' => ['value' => 123, 'className' => Fixture\NotMagic::class, 'expectedResult' => '123'];
         yield 'from stringable object' => ['value' => new class {
             public function __toString()
             {
                 return 'from object';
             }
-        }, 'className' => GivenName::class, 'expectedResult' => 'from object'];
+        }, 'className' => Fixture\GivenName::class, 'expectedResult' => 'from object'];
 
-        yield 'from string matching format "date"' => ['value' => '1980-12-13', 'className' => Date::class, 'expectedResult' => '1980-12-13'];
+        yield 'from string matching format "date"' => ['value' => '1980-12-13', 'className' => Fixture\Date::class, 'expectedResult' => '1980-12-13'];
 
-        yield 'from string matching format "date_time"' => ['value' => '2018-11-13T20:20:39+00:00', 'className' => DateTime::class, 'expectedResult' => '2018-11-13T20:20:39+00:00'];
-        yield 'from string matching format "date_time" with UTC zone designator' => ['value' => '2018-11-13T20:20:39Z', 'className' => DateTime::class, 'expectedResult' => '2018-11-13T20:20:39Z'];
+        yield 'from string matching format "date_time"' => ['value' => '2018-11-13T20:20:39+00:00', 'className' => Fixture\DateTime::class, 'expectedResult' => '2018-11-13T20:20:39+00:00'];
+        yield 'from string matching format "date_time" with UTC zone designator' => ['value' => '2018-11-13T20:20:39Z', 'className' => Fixture\DateTime::class, 'expectedResult' => '2018-11-13T20:20:39Z'];
 
-        yield 'from string matching format "duration"' => ['value' => 'P2MT30M', 'className' => Duration::class, 'expectedResult' => 'P2MT30M'];
-        yield 'from string matching format "duration" time component only' => ['value' => 'PT6H', 'className' => Duration::class, 'expectedResult' => 'PT6H'];
+        yield 'from string matching format "duration"' => ['value' => 'P2MT30M', 'className' => Fixture\Duration::class, 'expectedResult' => 'P2MT30M'];
+        yield 'from string matching format "duration" time component only' => ['value' => 'PT6H', 'className' => Fixture\Duration::class, 'expectedResult' => 'PT6H'];
 
-        yield 'from string matching format "hostname"' => ['value' => 'ab-cd', 'className' => Hostname::class, 'expectedResult' => 'ab-cd'];
-        yield 'from string matching format "hostname" with max length' => ['value' => 'o12345670123456701234567012345670123456701234567012345670123456', 'className' => Hostname::class, 'expectedResult' => 'o12345670123456701234567012345670123456701234567012345670123456'];
+        yield 'from string matching format "hostname"' => ['value' => 'ab-cd', 'className' => Fixture\Hostname::class, 'expectedResult' => 'ab-cd'];
+        yield 'from string matching format "hostname" with max length' => ['value' => 'o12345670123456701234567012345670123456701234567012345670123456', 'className' => Fixture\Hostname::class, 'expectedResult' => 'o12345670123456701234567012345670123456701234567012345670123456'];
 
-        yield 'from string matching format "idn_email"' => ['value' => 'válid@émail.com', 'className' => IdnEmailAddress::class, 'expectedResult' => 'válid@émail.com'];
+        yield 'from string matching format "idn_email"' => ['value' => 'válid@émail.com', 'className' => Fixture\IdnEmailAddress::class, 'expectedResult' => 'válid@émail.com'];
 
-        yield 'from string matching format "ipv4"' => ['value' => '127.0.0.1', 'className' => Ipv4::class, 'expectedResult' => '127.0.0.1'];
+        yield 'from string matching format "ipv4"' => ['value' => '127.0.0.1', 'className' => Fixture\Ipv4::class, 'expectedResult' => '127.0.0.1'];
 
-        yield 'from string matching format "ipv6"' => ['value' => '2001:0db8:85a3:08d3:1319:8a2e:0370:7334', 'className' => Ipv6::class, 'expectedResult' => '2001:0db8:85a3:08d3:1319:8a2e:0370:7334'];
+        yield 'from string matching format "ipv6"' => ['value' => '2001:0db8:85a3:08d3:1319:8a2e:0370:7334', 'className' => Fixture\Ipv6::class, 'expectedResult' => '2001:0db8:85a3:08d3:1319:8a2e:0370:7334'];
 
-        yield 'from string matching format "regex"' => ['value' => '[0-9]{1,3}', 'className' => Regex::class, 'expectedResult' => '[0-9]{1,3}'];
+        yield 'from string matching format "regex"' => ['value' => '[0-9]{1,3}', 'className' => Fixture\Regex::class, 'expectedResult' => '[0-9]{1,3}'];
 
-        yield 'from string matching format "email"' => ['value' => 'a.valid@email.com', 'className' => EmailAddress::class, 'expectedResult' => 'a.valid@email.com'];
+        yield 'from string matching format "email"' => ['value' => 'a.valid@email.com', 'className' => Fixture\EmailAddress::class, 'expectedResult' => 'a.valid@email.com'];
 
-        yield 'from string matching format "time"' => ['value' => '20:20:39+00:00', 'className' => Time::class, 'expectedResult' => '20:20:39+00:00'];
-        yield 'from string matching format "time" without timezone offset' => ['value' => '20:20:39', 'className' => Time::class, 'expectedResult' => '20:20:39'];
-        yield 'from string matching format "time" with UTC zone designator' => ['value' => '20:20:39Z', 'className' => Time::class, 'expectedResult' => '20:20:39Z'];
-        yield 'from string matching format "uri"' => ['value' => 'https://www.some-domain.tld', 'className' => Uri::class, 'expectedResult' => 'https://www.some-domain.tld'];
-        yield 'from string matching format "uuid"' => ['value' => '3cafa54b-f9c3-4470-8c0e-31612cb70f61', 'className' => Uuid::class, 'expectedResult' => '3cafa54b-f9c3-4470-8c0e-31612cb70f61'];
+        yield 'from string matching format "time"' => ['value' => '20:20:39+00:00', 'className' => Fixture\Time::class, 'expectedResult' => '20:20:39+00:00'];
+        yield 'from string matching format "time" without timezone offset' => ['value' => '20:20:39', 'className' => Fixture\Time::class, 'expectedResult' => '20:20:39'];
+        yield 'from string matching format "time" with UTC zone designator' => ['value' => '20:20:39Z', 'className' => Fixture\Time::class, 'expectedResult' => '20:20:39Z'];
+        yield 'from string matching format "uri"' => ['value' => 'https://www.some-domain.tld', 'className' => Fixture\Uri::class, 'expectedResult' => 'https://www.some-domain.tld'];
+        yield 'from string matching format "uuid"' => ['value' => '3cafa54b-f9c3-4470-8c0e-31612cb70f61', 'className' => Fixture\Uuid::class, 'expectedResult' => '3cafa54b-f9c3-4470-8c0e-31612cb70f61'];
     }
 
     /**
@@ -866,24 +866,24 @@ final class IntegrationTest extends TestCase
     {
         $this->expectException(InvalidSchemaException::class);
         $this->expectExceptionMessage('Discriminator mapping of type "InterfaceWithDiscriminator" refers to non-existing class "NoClassName"');
-        Parser::instantiate(InterfaceWithDiscriminator::class, ['t' => 'invalid', '__value' => 'does not matter']);
+        Parser::instantiate(Fixture\InterfaceWithDiscriminator::class, ['t' => 'invalid', '__value' => 'does not matter']);
     }
 
     public static function instantiate_interface_object_failing_dataProvider(): Generator
     {
-        yield 'from null' => ['value' => null, 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received null', 'path' => [], 'expected' => 'interface', 'received' => 'null']]];
-        yield 'from object' => ['value' => new stdClass(), 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "__type"', 'path' => [], 'params' => []]]];
-        yield 'from boolean' => ['value' => false, 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received boolean', 'path' => [], 'expected' => 'interface', 'received' => 'boolean']]];
-        yield 'from integer' => ['value' => 1234, 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received integer', 'path' => [], 'expected' => 'interface', 'received' => 'integer']]];
-        yield 'from float' => ['value' => 2.0, 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received double', 'path' => [], 'expected' => 'interface', 'received' => 'double']]];
-        yield 'from array without __type' => ['value' => ['someKey' => 'someValue'], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "__type"', 'path' => [], 'params' => []]]];
-        yield 'from array with invalid __type' => ['value' => ['__type' => 123], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "__type" has to be a string, got: int', 'path' => [], 'params' => []]]];
-        yield 'from array with unknown __type' => ['value' => ['__type' => 'NoClassName'], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "__type" has to be a valid class name, got: "NoClassName"', 'path' => [], 'params' => []]]];
-        yield 'from array with __type that is not an instance of the interface' => ['value' => ['__type' => ShapeWithInt::class, 'value' => '123'], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'The given "__type" of "Wwwision\\Types\\Tests\\PHPUnit\\ShapeWithInt" is not an implementation of SomeInterface', 'path' => [], 'params' => []]]];
-        yield 'from array with valid __type but invalid remaining values' => ['value' => ['__type' => GivenName::class], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing keys for interface of type SomeInterface', 'path' => [], 'params' => []]]];
-        yield 'from array with valid __type but missing properties' => ['value' => ['__type' => FullName::class, 'givenName' => 'John'], 'className' => SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
-        yield 'from array with invalid discriminator property name' => ['value' => ['__type' => GivenName::class, '__value' => 'John'], 'className' => InterfaceWithDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "t"', 'path' => [], 'params' => []]]];
-        yield 'from array with invalid discriminator property value' => ['value' => ['t' => GivenName::class, '__value' => 'John'], 'className' => InterfaceWithDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "t" has to be one of "givenName", "familyName", "invalid". Got: "Wwwision\\Types\\Tests\\PHPUnit\\GivenName"', 'path' => [], 'params' => []]]];
+        yield 'from null' => ['value' => null, 'className' => Fixture\SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received null', 'path' => [], 'expected' => 'interface', 'received' => 'null']]];
+        yield 'from object' => ['value' => new stdClass(), 'className' => Fixture\SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "__type"', 'path' => [], 'params' => []]]];
+        yield 'from boolean' => ['value' => false, 'className' => Fixture\SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received boolean', 'path' => [], 'expected' => 'interface', 'received' => 'boolean']]];
+        yield 'from integer' => ['value' => 1234, 'className' => Fixture\SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received integer', 'path' => [], 'expected' => 'interface', 'received' => 'integer']]];
+        yield 'from float' => ['value' => 2.0, 'className' => Fixture\SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received double', 'path' => [], 'expected' => 'interface', 'received' => 'double']]];
+        yield 'from array without __type' => ['value' => ['someKey' => 'someValue'], 'className' => Fixture\SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "__type"', 'path' => [], 'params' => []]]];
+        yield 'from array with invalid __type' => ['value' => ['__type' => 123], 'className' => Fixture\SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "__type" has to be a string, got: int', 'path' => [], 'params' => []]]];
+        yield 'from array with unknown __type' => ['value' => ['__type' => 'NoClassName'], 'className' => Fixture\SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "__type" has to be a valid class name, got: "NoClassName"', 'path' => [], 'params' => []]]];
+        yield 'from array with __type that is not an instance of the interface' => ['value' => ['__type' => Fixture\ShapeWithInt::class, 'value' => '123'], 'className' => Fixture\SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'The given "__type" of "Wwwision\\Types\\Tests\\Fixture\\ShapeWithInt" is not an implementation of SomeInterface', 'path' => [], 'params' => []]]];
+        yield 'from array with valid __type but invalid remaining values' => ['value' => ['__type' => Fixture\GivenName::class], 'className' => Fixture\SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing keys for interface of type SomeInterface', 'path' => [], 'params' => []]]];
+        yield 'from array with valid __type but missing properties' => ['value' => ['__type' => Fixture\FullName::class, 'givenName' => 'John'], 'className' => Fixture\SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
+        yield 'from array with invalid discriminator property name' => ['value' => ['__type' => Fixture\GivenName::class, '__value' => 'John'], 'className' => Fixture\InterfaceWithDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "t"', 'path' => [], 'params' => []]]];
+        yield 'from array with invalid discriminator property value' => ['value' => ['t' => Fixture\GivenName::class, '__value' => 'John'], 'className' => Fixture\InterfaceWithDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "t" has to be one of "givenName", "familyName", "invalid". Got: "Wwwision\\Types\\Tests\\Fixture\\GivenName"', 'path' => [], 'params' => []]]];
     }
 
     /**
@@ -906,13 +906,13 @@ final class IntegrationTest extends TestCase
 
     public static function instantiate_interface_object_dataProvider(): Generator
     {
-        yield 'from array with __type and __value' => ['value' => ['__type' => GivenName::class, '__value' => 'this is valid'], 'className' => SomeInterface::class, 'expectedResult' => '"this is valid"'];
-        yield 'from iterable with __type and __value' => ['value' => new ArrayIterator(['__type' => GivenName::class, '__value' => 'this is valid']), 'className' => SomeInterface::class, 'expectedResult' => '"this is valid"'];
-        yield 'from array and remaining values' => ['value' => ['__type' => FullName::class, 'givenName' => 'some given name', 'familyName' => 'some family name'], 'className' => SomeInterface::class, 'expectedResult' => '{"givenName":"some given name","familyName":"some family name"}'];
-        yield 'from valid implementation' => ['value' => Parser::instantiate(GivenName::class, 'John'), 'className' => SomeInterface::class, 'expectedResult' => '"John"'];
+        yield 'from array with __type and __value' => ['value' => ['__type' => Fixture\GivenName::class, '__value' => 'this is valid'], 'className' => Fixture\SomeInterface::class, 'expectedResult' => '"this is valid"'];
+        yield 'from iterable with __type and __value' => ['value' => new ArrayIterator(['__type' => Fixture\GivenName::class, '__value' => 'this is valid']), 'className' => Fixture\SomeInterface::class, 'expectedResult' => '"this is valid"'];
+        yield 'from array and remaining values' => ['value' => ['__type' => Fixture\FullName::class, 'givenName' => 'some given name', 'familyName' => 'some family name'], 'className' => Fixture\SomeInterface::class, 'expectedResult' => '{"givenName":"some given name","familyName":"some family name"}'];
+        yield 'from valid implementation' => ['value' => Parser::instantiate(Fixture\GivenName::class, 'John'), 'className' => Fixture\SomeInterface::class, 'expectedResult' => '"John"'];
 
-        yield 'with discriminator from array with discriminator property and __value' => ['value' => ['t' => 'givenName', '__value' => 'this is valid'], 'className' => InterfaceWithDiscriminator::class, 'expectedResult' => '"this is valid"'];
-        yield 'with discriminator from valid implementation' => ['value' => Parser::instantiate(GivenName::class, 'John'), 'className' => InterfaceWithDiscriminator::class, 'expectedResult' => '"John"'];
+        yield 'with discriminator from array with discriminator property and __value' => ['value' => ['t' => 'givenName', '__value' => 'this is valid'], 'className' => Fixture\InterfaceWithDiscriminator::class, 'expectedResult' => '"this is valid"'];
+        yield 'with discriminator from valid implementation' => ['value' => Parser::instantiate(Fixture\GivenName::class, 'John'), 'className' => Fixture\InterfaceWithDiscriminator::class, 'expectedResult' => '"John"'];
     }
 
     #[DataProvider('instantiate_interface_object_dataProvider')]
@@ -924,7 +924,7 @@ final class IntegrationTest extends TestCase
 
     public function test_interface_implementationSchemas(): void
     {
-        $interfaceSchema = Parser::getSchema(SomeInterface::class);
+        $interfaceSchema = Parser::getSchema(Fixture\SomeInterface::class);
         self::assertInstanceOf(InterfaceSchema::class, $interfaceSchema);
 
         $implementationSchemaNames = array_map(static fn(Schema $schema) => $schema->getName(), $interfaceSchema->implementationSchemas());
@@ -933,11 +933,11 @@ final class IntegrationTest extends TestCase
 
     public static function objects_dataProvider(): Generator
     {
-        yield 'enum' => ['instance' => Title::MR];
-        yield 'integer' => ['instance' => Parser::instantiate(Age::class, 55)];
-        yield 'list' => ['instance' => Parser::instantiate(GivenNames::class, ['John', 'Jane', 'Max'])];
-        yield 'shape' => ['instance' => Parser::instantiate(FullName::class, ['givenName' => 'John', 'familyName' => 'Doe'])];
-        yield 'string' => ['instance' => Parser::instantiate(GivenName::class, 'Jane')];
+        yield 'enum' => ['instance' => Fixture\Title::MR];
+        yield 'integer' => ['instance' => Parser::instantiate(Fixture\Age::class, 55)];
+        yield 'list' => ['instance' => Parser::instantiate(Fixture\GivenNames::class, ['John', 'Jane', 'Max'])];
+        yield 'shape' => ['instance' => Parser::instantiate(Fixture\FullName::class, ['givenName' => 'John', 'familyName' => 'Doe'])];
+        yield 'string' => ['instance' => Parser::instantiate(Fixture\GivenName::class, 'Jane')];
     }
 
     #[DataProvider('objects_dataProvider')]
@@ -948,15 +948,15 @@ final class IntegrationTest extends TestCase
 
     public function test_instantiate_returns_same_instance_if_object_implements_interface_of_schema(): void
     {
-        $instance = Parser::instantiate(GivenName::class, 'John');
-        self::assertSame($instance, Parser::getSchema(SomeInterface::class)->instantiate($instance));
+        $instance = Parser::instantiate(Fixture\GivenName::class, 'John');
+        self::assertSame($instance, Parser::getSchema(Fixture\SomeInterface::class)->instantiate($instance));
     }
 
     public function test_interface_schema_discriminator_can_be_changed(): void
     {
         /** @var InterfaceSchema $interfaceSchema */
-        $interfaceSchema = Parser::getSchema(SomeInterface::class);
-        $discriminator = new Discriminator('type', ['givenName' => GivenName::class, 'familyName' => FamilyName::class]);
+        $interfaceSchema = Parser::getSchema(Fixture\SomeInterface::class);
+        $discriminator = new Discriminator('type', ['givenName' => Fixture\GivenName::class, 'familyName' => Fixture\FamilyName::class]);
         $interfaceSchema = $interfaceSchema->withDiscriminator($discriminator);
 
         self::assertSame($discriminator, $interfaceSchema->discriminator);
@@ -1010,9 +1010,9 @@ final class IntegrationTest extends TestCase
         yield 'from array without __type' => ['value' => ['someKey' => 'someValue'], 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "__type"', 'path' => [], 'params' => []]]];
         yield 'from array with invalid __type' => ['value' => ['__type' => 123], 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "__type" has to be a string, got: int', 'path' => [], 'params' => []]]];
         yield 'from array with unknown __type' => ['value' => ['__type' => 'NoClassName'], 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "__type" has to be a valid class name, got: "NoClassName"', 'path' => [], 'params' => []]]];
-        yield 'from array with __type that is not an instance of the union' => ['value' => ['__type' => ShapeWithInt::class, 'value' => '123'], 'expectedIssues' => [['code' => 'custom', 'message' => 'The given "__type" of "Wwwision\\Types\\Tests\\PHPUnit\\ShapeWithInt" is not an implementation of GivenName|FamilyName', 'path' => [], 'params' => []]]];
-        yield 'from array with valid __type but invalid remaining values' => ['value' => ['__type' => GivenName::class], 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing keys for union of type GivenName|FamilyName', 'path' => [], 'params' => []]]];
-        yield 'from array with valid __type but missing properties' => ['value' => ['__type' => FullName::class, 'givenName' => 'John'], 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
+        yield 'from array with __type that is not an instance of the union' => ['value' => ['__type' => Fixture\ShapeWithInt::class, 'value' => '123'], 'expectedIssues' => [['code' => 'custom', 'message' => 'The given "__type" of "Wwwision\\Types\\Tests\\Fixture\\ShapeWithInt" is not an implementation of GivenName|FamilyName', 'path' => [], 'params' => []]]];
+        yield 'from array with valid __type but invalid remaining values' => ['value' => ['__type' => Fixture\GivenName::class], 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing keys for union of type GivenName|FamilyName', 'path' => [], 'params' => []]]];
+        yield 'from array with valid __type but missing properties' => ['value' => ['__type' => Fixture\FullName::class, 'givenName' => 'John'], 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
     }
 
     /**
@@ -1024,8 +1024,8 @@ final class IntegrationTest extends TestCase
         $exceptionThrown = false;
         $expectedIssuesJson = json_encode($expectedIssues, JSON_THROW_ON_ERROR);
         $oneOfSchema = new OneOfSchema([
-            Parser::getSchema(GivenName::class),
-            Parser::getSchema(FamilyName::class),
+            Parser::getSchema(Fixture\GivenName::class),
+            Parser::getSchema(Fixture\FamilyName::class),
         ], null, null);
         try {
             $oneOfSchema->instantiate($value);
@@ -1040,50 +1040,50 @@ final class IntegrationTest extends TestCase
     {
         $this->expectException(CoerceException::class);
         $this->expectExceptionMessage('Failed to cast value of type array to ShapeWithUnionTypeAndDiscriminator: At "givenOrFamilyName": custom (Missing discriminator key "type")');
-        Parser::instantiate(ShapeWithUnionTypeAndDiscriminator::class, ['givenOrFamilyName' => ['__type' => 'familyName', '__value' => 'does not matter']]);
+        Parser::instantiate(Fixture\ShapeWithUnionTypeAndDiscriminator::class, ['givenOrFamilyName' => ['__type' => 'familyName', '__value' => 'does not matter']]);
     }
 
     public function test_instantiate_oneOf_object_with_discriminator_fails_if_discriminator_value_is_invalid(): void
     {
         $this->expectException(CoerceException::class);
         $this->expectExceptionMessage('Failed to cast value of type array to ShapeWithUnionTypeAndDiscriminator: At "givenOrFamilyName": custom (Discriminator key "type" has to be one of "given", "family", "invalid". Got: "familyName"');
-        Parser::instantiate(ShapeWithUnionTypeAndDiscriminator::class, ['givenOrFamilyName' => ['type' => 'familyName', '__value' => 'does not matter']]);
+        Parser::instantiate(Fixture\ShapeWithUnionTypeAndDiscriminator::class, ['givenOrFamilyName' => ['type' => 'familyName', '__value' => 'does not matter']]);
     }
 
     public function test_instantiate_oneOf_object_with_discriminator_fails_if_discriminator_mapping_cannot_be_resolved_to_a_className(): void
     {
         $this->expectException(InvalidSchemaException::class);
         $this->expectExceptionMessage('Invalid schema for property "givenOrFamilyName" of type "ShapeWithUnionTypeAndDiscriminator": Discriminator mapping refers to non-existing class "NoClassName"');
-        Parser::instantiate(ShapeWithUnionTypeAndDiscriminator::class, ['givenOrFamilyName' => ['type' => 'invalid', '__value' => 'does not matter']]);
+        Parser::instantiate(Fixture\ShapeWithUnionTypeAndDiscriminator::class, ['givenOrFamilyName' => ['type' => 'invalid', '__value' => 'does not matter']]);
     }
 
     public function test_instantiate_oneOf_object_with_discriminator_without_mapping_fails_if_discriminator_propertyName_is_invalid(): void
     {
         $this->expectException(CoerceException::class);
         $this->expectExceptionMessage('Failed to cast value of type array to ShapeWithUnionTypeAndDiscriminatorWithoutMapping: At "givenOrFamilyName": custom (Missing discriminator key "type")');
-        Parser::instantiate(ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class, ['givenOrFamilyName' => ['__type' => 'familyName', '__value' => 'does not matter']]);
+        Parser::instantiate(Fixture\ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class, ['givenOrFamilyName' => ['__type' => 'familyName', '__value' => 'does not matter']]);
     }
 
     public function test_instantiate_oneOf_object_with_discriminator_without_mapping_fails_if_discriminator_value_is_invalid(): void
     {
         $this->expectException(CoerceException::class);
         $this->expectExceptionMessage('Failed to cast value of type array to ShapeWithUnionTypeAndDiscriminatorWithoutMapping: At "givenOrFamilyName": custom (Discriminator key "type" has to be a valid class name, got: "family")');
-        Parser::instantiate(ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class, ['givenOrFamilyName' => ['type' => 'family', '__value' => 'does not matter']]);
+        Parser::instantiate(Fixture\ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class, ['givenOrFamilyName' => ['type' => 'family', '__value' => 'does not matter']]);
     }
 
     public static function instantiate_oneOf_dataProvider(): Generator
     {
-        yield 'from array with __type and __value' => ['value' => ['__type' => GivenName::class, '__value' => 'this is valid'], 'expectedResult' => '"this is valid"'];
-        yield 'from iterable with __type and __value' => ['value' => new ArrayIterator(['__type' => GivenName::class, '__value' => 'this is valid']), 'expectedResult' => '"this is valid"'];
-        yield 'from valid implementation' => ['value' => Parser::instantiate(GivenName::class, 'John'), 'expectedResult' => '"John"'];
+        yield 'from array with __type and __value' => ['value' => ['__type' => Fixture\GivenName::class, '__value' => 'this is valid'], 'expectedResult' => '"this is valid"'];
+        yield 'from iterable with __type and __value' => ['value' => new ArrayIterator(['__type' => Fixture\GivenName::class, '__value' => 'this is valid']), 'expectedResult' => '"this is valid"'];
+        yield 'from valid implementation' => ['value' => Parser::instantiate(Fixture\GivenName::class, 'John'), 'expectedResult' => '"John"'];
     }
 
     #[DataProvider('instantiate_oneOf_dataProvider')]
     public function test_instantiate_oneOf(mixed $value, string $expectedResult): void
     {
         $oneOfSchema = new OneOfSchema([
-            Parser::getSchema(GivenName::class),
-            Parser::getSchema(FamilyName::class),
+            Parser::getSchema(Fixture\GivenName::class),
+            Parser::getSchema(Fixture\FamilyName::class),
         ], null, null);
         self::assertJsonStringEqualsJsonString($expectedResult, json_encode($oneOfSchema->instantiate($value), JSON_THROW_ON_ERROR));
     }
@@ -1091,18 +1091,18 @@ final class IntegrationTest extends TestCase
     public function test_instantiate_returns_same_instance_if_object_is_a_valid_oneOf_type(): void
     {
         $oneOfSchema = new OneOfSchema([
-            Parser::getSchema(GivenName::class),
-            Parser::getSchema(FamilyName::class),
+            Parser::getSchema(Fixture\GivenName::class),
+            Parser::getSchema(Fixture\FamilyName::class),
         ], null, null);
-        $instance = Parser::instantiate(GivenName::class, 'John');
+        $instance = Parser::instantiate(Fixture\GivenName::class, 'John');
         self::assertSame($instance, $oneOfSchema->instantiate($instance));
     }
 
     public function test_oneOf_serialization(): void
     {
         $oneOfSchema = new OneOfSchema([
-            Parser::getSchema(GivenName::class),
-            Parser::getSchema(FamilyName::class),
+            Parser::getSchema(Fixture\GivenName::class),
+            Parser::getSchema(Fixture\FamilyName::class),
         ], null, null);
         $expectedResult = '{
             "description": null,
@@ -1131,8 +1131,8 @@ final class IntegrationTest extends TestCase
     public function test_oneOf_schema_discriminator_can_be_changed(): void
     {
         $mockSubSchemas = [
-            Parser::getSchema(GivenName::class),
-            Parser::getSchema(FamilyName::class),
+            Parser::getSchema(Fixture\GivenName::class),
+            Parser::getSchema(Fixture\FamilyName::class),
         ];
         $oneOfSchema = new OneOfSchema($mockSubSchemas, null, null);
         $discriminator = new Discriminator('type', ['givenName' => $mockSubSchemas[0]::class, 'familyName' => $mockSubSchemas[1]::class]);
@@ -1140,517 +1140,4 @@ final class IntegrationTest extends TestCase
 
         self::assertSame($discriminator, $oneOfSchema->discriminator);
     }
-}
-
-#[StringBased(minLength: 3, maxLength: 20)]
-#[Description('First name of a person')]
-final class GivenName implements SomeInterface, InterfaceWithDiscriminator, JsonSerializable
-{
-    private function __construct(public readonly string $value) {}
-
-    public function someMethod(): string
-    {
-        return 'bar';
-    }
-
-    public function someOtherMethod(): FamilyName
-    {
-        return instantiate(FamilyName::class, $this->value);
-    }
-
-    public function jsonSerialize(): string
-    {
-        return $this->value;
-    }
-}
-
-#[StringBased(minLength: 3, maxLength: 20)]
-#[Description('Last name of a person')]
-final class FamilyName implements JsonSerializable, SomeInterface, InterfaceWithDiscriminator
-{
-    private function __construct(public readonly string $value) {}
-
-    public function someMethod(): string
-    {
-        return 'bar';
-    }
-
-    public function someOtherMethod(): FamilyName
-    {
-        return instantiate(self::class, $this->value);
-    }
-
-    public function jsonSerialize(): string
-    {
-        return $this->value;
-    }
-}
-
-#[IntegerBased(minimum: 1, maximum: 120)]
-#[Description('The age of a person in years')]
-final class Age
-{
-    private function __construct(public readonly int $value) {}
-}
-
-
-#[Description('First and last name of a person')]
-final class FullName implements SomeInterface
-{
-    public function __construct(
-        #[Description('Overridden given name description')]
-        public readonly GivenName $givenName,
-        public readonly FamilyName $familyName,
-    ) {}
-
-    public function someMethod(): string
-    {
-        return 'baz';
-    }
-
-    public function someOtherMethod(): FamilyName
-    {
-        return $this->familyName;
-    }
-}
-
-/** @implements IteratorAggregate<FullName> */
-#[ListBased(itemClassName: FullName::class, minCount: 2, maxCount: 5)]
-final class FullNames implements IteratorAggregate
-{
-    /**
-     * @var array<FullName>
-     */
-    private array $fullNames;
-
-    private function __construct(FullName... $fullNames)
-    {
-        $this->fullNames = $fullNames;
-    }
-
-    public function getIterator(): Traversable
-    {
-        return new ArrayIterator($this->fullNames);
-    }
-}
-
-/**
- * @implements IteratorAggregate<GivenName>
- */
-#[ListBased(itemClassName: GivenName::class, maxCount: 4)]
-final class GivenNames implements IteratorAggregate, JsonSerializable
-{
-    /** @param array<GivenName> $givenNames */
-    private function __construct(private readonly array $givenNames) {}
-
-    public function getIterator(): Traversable
-    {
-        return new ArrayIterator($this->givenNames);
-    }
-
-    /**
-     * @return array<mixed>
-     */
-    public function jsonSerialize(): array
-    {
-        return $this->givenNames;
-    }
-}
-
-/**
- * @implements IteratorAggregate<Uri>
- */
-#[ListBased(itemClassName: Uri::class)]
-final class UriMap implements IteratorAggregate, JsonSerializable
-{
-    /**
-     * @param array<Uri> $entries
-     */
-    private function __construct(private readonly array $entries)
-    {
-        if (array_keys($entries) !== array_filter(\array_keys($entries), '\is_string')) {
-            throw CoerceException::custom('Expected associative array with string keys', $entries, Parser::getSchema(self::class), );
-        }
-    }
-
-    public function getIterator(): Traversable
-    {
-        return new ArrayIterator($this->entries);
-    }
-
-    /**
-     * @return array<mixed>
-     */
-    public function jsonSerialize(): array
-    {
-        return $this->entries;
-    }
-
-}
-
-#[StringBased(pattern: '^(?!magic).*')]
-final class NotMagic
-{
-    private function __construct(public readonly string $value) {}
-}
-
-#[StringBased(format: StringTypeFormat::email)]
-final class EmailAddress
-{
-    private function __construct(public readonly string $value) {}
-}
-
-#[StringBased(format: StringTypeFormat::idn_email)]
-final class IdnEmailAddress
-{
-    private function __construct(public readonly string $value) {}
-}
-
-#[StringBased(format: StringTypeFormat::hostname)]
-final class Hostname
-{
-    private function __construct(public readonly string $value) {}
-}
-
-#[StringBased(format: StringTypeFormat::ipv4)]
-final class Ipv4
-{
-    private function __construct(public readonly string $value) {}
-}
-
-#[StringBased(format: StringTypeFormat::ipv6)]
-final class Ipv6
-{
-    private function __construct(public readonly string $value) {}
-}
-
-#[StringBased(format: StringTypeFormat::regex)]
-final class Regex
-{
-    private function __construct(public readonly string $value) {}
-}
-
-#[StringBased(format: StringTypeFormat::uri)]
-final class Uri implements JsonSerializable
-{
-    private function __construct(public readonly string $value) {}
-
-    public function jsonSerialize(): string
-    {
-        return $this->value;
-    }
-}
-
-#[StringBased(format: StringTypeFormat::date)]
-final class Date
-{
-    private function __construct(public readonly string $value)
-    {
-        $now = new DateTimeImmutable();
-        if (DateTimeImmutable::createFromFormat('Y-m-d', $this->value) > $now) {
-            throw CoerceException::custom('Future dates are not allowed', $value, Parser::getSchema(self::class), ['some' => 'param']);
-        }
-    }
-}
-
-#[StringBased(format: StringTypeFormat::time)]
-final class Time
-{
-    private function __construct(public readonly string $value) {}
-}
-
-#[StringBased(format: StringTypeFormat::date_time)]
-final class DateTime
-{
-    private function __construct(public readonly string $value) {}
-}
-
-#[StringBased(format: StringTypeFormat::duration)]
-final class Duration
-{
-    private function __construct(public readonly string $value) {}
-}
-
-#[StringBased(format: StringTypeFormat::uuid)]
-final class Uuid
-{
-    private function __construct(public readonly string $value) {}
-}
-
-#[Description('honorific title of a person')]
-enum Title
-{
-    #[Description('for men, regardless of marital status, who do not have another professional or academic title')]
-    case MR;
-    #[Description('for married women who do not have another professional or academic title')]
-    case MRS;
-    #[Description('for girls, unmarried women and married women who continue to use their maiden name')]
-    case MISS;
-    #[Description('for women, regardless of marital status or when marital status is unknown')]
-    case MS;
-    #[Description('for any other title that does not match the above')]
-    case OTHER;
-}
-
-#[Description('A number')]
-enum Number: int
-{
-    #[Description('The number 1')]
-    case ONE = 1;
-    case TWO = 2;
-    case THREE = 3;
-}
-
-enum RomanNumber: string
-{
-    case I = '1';
-    #[Description('random description')]
-    case II = '2';
-    case III = '3';
-    case IV = '4';
-}
-
-final class NestedShape
-{
-    public function __construct(
-        public readonly ShapeWithOptionalTypes $shapeWithOptionalTypes,
-        public readonly ShapeWithBool $shapeWithBool,
-    ) {}
-}
-
-final class ShapeWithOptionalTypes
-{
-    public function __construct(
-        public readonly FamilyName $stringBased,
-        public readonly ?FamilyName $optionalStringBased = null,
-        #[Description('Some description')]
-        public readonly ?int $optionalInt = null,
-        public readonly ?bool $optionalBool = false,
-        public readonly ?string $optionalString = null,
-    ) {}
-}
-
-final class ShapeWithInvalidObjectProperty
-{
-    public function __construct(
-        public readonly stdClass $someProperty,
-    ) {}
-}
-
-final class ShapeWithBool
-{
-    private function __construct(
-        #[Description('Description for literal bool')]
-        public readonly bool $value,
-    ) {}
-}
-
-final class ShapeWithInt
-{
-    private function __construct(
-        #[Description('Description for literal int')]
-        public readonly int $value,
-    ) {}
-}
-
-final class ShapeWithString
-{
-    private function __construct(
-        #[Description('Description for literal string')]
-        public readonly string $value,
-    ) {}
-}
-
-final class ShapeWithFloat
-{
-    private function __construct(
-        #[Description('Description for literal float')]
-        public readonly float $value,
-    ) {}
-}
-
-#[Description('SomeInterface description')]
-interface SomeInterface
-{
-    #[Description('Custom description for "someMethod"')]
-    public function someMethod(): string;
-    #[Description('Custom description for "someOtherMethod"')]
-    public function someOtherMethod(): ?FamilyName;
-}
-
-#[FloatBased(minimum: -180.0, maximum: 180.5)]
-final class Longitude
-{
-    private function __construct(
-        public readonly float $value,
-    ) {}
-}
-
-#[FloatBased(minimum: -90, maximum: 90)]
-final class Latitude
-{
-    private function __construct(
-        public readonly float $value,
-    ) {}
-}
-
-final class GeoCoordinates
-{
-    public function __construct(
-        public readonly Longitude $longitude,
-        public readonly Latitude $latitude,
-    ) {}
-}
-
-
-interface SomeInvalidInterface
-{
-    public function methodWithParameters(string|null $param = null): string;
-}
-
-#[StringBased(minLength: 10, maxLength: 2, pattern: '^foo$', format: StringTypeFormat::email)]
-final class ImpossibleString
-{
-    private function __construct(public readonly string $value) {}
-}
-
-#[IntegerBased(minimum: 10, maximum: 2)]
-final class ImpossibleInt
-{
-    private function __construct(public readonly string $value) {}
-}
-
-#[FloatBased(minimum: 10.23, maximum: 2.45)]
-final class ImpossibleFloat
-{
-    private function __construct(public readonly string $value) {}
-}
-
-#[ListBased(itemClassName: GivenName::class, minCount: 10, maxCount: 2)]
-final class ImpossibleList
-{
-    /**
-     * @param array<GivenName> $items
-     */
-    private function __construct(public readonly array $items) {}
-}
-
-final class ShapeWithArray
-{
-    /**
-     * @param array<mixed> $someArray
-     */
-    public function __construct(
-        public readonly GivenName $givenName,
-        #[Description('We can use arrays, too')]
-        public readonly array $someArray,
-    ) {}
-}
-
-final class ShapeWithUnionType
-{
-    public function __construct(
-        public readonly GivenName|FamilyName $givenOrFamilyName,
-    ) {}
-}
-
-final class ShapeWithSimpleUnionType
-{
-    public function __construct(
-        public readonly int|string $integerOrString,
-    ) {}
-}
-
-final class ShapeWithInterfaceProperty implements JsonSerializable
-{
-    public function __construct(
-        public readonly SomeInterface $property,
-    ) {}
-
-    /**
-     * @return array<mixed>
-     */
-    public function jsonSerialize(): array
-    {
-        $result = get_object_vars($this);
-        $result['property'] = [
-            '__type' => $this->property::class,
-            '__value' => $result['property'],
-        ];
-        return $result;
-    }
-}
-
-final class ShapeWithoutConstructor {}
-
-final class ShapeWithInterfacePropertyAndDiscriminator implements JsonSerializable
-{
-    public function __construct(
-        #[Discriminator(propertyName: 'type', mapping: ['g' => GivenName::class, 'f' => FamilyName::class])]
-        public readonly InterfaceWithDiscriminator $property,
-    ) {}
-
-    /**
-     * @return array<mixed>
-     */
-    public function jsonSerialize(): array
-    {
-        $result = get_object_vars($this);
-        $result['property'] = [
-            '__type' => $this->property::class,
-            '__value' => $result['property'],
-        ];
-        return $result;
-    }
-}
-
-final class ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping
-{
-    public function __construct(
-        #[Discriminator(propertyName: 'type')]
-        public readonly InterfaceWithDiscriminator $property,
-    ) {}
-}
-
-final class ShapeWithUnionTypeAndDiscriminator
-{
-    public function __construct(
-        #[Discriminator(propertyName: 'type', mapping: ['given' => GivenName::class, 'family' => FamilyName::class, 'invalid' => 'NoClassName'])] // @phpstan-ignore-line
-        public readonly GivenName|FamilyName $givenOrFamilyName,
-    ) {}
-}
-
-final class ShapeWithUnionTypeAndDiscriminatorWithoutMapping
-{
-    public function __construct(
-        #[Discriminator(propertyName: 'type')]
-        public readonly GivenName|FamilyName $givenOrFamilyName,
-    ) {}
-}
-
-final class ShapeWithOptionalInterfacePropertyAndCustomDiscriminator
-{
-    public function __construct(
-        #[Discriminator(propertyName: 'type', mapping: ['givenName' => GivenName::class, 'familyName' => FamilyName::class])]
-        public readonly SomeInterface|null $property = null,
-    ) {}
-}
-
-#[Discriminator(propertyName: 't', mapping: ['givenName' => GivenName::class, 'familyName' => FamilyName::class, 'invalid' => 'NoClassName'])] // @phpstan-ignore-line
-interface InterfaceWithDiscriminator {}
-
-final class ShapeWithInvalidDiscriminatorAttribute
-{
-    public function __construct(
-        #[Discriminator(propertyName: 'type', mapping: ['given' => GivenName::class])]
-        public readonly GivenName $givenName,
-    ) {}
-}
-
-final class ShapeWithInvalidDiscriminatorAttributeOnOptionalProperty
-{
-    public function __construct(
-        #[Discriminator(propertyName: 'type', mapping: ['given' => GivenName::class])]
-        public readonly GivenName|null $givenName = null,
-    ) {}
 }
