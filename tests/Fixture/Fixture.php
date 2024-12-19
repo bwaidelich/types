@@ -510,6 +510,14 @@ final class ShapeWithUnionTypeAndDiscriminatorWithoutMapping
     ) {}
 }
 
+final class ShapeWithUnionTypeAndAmbiguousDiscriminator
+{
+    public function __construct(
+        #[Discriminator(propertyName: 'type')]
+        public readonly ShapeWithPropertyOfNameType|FamilyName $someProperty,
+    ) {}
+}
+
 final class ShapeWithOptionalInterfacePropertyAndCustomDiscriminator
 {
     public function __construct(
@@ -520,6 +528,17 @@ final class ShapeWithOptionalInterfacePropertyAndCustomDiscriminator
 
 #[Discriminator(propertyName: 't', mapping: ['givenName' => GivenName::class, 'familyName' => FamilyName::class, 'invalid' => 'NoClassName'])] // @phpstan-ignore-line
 interface InterfaceWithDiscriminator {}
+
+#[Discriminator(propertyName: 'type')]
+interface InterfaceWithAmbiguousDiscriminator {}
+
+final class ShapeWithPropertyOfNameType implements InterfaceWithAmbiguousDiscriminator
+{
+    public function __construct(
+        public readonly string $type,
+        public readonly bool $flag,
+    ) {}
+}
 
 final class ShapeWithInvalidDiscriminatorAttribute
 {

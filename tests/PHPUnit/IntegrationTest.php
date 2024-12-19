@@ -869,6 +869,13 @@ final class IntegrationTest extends TestCase
         Parser::instantiate(Fixture\InterfaceWithDiscriminator::class, ['t' => 'invalid', '__value' => 'does not matter']);
     }
 
+    public function test_instantiate_interface_object_fails_if_discriminator_key_is_ambiguous(): void
+    {
+        $this->expectException(InvalidSchemaException::class);
+        $this->expectExceptionMessage('Discriminator key "type" of type "InterfaceWithAmbiguousDiscriminator" is ambiguous with the property "type" of implementation "Wwwision\Types\Tests\Fixture\ShapeWithPropertyOfNameType"');
+        Parser::instantiate(Fixture\InterfaceWithAmbiguousDiscriminator::class, ['type' => Fixture\ShapeWithPropertyOfNameType::class, 'flag' => true]);
+    }
+
     public static function instantiate_interface_object_failing_dataProvider(): Generator
     {
         yield 'from null' => ['value' => null, 'className' => Fixture\SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected object, received null', 'path' => [], 'expected' => 'interface', 'received' => 'null']]];
@@ -1055,6 +1062,13 @@ final class IntegrationTest extends TestCase
         $this->expectException(InvalidSchemaException::class);
         $this->expectExceptionMessage('Invalid schema for property "givenOrFamilyName" of type "ShapeWithUnionTypeAndDiscriminator": Discriminator mapping refers to non-existing class "NoClassName"');
         Parser::instantiate(Fixture\ShapeWithUnionTypeAndDiscriminator::class, ['givenOrFamilyName' => ['type' => 'invalid', '__value' => 'does not matter']]);
+    }
+
+    public function test_instantiate_oneOf_object_with_discriminator_fails_if_discriminator_is_ambiguous(): void
+    {
+        $this->expectException(InvalidSchemaException::class);
+        $this->expectExceptionMessage('Invalid schema for property "someProperty" of type "ShapeWithUnionTypeAndAmbiguousDiscriminator": Discriminator key "type" of type "ShapeWithPropertyOfNameType|FamilyName" is ambiguous with the property "type" of implementation "Wwwision\Types\Tests\Fixture\ShapeWithPropertyOfNameType"');
+        Parser::instantiate(Fixture\ShapeWithUnionTypeAndAmbiguousDiscriminator::class, ['someProperty' => ['type' => Fixture\ShapeWithPropertyOfNameType::class, 'flag' => false]]);
     }
 
     public function test_instantiate_oneOf_object_with_discriminator_without_mapping_fails_if_discriminator_propertyName_is_invalid(): void
