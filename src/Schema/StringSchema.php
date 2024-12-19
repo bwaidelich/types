@@ -110,13 +110,13 @@ final class StringSchema implements Schema
                 StringTypeFormat::ipv6 => filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false,
                 //StringTypeFormat::iri => throw new \Exception('To be implemented'),
                 //StringTypeFormat::iri_reference => throw new \Exception('To be implemented'),
-                //                StringTypeFormat::json_pointer => throw new \Exception('To be implemented'),
+                //StringTypeFormat::json_pointer => throw new \Exception('To be implemented'),
                 StringTypeFormat::regex => @preg_match('/' . $value . '/', '') !== false,
-                //                StringTypeFormat::relative_json_pointer => throw new \Exception('To be implemented'),
+                //StringTypeFormat::relative_json_pointer => throw new \Exception('To be implemented'),
                 StringTypeFormat::time => preg_match('/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(\.\d+)?(Z|[+-]([01]\d|2[0-3]):?([0-5]\d)?)?$/i', $value) === 1,
                 StringTypeFormat::uri => filter_var($value, FILTER_VALIDATE_URL) !== false,
-                //                StringTypeFormat::uri_reference => throw new \Exception('To be implemented'),
-                //                StringTypeFormat::uri_template => throw new \Exception('To be implemented'),
+                //StringTypeFormat::uri_reference => throw new \Exception('To be implemented'),
+                //StringTypeFormat::uri_template => throw new \Exception('To be implemented'),
                 StringTypeFormat::uuid => Uuid::isValid($value),
             };
             if (!$matchesFormat) {
