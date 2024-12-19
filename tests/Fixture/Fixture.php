@@ -555,3 +555,10 @@ final class ShapeWithInvalidDiscriminatorAttributeOnOptionalProperty
         public readonly GivenName|null $givenName = null,
     ) {}
 }
+
+final class ShapeWithPropertyOfNonExistingClass
+{
+    public function __construct(
+        public readonly Non\Existing\Class $someProperty, // @phpstan-ignore-line
+    ) {}
+}
