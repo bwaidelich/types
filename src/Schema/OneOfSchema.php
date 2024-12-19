@@ -94,6 +94,9 @@ final class OneOfSchema implements Schema
         } elseif (!class_exists($type)) {
             throw CoerceException::custom(sprintf('Discriminator key "%s" has to be a valid class name, got: "%s"', $discriminatorPropertyName, $type), $value, $this);
         }
+        if (property_exists($type, $discriminatorPropertyName)) {
+            throw new InvalidSchemaException(sprintf('Discriminator key "%s" of type "%s" is ambiguous with the property "%s" of implementation "%s"', $discriminatorPropertyName, $this->getName(), $discriminatorPropertyName, $type), 1734624810);
+        }
         if (isset($array['__value'])) {
             $array = $array['__value'];
         } else {
