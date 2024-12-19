@@ -14,6 +14,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use ReflectionEnumUnitCase;
 use RuntimeException;
 use stdClass;
@@ -167,6 +168,7 @@ final class IntegrationTest extends TestCase
         yield 'shape with interface property and discriminator' => ['className' => ShapeWithInterfacePropertyAndDiscriminator::class, 'expectedResult' => '{"description":null,"name":"ShapeWithInterfacePropertyAndDiscriminator","properties":[{"description":null,"name":"property","type":"InterfaceWithDiscriminator"}],"type":"object"}'];
         yield 'shape with interface property and discriminator without mapping' => ['className' => ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping::class, 'expectedResult' => '{"description":null,"name":"ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping","properties":[{"description":null,"name":"property","type":"InterfaceWithDiscriminator"}],"type":"object"}'];
         yield 'shape with union type and discriminator' => ['className' => ShapeWithUnionTypeAndDiscriminator::class, 'expectedResult' => '{"description":null,"name":"ShapeWithUnionTypeAndDiscriminator","properties":[{"description":null,"name":"givenOrFamilyName","type":"GivenName|FamilyName"}],"type":"object"}'];
+        yield 'shape with optional interface property and custom discriminator' => ['className' => ShapeWithOptionalInterfacePropertyAndCustomDiscriminator::class, 'expectedResult' => '{"description":null,"name":"ShapeWithOptionalInterfacePropertyAndCustomDiscriminator","properties":[{"description":"SomeInterface description","name":"property","optional":true,"type":"SomeInterface"}],"type":"object"}'];
         yield 'interface with discriminator' => ['className' => InterfaceWithDiscriminator::class, 'expectedResult' => '{"type":"interface","name":"InterfaceWithDiscriminator","description":null,"properties":[]}'];
     }
 
@@ -662,6 +664,7 @@ final class IntegrationTest extends TestCase
         yield 'from array missing type discriminator for interface property' => ['value' => ['property' => ['value' => 'John']], 'className' => ShapeWithInterfaceProperty::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "__type"', 'path' => ['property'], 'params' => []]]];
         yield 'from array missing custom type discriminator for interface property' => ['value' => ['property' => ['value' => 'John']], 'className' => ShapeWithInterfacePropertyAndDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "type"', 'path' => ['property'], 'params' => []]]];
         yield 'from array missing custom type discriminator for interface property without mapping' => ['value' => ['property' => ['value' => 'John']], 'className' => ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "type"', 'path' => ['property'], 'params' => []]]];
+        yield 'from array with invalid discriminator type for optional interface property' => ['value' => ['property' => ['value' => 'John', 'type' => 'fullName']], 'className' => ShapeWithOptionalInterfacePropertyAndCustomDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "type" has to be one of "givenName", "familyName". Got: "fullName"', 'path' => ['property'], 'params' => []]]];
         yield 'from array missing custom type discriminator for union property' => ['value' => ['givenOrFamilyName' => ['value' => 'John']], 'className' => ShapeWithUnionTypeAndDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "type"', 'path' => ['givenOrFamilyName'], 'params' => []]]];
         yield 'from array missing custom type discriminator for union property without mapping' => ['value' => ['givenOrFamilyName' => ['value' => 'John']], 'className' => ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "type"', 'path' => ['givenOrFamilyName'], 'params' => []]]];
     }
@@ -689,6 +692,13 @@ final class IntegrationTest extends TestCase
         $this->expectException(InvalidSchemaException::class);
         $this->expectExceptionMessage('Class "ShapeWithInvalidDiscriminatorAttribute" has a Wwwision\Types\Attributes\Discriminator attribute for property "givenName" but the corresponding property schema is of type Wwwision\Types\Schema\StringSchema which is not one of the supported schema types Wwwision\Types\Schema\OneOfSchema, Wwwision\Types\Schema\InterfaceSchema');
         Parser::instantiate(ShapeWithInvalidDiscriminatorAttribute::class, ['givenName' => ['type' => 'given', '__value' => 'does not matter']]);
+    }
+
+    public function test_instantiate_shape_object_fails_if_discriminator_attribute_is_added_to_optional_property_of_invalid_type(): void
+    {
+        $this->expectException(InvalidSchemaException::class);
+        $this->expectExceptionMessage('Class "ShapeWithInvalidDiscriminatorAttributeOnOptionalProperty" incorrectly has a Wwwision\Types\Attributes\Discriminator attribute for property "givenName": The schema for type "GivenName" is of type Wwwision\Types\Schema\StringSchema which is not one of the supported schema types Wwwision\Types\Schema\OneOfSchema, Wwwision\Types\Schema\InterfaceSchema');
+        Parser::instantiate(ShapeWithInvalidDiscriminatorAttributeOnOptionalProperty::class, ['givenName' => ['type' => 'given', '__value' => 'does not matter']]);
     }
 
     public static function instantiate_shape_object_dataProvider(): Generator
@@ -728,6 +738,7 @@ final class IntegrationTest extends TestCase
         yield 'from array for shape with interface property with discriminator without mapping' => ['value' => ['property' => ['type' => GivenName::class, '__value' => 'Jane']], 'className' => ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping::class, 'expectedResult' => '{"property":"Jane"}'];
         yield 'from array for shape with union type property and discriminator' => ['value' => ['givenOrFamilyName' => ['type' => 'given', '__value' => 'Jane']], 'className' => ShapeWithUnionTypeAndDiscriminator::class, 'expectedResult' => '{"givenOrFamilyName":"Jane"}'];
         yield 'from array for shape with union type property and discriminator without mapping' => ['value' => ['givenOrFamilyName' => ['type' => GivenName::class, '__value' => 'Jane']], 'className' => ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class, 'expectedResult' => '{"givenOrFamilyName":"Jane"}'];
+        yield 'from array for shape with optional interface property and custom discriminator' => ['value' => ['property' => ['type' => 'givenName', '__value' => 'Jane']], 'className' => ShapeWithOptionalInterfacePropertyAndCustomDiscriminator::class, 'expectedResult' => '{"property":"Jane"}'];
     }
 
     #[DataProvider('instantiate_shape_object_dataProvider')]
@@ -1617,6 +1628,14 @@ final class ShapeWithUnionTypeAndDiscriminatorWithoutMapping
     ) {}
 }
 
+final class ShapeWithOptionalInterfacePropertyAndCustomDiscriminator
+{
+    public function __construct(
+        #[Discriminator(propertyName: 'type', mapping: ['givenName' => GivenName::class, 'familyName' => FamilyName::class])]
+        public readonly SomeInterface|null $property = null,
+    ) {}
+}
+
 #[Discriminator(propertyName: 't', mapping: ['givenName' => GivenName::class, 'familyName' => FamilyName::class, 'invalid' => 'NoClassName'])] // @phpstan-ignore-line
 interface InterfaceWithDiscriminator {}
 
@@ -1625,5 +1644,13 @@ final class ShapeWithInvalidDiscriminatorAttribute
     public function __construct(
         #[Discriminator(propertyName: 'type', mapping: ['given' => GivenName::class])]
         public readonly GivenName $givenName,
+    ) {}
+}
+
+final class ShapeWithInvalidDiscriminatorAttributeOnOptionalProperty
+{
+    public function __construct(
+        #[Discriminator(propertyName: 'type', mapping: ['given' => GivenName::class])]
+        public readonly GivenName|null $givenName = null,
     ) {}
 }

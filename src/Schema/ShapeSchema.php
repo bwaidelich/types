@@ -157,11 +157,15 @@ final class ShapeSchema implements Schema
         if (!array_key_exists($propertyName, $this->propertyDiscriminators)) {
             return $propertySchema;
         }
-        $supportedPropertySchemas = [OneOfSchema::class, InterfaceSchema::class];
+        $supportedPropertySchemas = [OneOfSchema::class, InterfaceSchema::class, OptionalSchema::class];
         if (!in_array($propertySchema::class, $supportedPropertySchemas, true)) {
             throw new InvalidSchemaException(sprintf('Class "%s" has a %s attribute for property "%s" but the corresponding property schema is of type %s which is not one of the supported schema types %s', $this->getName(), Discriminator::class, $propertyName, get_debug_type($propertySchema), implode(', ', $supportedPropertySchemas)));
         }
-        /** @var OneOfSchema|InterfaceSchema $propertySchema */
-        return $propertySchema->withDiscriminator($this->propertyDiscriminators[$propertyName]);
+        /** @var OneOfSchema|InterfaceSchema|OptionalSchema $propertySchema */
+        try {
+            return $propertySchema->withDiscriminator($this->propertyDiscriminators[$propertyName]);
+        } catch (InvalidSchemaException $e) {
+            throw new InvalidSchemaException(sprintf('Class "%s" incorrectly has a %s attribute for property "%s": %s', $this->getName(), Discriminator::class, $propertyName, $e->getMessage()), 1734543079, $e);
+        }
     }
 }
