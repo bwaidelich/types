@@ -11,6 +11,11 @@
       "src/instantiate.php"
     ]
   },
+  "autoload-dev": {
+    "psr-4": {
+      "Wwwision\\Types\\Tests\\": "tests/"
+    }
+  },
   "authors": [
     {
       "name": "bwaidelich",
