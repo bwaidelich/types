@@ -50,19 +50,20 @@ final class ReadmeCodeBlockTest extends TestCase
         self::$previousNamespace = $namespace;
         $namespacedCode = <<<CODE
             namespace $namespace {
-                use Countable;
-                use Closure;
-                use JsonSerializable;
-                use IteratorAggregate;
                 use ArrayIterator;
+                use Closure;
+                use Countable;
+                use IteratorAggregate;
+                use JsonSerializable;
                 use Traversable;
                 use Wwwision\Types\Attributes\Description;
                 use Wwwision\Types\Attributes\Discriminator;
-                use Wwwision\Types\Attributes\IntegerBased;
                 use Wwwision\Types\Attributes\FloatBased;
+                use Wwwision\Types\Attributes\IntegerBased;
                 use Wwwision\Types\Attributes\ListBased;
                 use Wwwision\Types\Attributes\StringBased;
                 use Wwwision\Types\Exception\CoerceException;
+                use Wwwision\Types\Normalizer\Normalizer;
                 use Wwwision\Types\Parser;
                 use Wwwision\Types\Schema\StringTypeFormat;
                 use function Wwwision\Types\instantiate;

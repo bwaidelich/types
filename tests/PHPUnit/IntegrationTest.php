@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpDocMissingThrowsInspection */
+
 /** @noinspection PhpUnhandledExceptionInspection */
 
 declare(strict_types=1);
@@ -34,6 +36,7 @@ use Wwwision\Types\Exception\Issues\Issues;
 use Wwwision\Types\Exception\Issues\TooBig;
 use Wwwision\Types\Exception\Issues\TooSmall;
 use Wwwision\Types\Exception\Issues\UnrecognizedKeys;
+use Wwwision\Types\Normalizer\Normalizer;
 use Wwwision\Types\Parser;
 use Wwwision\Types\Schema\ArraySchema;
 use Wwwision\Types\Schema\EnumCaseSchema;
@@ -87,6 +90,7 @@ require_once __DIR__ . '/../Fixture/Fixture.php';
 #[CoversClass(LiteralFloatSchema::class)]
 #[CoversClass(LiteralIntegerSchema::class)]
 #[CoversClass(LiteralStringSchema::class)]
+#[CoversClass(Normalizer::class)]
 #[CoversClass(OneOfSchema::class)]
 #[CoversClass(OptionalSchema::class)]
 #[CoversClass(Parser::class)]
@@ -154,6 +158,7 @@ final class IntegrationTest extends TestCase
         yield 'float based object' => ['className' => Fixture\Longitude::class, 'expectedResult' => '{"type":"float","name":"Longitude","description":null,"minimum":-180,"maximum":180.5}'];
         yield 'integer based object' => ['className' => Fixture\Age::class, 'expectedResult' => '{"type":"integer","name":"Age","description":"The age of a person in years","minimum":1,"maximum":120}'];
         yield 'list object' => ['className' => Fixture\FullNames::class, 'expectedResult' => '{"type":"array","name":"FullNames","description":null,"itemType":"FullName","minCount":2,"maxCount":5}'];
+        yield 'list of interfaces' => ['className' => Fixture\InterfaceList::class, 'expectedResult' => '{"type":"array","name":"InterfaceList","description":null,"itemType":"ItemInterface"}'];
         yield 'shape object' => ['className' => Fixture\FullName::class, 'expectedResult' => '{"type":"object","name":"FullName","description":"First and last name of a person","properties":[{"type":"GivenName","name":"givenName","description":"First name of a person"},{"type":"FamilyName","name":"familyName","description":"Last name of a person"}]}'];
         yield 'shape object with optional properties' => ['className' => Fixture\ShapeWithOptionalTypes::class, 'expectedResult' => '{"type":"object","name":"ShapeWithOptionalTypes","description":null,"properties":[{"type":"FamilyName","name":"stringBased","description":"Last name of a person"},{"type":"FamilyName","name":"optionalStringBased","description":"Last name of a person","optional":true},{"type":"int","name":"optionalInt","description":"Some description","optional":true},{"type":"boolean","name":"optionalBool","description":null,"optional":true},{"type":"string","name":"optionalString","description":null,"optional":true}]}'];
 
@@ -197,14 +202,15 @@ final class IntegrationTest extends TestCase
 
         yield 'integer based object' => ['className' => Fixture\Age::class, 'value' => instantiate(Fixture\Age::class, 44)];
         yield 'list object' => ['className' => Fixture\GivenNames::class, 'value' => instantiate(Fixture\GivenNames::class, ['Jane', 'John'])];
+        yield 'list of interfaces' => ['className' => Fixture\InterfaceList::class, 'value' => instantiate(Fixture\InterfaceList::class, [['__type' => Fixture\ItemA::class, '__value' => 'Some value'], ['__type' => Fixture\ItemB::class, 'value' => 'some value', 'givenName' => 'Jane']])];
         yield 'shape object' => ['className' => Fixture\FullName::class, 'value' => instantiate(Fixture\FullName::class, ['givenName' => 'John', 'familyName' => 'Doe'])];
-        yield 'shape object with interface property and discriminator' => ['className' => Fixture\ShapeWithInterfacePropertyAndDiscriminator::class, 'value' => instantiate(Fixture\ShapeWithInterfacePropertyAndDiscriminator::class, ['property' => ['type' => 'g', '__value' => 'Jane']])];
+        yield 'shape object with interface property and discriminator' => ['className' => Fixture\ShapeWithInterfacePropertyAndDiscriminator::class, 'value' => instantiate(Fixture\ShapeWithInterfacePropertyAndDiscriminator::class, ['property' => ['type' => 'a', '__value' => 'Jane']])];
         yield 'shape object with union type and discriminator' => ['className' => Fixture\ShapeWithUnionTypeAndDiscriminator::class, 'value' => instantiate(Fixture\ShapeWithUnionTypeAndDiscriminator::class, ['givenOrFamilyName' => ['type' => 'given', '__value' => 'Jane']])];
 
         yield 'string based object' => ['className' => Fixture\GivenName::class, 'value' => instantiate(Fixture\GivenName::class, 'Jane')];
 
         yield 'interface' => ['className' => Fixture\SomeInterface::class, 'value' => instantiate(Fixture\GivenName::class, 'Jane')];
-        yield 'interface with discriminator' => ['className' => Fixture\InterfaceWithDiscriminator::class, 'value' => instantiate(Fixture\FamilyName::class, 'Doe')];
+        yield 'interface with discriminator' => ['className' => Fixture\InterfaceWithDiscriminator::class, 'value' => instantiate(Fixture\ImplementationBOfInterfaceWithDiscriminator::class, 'Foo')];
     }
 
     /**
@@ -534,8 +540,7 @@ final class IntegrationTest extends TestCase
     public function test_instantiate_float_based_object_returns_same_instance_if_already_valid(): void
     {
         $instance = instantiate(Fixture\Longitude::class, 120);
-        $schema = Parser::getSchema(Fixture\Longitude::class);
-        $converted = $schema->instantiate($instance);
+        $converted = Parser::getSchema(Fixture\Longitude::class)->instantiate($instance);
 
         self::assertSame($instance, $converted);
     }
@@ -602,6 +607,7 @@ final class IntegrationTest extends TestCase
         yield 'from array violating maxCount' => ['value' => ['John', 'Jane', 'Max', 'Jack', 'Fred'], 'className' => Fixture\GivenNames::class, 'expectedIssues' => [['code' => 'too_big', 'message' => 'Array must contain at most 4 element(s)', 'path' => [], 'type' => 'array', 'maximum' => 4, 'inclusive' => true, 'exact' => false]]];
         yield 'from array violating mixCount and maxCount' => ['value' => ['foo', 'bar', 'baz'], 'className' => Fixture\ImpossibleList::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Array must contain at least 10 element(s)', 'path' => [], 'type' => 'array', 'minimum' => 10, 'inclusive' => true, 'exact' => false], ['code' => 'too_big', 'message' => 'Array must contain at most 2 element(s)', 'path' => [], 'type' => 'array', 'maximum' => 2, 'inclusive' => true, 'exact' => false]]];
         yield 'from array violating mixCount and maxCount and element constraints' => ['value' => ['a', 'bar', 'c'], 'className' => Fixture\ImpossibleList::class, 'expectedIssues' => [['code' => 'too_small', 'message' => 'Array must contain at least 10 element(s)', 'path' => [], 'type' => 'array', 'minimum' => 10, 'inclusive' => true, 'exact' => false], ['code' => 'too_big', 'message' => 'Array must contain at most 2 element(s)', 'path' => [], 'type' => 'array', 'maximum' => 2, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => [0], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false], ['code' => 'too_small', 'message' => 'String must contain at least 3 character(s)', 'path' => [2], 'type' => 'string', 'minimum' => 3, 'inclusive' => true, 'exact' => false]]];
+        yield 'from array missing type discriminators' => ['value' => [['value' => 'foo']], 'className' => Fixture\InterfaceList::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "__type"', 'path' => [0], 'params' => []]]];
     }
 
     /**
@@ -627,6 +633,7 @@ final class IntegrationTest extends TestCase
         yield 'from instance' => ['value' => instantiate(Fixture\GivenNames::class, ['John', 'Jack', 'Jane']), 'className' => Fixture\GivenNames::class, 'expectedResult' => '["John","Jack","Jane"]'];
         yield 'from strings' => ['value' => ['John', 'Jack', 'Jane'], 'className' => Fixture\GivenNames::class, 'expectedResult' => '["John","Jack","Jane"]'];
         yield 'map of strings' => ['value' => ['wwwision' => 'https://wwwision.de', 'Neos CMS' => 'https://neos.io'], 'className' => Fixture\UriMap::class, 'expectedResult' => '{"wwwision":"https://wwwision.de","Neos CMS":"https://neos.io"}'];
+        yield 'items with discriminators' => ['value' => [['__type' => Fixture\ItemA::class, '__value' => 'Value a'], ['__type' => Fixture\ItemB::class, 'value' => 'Value b', 'givenName' => 'Jane']], 'className' => Fixture\InterfaceList::class, 'expectedResult' => '[{"__type":"Wwwision\\\Types\\\Tests\\\Fixture\\\ItemA","__value":"Value a"},{"__type":"Wwwision\\\Types\\\Tests\\\Fixture\\\ItemB","value":"Value b","givenName":"Jane"}]'];
     }
 
     /**
@@ -635,7 +642,9 @@ final class IntegrationTest extends TestCase
     #[DataProvider('instantiate_list_object_dataProvider')]
     public function test_instantiate_list_object(mixed $value, string $className, string $expectedResult): void
     {
-        self::assertSame($expectedResult, json_encode(instantiate($className, $value), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
+        $instance = instantiate($className, $value);
+        $actualResult = (new Normalizer())->toJson($instance);
+        self::assertSame($expectedResult, $actualResult);
     }
 
     public static function instantiate_shape_object_failing_dataProvider(): Generator
@@ -727,7 +736,7 @@ final class IntegrationTest extends TestCase
             }
         }, 'optionalStringBased' => 'oSB value', 'optionalInt' => 55.0, 'optionalBool' => '0'], 'className' => Fixture\ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":"oSB value","optionalInt":55,"optionalBool":false,"optionalString":"optionalString value"}'];
         yield 'from array with null-values for optionals' => ['value' => ['stringBased' => 'Some value', 'optionalStringBased' => null, 'optionalInt' => null, 'optionalBool' => null, 'optionalString' => null], 'className' => Fixture\ShapeWithOptionalTypes::class, 'expectedResult' => '{"stringBased":"Some value","optionalStringBased":null,"optionalInt":null,"optionalBool":null,"optionalString":null}'];
-        yield 'todo' => ['value' => ['latitude' => 33, 'longitude' => '123.45'], 'className' => Fixture\GeoCoordinates::class, 'expectedResult' => '{"longitude":{"value":123.45},"latitude":{"value":33}}'];
+        yield 'from array to shape with floats' => ['value' => ['latitude' => 33, 'longitude' => '123.45'], 'className' => Fixture\GeoCoordinates::class, 'expectedResult' => '{"longitude":123.45,"latitude":33}'];
         $class = new stdClass();
         $class->givenName = 'Some first name';
         $class->familyName = 'Some last name';
@@ -741,18 +750,22 @@ final class IntegrationTest extends TestCase
         yield 'with simple union type (string)' => ['value' => ['integerOrString' => 'foo'], 'className' => Fixture\ShapeWithSimpleUnionType::class, 'expectedResult' => '{"integerOrString":"foo"}'];
 
         yield 'from array for shape with interface property' => ['value' => ['property' => ['__type' => Fixture\GivenName::class, '__value' => 'Jane']], 'className' => Fixture\ShapeWithInterfaceProperty::class, 'expectedResult' => '{"property":{"__type":"Wwwision\\\Types\\\Tests\\\Fixture\\\GivenName","__value":"Jane"}}'];
-        yield 'from array for shape with interface property with discriminator' => ['value' => ['property' => ['type' => 'g', '__value' => 'Jane']], 'className' => Fixture\ShapeWithInterfacePropertyAndDiscriminator::class, 'expectedResult' => '{"property":{"__type":"Wwwision\\\Types\\\Tests\\\Fixture\\\GivenName","__value":"Jane"}}'];
-        yield 'from array for shape with interface property with discriminator without mapping' => ['value' => ['property' => ['type' => Fixture\GivenName::class, '__value' => 'Jane']], 'className' => Fixture\ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping::class, 'expectedResult' => '{"property":"Jane"}'];
-        yield 'from array for shape with union type property and discriminator' => ['value' => ['givenOrFamilyName' => ['type' => 'given', '__value' => 'Jane']], 'className' => Fixture\ShapeWithUnionTypeAndDiscriminator::class, 'expectedResult' => '{"givenOrFamilyName":"Jane"}'];
-        yield 'from array for shape with union type property and discriminator without mapping' => ['value' => ['givenOrFamilyName' => ['type' => Fixture\GivenName::class, '__value' => 'Jane']], 'className' => Fixture\ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class, 'expectedResult' => '{"givenOrFamilyName":"Jane"}'];
-        yield 'from array for shape with optional interface property and custom discriminator' => ['value' => ['property' => ['type' => 'givenName', '__value' => 'Jane']], 'className' => Fixture\ShapeWithOptionalInterfacePropertyAndCustomDiscriminator::class, 'expectedResult' => '{"property":"Jane"}'];
+        yield 'from array for shape with interface property with discriminator' => ['value' => ['property' => ['type' => 'a', '__value' => 'A']], 'className' => Fixture\ShapeWithInterfacePropertyAndDiscriminator::class, 'expectedResult' => '{"property":{"type":"a","__value":"A"}}'];
+        yield 'from array for shape with interface property with discriminator without mapping' => ['value' => ['property' => ['type' => Fixture\ImplementationBOfInterfaceWithDiscriminator::class, '__value' => 'B']], 'className' => Fixture\ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping::class, 'expectedResult' => '{"property":{"type":"Wwwision\\\Types\\\Tests\\\Fixture\\\ImplementationBOfInterfaceWithDiscriminator","__value":"B"}}'];
+        yield 'from array for shape with union type property and discriminator' => ['value' => ['givenOrFamilyName' => ['type' => 'given', '__value' => 'Jane']], 'className' => Fixture\ShapeWithUnionTypeAndDiscriminator::class, 'expectedResult' => '{"givenOrFamilyName":{"type":"given","__value":"Jane"}}'];
+        yield 'from array for shape with union type property and discriminator without mapping' => ['value' => ['givenOrFamilyName' => ['type' => Fixture\GivenName::class, '__value' => 'Jane']], 'className' => Fixture\ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class, 'expectedResult' => '{"givenOrFamilyName":{"type":"Wwwision\\\Types\\\Tests\\\Fixture\\\GivenName","__value":"Jane"}}'];
+        yield 'from array for shape with optional interface property and custom discriminator' => ['value' => ['property' => ['type' => 'givenName', '__value' => 'Jane']], 'className' => Fixture\ShapeWithOptionalInterfacePropertyAndCustomDiscriminator::class, 'expectedResult' => '{"property":{"type":"givenName","__value":"Jane"}}'];
     }
 
+    /**
+     * @param class-string $className
+     */
     #[DataProvider('instantiate_shape_object_dataProvider')]
     public function test_instantiate_shape_object(mixed $value, string $className, string $expectedResult): void
     {
-        /** @var class-string<object> $className */
-        self::assertSame($expectedResult, json_encode(instantiate($className, $value), JSON_THROW_ON_ERROR));
+        $instance = instantiate($className, $value);
+        $actualResult = (new Normalizer())->toJson($instance);
+        self::assertSame($expectedResult, $actualResult);
     }
 
     public static function instantiate_string_based_object_failing_dataProvider(): Generator
@@ -897,7 +910,7 @@ final class IntegrationTest extends TestCase
         yield 'from array with valid __type but invalid remaining values' => ['value' => ['__type' => Fixture\GivenName::class], 'className' => Fixture\SomeInterface::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing keys for interface of type SomeInterface', 'path' => [], 'params' => []]]];
         yield 'from array with valid __type but missing properties' => ['value' => ['__type' => Fixture\FullName::class, 'givenName' => 'John'], 'className' => Fixture\SomeInterface::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Required', 'path' => ['familyName'], 'expected' => 'string', 'received' => 'undefined']]];
         yield 'from array with invalid discriminator property name' => ['value' => ['__type' => Fixture\GivenName::class, '__value' => 'John'], 'className' => Fixture\InterfaceWithDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Missing discriminator key "t"', 'path' => [], 'params' => []]]];
-        yield 'from array with invalid discriminator property value' => ['value' => ['t' => Fixture\GivenName::class, '__value' => 'John'], 'className' => Fixture\InterfaceWithDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "t" has to be one of "givenName", "familyName", "invalid". Got: "Wwwision\\Types\\Tests\\Fixture\\GivenName"', 'path' => [], 'params' => []]]];
+        yield 'from array with invalid discriminator property value' => ['value' => ['t' => Fixture\GivenName::class, '__value' => 'John'], 'className' => Fixture\InterfaceWithDiscriminator::class, 'expectedIssues' => [['code' => 'custom', 'message' => 'Discriminator key "t" has to be one of "implementationA", "implementationB", "invalid". Got: "Wwwision\\Types\\Tests\\Fixture\\GivenName"', 'path' => [], 'params' => []]]];
     }
 
     /**
@@ -925,15 +938,18 @@ final class IntegrationTest extends TestCase
         yield 'from array and remaining values' => ['value' => ['__type' => Fixture\FullName::class, 'givenName' => 'some given name', 'familyName' => 'some family name'], 'className' => Fixture\SomeInterface::class, 'expectedResult' => '{"givenName":"some given name","familyName":"some family name"}'];
         yield 'from valid implementation' => ['value' => Parser::instantiate(Fixture\GivenName::class, 'John'), 'className' => Fixture\SomeInterface::class, 'expectedResult' => '"John"'];
 
-        yield 'with discriminator from array with discriminator property and __value' => ['value' => ['t' => 'givenName', '__value' => 'this is valid'], 'className' => Fixture\InterfaceWithDiscriminator::class, 'expectedResult' => '"this is valid"'];
-        yield 'with discriminator from valid implementation' => ['value' => Parser::instantiate(Fixture\GivenName::class, 'John'), 'className' => Fixture\InterfaceWithDiscriminator::class, 'expectedResult' => '"John"'];
+        yield 'with discriminator from array with discriminator property and __value' => ['value' => ['t' => 'implementationA', '__value' => 'this is valid'], 'className' => Fixture\InterfaceWithDiscriminator::class, 'expectedResult' => '{"t":"implementationA","__value":"this is valid"}'];
+        yield 'with discriminator from valid implementation' => ['value' => Parser::instantiate(Fixture\ImplementationBOfInterfaceWithDiscriminator::class, 'Valid'), 'className' => Fixture\InterfaceWithDiscriminator::class, 'expectedResult' => '{"t":"implementationB","__value":"Valid"}'];
     }
 
+    /**
+     * @param class-string $className
+     */
     #[DataProvider('instantiate_interface_object_dataProvider')]
     public function test_instantiate_interface_object(mixed $value, string $className, string $expectedResult): void
     {
-        /** @var class-string<object> $className */
-        self::assertJsonStringEqualsJsonString($expectedResult, json_encode(instantiate($className, $value), JSON_THROW_ON_ERROR));
+        $actualResult = (new Normalizer())->toJson(instantiate($className, $value));
+        self::assertJsonStringEqualsJsonString($expectedResult, $actualResult);
     }
 
     public function test_interface_implementationSchemas(): void
@@ -1106,7 +1122,10 @@ final class IntegrationTest extends TestCase
             Parser::getSchema(Fixture\GivenName::class),
             Parser::getSchema(Fixture\FamilyName::class),
         ], null, null);
-        self::assertJsonStringEqualsJsonString($expectedResult, json_encode($oneOfSchema->instantiate($value), JSON_THROW_ON_ERROR));
+        $instance = $oneOfSchema->instantiate($value);
+        assert(is_object($instance));
+        $actualResult = (new Normalizer())->toJson($instance);
+        self::assertJsonStringEqualsJsonString($expectedResult, $actualResult);
     }
 
     public function test_instantiate_returns_same_instance_if_object_is_a_valid_oneOf_type(): void
