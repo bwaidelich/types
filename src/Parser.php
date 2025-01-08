@@ -175,9 +175,6 @@ final class Parser
             } catch (InvalidArgumentException $exception) {
                 throw new InvalidArgumentException(sprintf('Failed to parse constructor argument "%s" of class "%s": %s', $propertyName, $reflectionClass->getShortName(), $exception->getMessage()), 1675172978, $exception);
             }
-            if ($parameter->isOptional()) {
-                $propertySchema = new OptionalSchema($propertySchema);
-            }
             $overwrittenDescription = self::getDescription($parameter);
             if ($overwrittenDescription !== null) {
                 $overriddenPropertyDescriptions[$propertyName] = $overwrittenDescription;
@@ -185,6 +182,12 @@ final class Parser
             $propertyDiscriminator = self::getDiscriminator($parameter);
             if ($propertyDiscriminator !== null) {
                 $propertyDiscriminators[$propertyName] = $propertyDiscriminator;
+                if ($propertySchema instanceof InterfaceSchema || $propertySchema instanceof OneOfSchema) {
+                    $propertySchema = $propertySchema->withDiscriminator($propertyDiscriminator);
+                }
+            }
+            if ($parameter->isOptional()) {
+                $propertySchema = new OptionalSchema($propertySchema);
             }
             $propertySchemas[$propertyName] = $propertySchema;
         }

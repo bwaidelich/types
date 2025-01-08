@@ -1108,6 +1108,18 @@ final class IntegrationTest extends TestCase
         Parser::instantiate(Fixture\ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class, ['givenOrFamilyName' => ['type' => 'family', '__value' => 'does not matter']]);
     }
 
+    public function test_oneOf_discriminator_is_set_from_property_attribute(): void
+    {
+        /** @var ShapeSchema $shapeSchema */
+        $shapeSchema = Parser::getSchema(Fixture\ShapeWithUnionTypeAndDiscriminatorWithoutMapping::class);
+        $oneOfSchema = $shapeSchema->propertySchemas['givenOrFamilyName'];
+
+        self::assertInstanceOf(OneOfSchema::class, $oneOfSchema);
+        self::assertNotNull($oneOfSchema->discriminator);
+        self::assertSame('type', $oneOfSchema->discriminator->propertyName);
+        self::assertNull($oneOfSchema->discriminator->mapping);
+    }
+
     public static function instantiate_oneOf_dataProvider(): Generator
     {
         yield 'from array with __type and __value' => ['value' => ['__type' => Fixture\GivenName::class, '__value' => 'this is valid'], 'expectedResult' => '"this is valid"'];
