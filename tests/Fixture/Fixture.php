@@ -9,7 +9,6 @@ namespace Wwwision\Types\Tests\Fixture;
 use ArrayIterator;
 use DateTimeImmutable;
 use IteratorAggregate;
-use JsonSerializable;
 use stdClass;
 use Traversable;
 use Wwwision\Types\Attributes\Description;
@@ -26,7 +25,7 @@ use function Wwwision\Types\instantiate;
 
 #[StringBased(minLength: 3, maxLength: 20)]
 #[Description('First name of a person')]
-final class GivenName implements SomeInterface, InterfaceWithDiscriminator, JsonSerializable
+final class GivenName implements SomeInterface
 {
     private function __construct(public readonly string $value) {}
 
@@ -39,16 +38,11 @@ final class GivenName implements SomeInterface, InterfaceWithDiscriminator, Json
     {
         return instantiate(FamilyName::class, $this->value);
     }
-
-    public function jsonSerialize(): string
-    {
-        return $this->value;
-    }
 }
 
 #[StringBased(minLength: 3, maxLength: 20)]
 #[Description('Last name of a person')]
-final class FamilyName implements JsonSerializable, SomeInterface, InterfaceWithDiscriminator
+final class FamilyName implements SomeInterface
 {
     private function __construct(public readonly string $value) {}
 
@@ -60,11 +54,6 @@ final class FamilyName implements JsonSerializable, SomeInterface, InterfaceWith
     public function someOtherMethod(): FamilyName
     {
         return instantiate(self::class, $this->value);
-    }
-
-    public function jsonSerialize(): string
-    {
-        return $this->value;
     }
 }
 
@@ -120,7 +109,7 @@ final class FullNames implements IteratorAggregate
  * @implements IteratorAggregate<GivenName>
  */
 #[ListBased(itemClassName: GivenName::class, maxCount: 4)]
-final class GivenNames implements IteratorAggregate, JsonSerializable
+final class GivenNames implements IteratorAggregate
 {
     /** @param array<GivenName> $givenNames */
     private function __construct(private readonly array $givenNames) {}
@@ -129,21 +118,13 @@ final class GivenNames implements IteratorAggregate, JsonSerializable
     {
         return new ArrayIterator($this->givenNames);
     }
-
-    /**
-     * @return array<mixed>
-     */
-    public function jsonSerialize(): array
-    {
-        return $this->givenNames;
-    }
 }
 
 /**
  * @implements IteratorAggregate<Uri>
  */
 #[ListBased(itemClassName: Uri::class)]
-final class UriMap implements IteratorAggregate, JsonSerializable
+final class UriMap implements IteratorAggregate
 {
     /**
      * @param array<Uri> $entries
@@ -159,15 +140,6 @@ final class UriMap implements IteratorAggregate, JsonSerializable
     {
         return new ArrayIterator($this->entries);
     }
-
-    /**
-     * @return array<mixed>
-     */
-    public function jsonSerialize(): array
-    {
-        return $this->entries;
-    }
-
 }
 
 #[StringBased(pattern: '^(?!magic).*')]
@@ -213,14 +185,9 @@ final class Regex
 }
 
 #[StringBased(format: StringTypeFormat::uri)]
-final class Uri implements JsonSerializable
+final class Uri
 {
     private function __construct(public readonly string $value) {}
-
-    public function jsonSerialize(): string
-    {
-        return $this->value;
-    }
 }
 
 #[StringBased(format: StringTypeFormat::date)]
@@ -360,6 +327,7 @@ interface SomeInterface
     public function someOtherMethod(): ?FamilyName;
 }
 
+
 #[FloatBased(minimum: -180.0, maximum: 180.5)]
 final class Longitude
 {
@@ -429,6 +397,14 @@ final class ShapeWithArray
     ) {}
 }
 
+final class ShapeWithListBasedProperty
+{
+    public function __construct(
+        public readonly GivenNames $givenNames,
+        public readonly string $someString,
+    ) {}
+}
+
 final class ShapeWithUnionType
 {
     public function __construct(
@@ -443,47 +419,28 @@ final class ShapeWithSimpleUnionType
     ) {}
 }
 
-final class ShapeWithInterfaceProperty implements JsonSerializable
+final class ShapeWithInterfaceProperty
 {
     public function __construct(
         public readonly SomeInterface $property,
     ) {}
-
-    /**
-     * @return array<mixed>
-     */
-    public function jsonSerialize(): array
-    {
-        $result = get_object_vars($this);
-        $result['property'] = [
-            '__type' => $this->property::class,
-            '__value' => $result['property'],
-        ];
-        return $result;
-    }
 }
 
 final class ShapeWithoutConstructor {}
 
-final class ShapeWithInterfacePropertyAndDiscriminator implements JsonSerializable
+final class ShapeWithDiscriminatedInterfaceProperty
 {
     public function __construct(
-        #[Discriminator(propertyName: 'type', mapping: ['g' => GivenName::class, 'f' => FamilyName::class])]
         public readonly InterfaceWithDiscriminator $property,
     ) {}
+}
 
-    /**
-     * @return array<mixed>
-     */
-    public function jsonSerialize(): array
-    {
-        $result = get_object_vars($this);
-        $result['property'] = [
-            '__type' => $this->property::class,
-            '__value' => $result['property'],
-        ];
-        return $result;
-    }
+final class ShapeWithInterfacePropertyAndDiscriminator
+{
+    public function __construct(
+        #[Discriminator(propertyName: 'type', mapping: ['a' => ImplementationAOfInterfaceWithDiscriminator::class, 'b' => ImplementationBOfInterfaceWithDiscriminator::class])]
+        public readonly InterfaceWithDiscriminator $property,
+    ) {}
 }
 
 final class ShapeWithInterfacePropertyAndDiscriminatorWithoutMapping
@@ -526,8 +483,20 @@ final class ShapeWithOptionalInterfacePropertyAndCustomDiscriminator
     ) {}
 }
 
-#[Discriminator(propertyName: 't', mapping: ['givenName' => GivenName::class, 'familyName' => FamilyName::class, 'invalid' => 'NoClassName'])] // @phpstan-ignore-line
+#[Discriminator(propertyName: 't', mapping: ['implementationA' => ImplementationAOfInterfaceWithDiscriminator::class, 'implementationB' => ImplementationBOfInterfaceWithDiscriminator::class, 'invalid' => 'NoClassName'])] // @phpstan-ignore-line
 interface InterfaceWithDiscriminator {}
+
+#[StringBased]
+final class ImplementationAOfInterfaceWithDiscriminator implements InterfaceWithDiscriminator
+{
+    private function __construct(public readonly string $value) {}
+}
+
+#[StringBased]
+final class ImplementationBOfInterfaceWithDiscriminator implements InterfaceWithDiscriminator
+{
+    private function __construct(public readonly string $value) {}
+}
 
 #[Discriminator(propertyName: 'type')]
 interface InterfaceWithAmbiguousDiscriminator {}
@@ -560,5 +529,69 @@ final class ShapeWithPropertyOfNonExistingClass
 {
     public function __construct(
         public readonly Non\Existing\Class $someProperty, // @phpstan-ignore-line
+    ) {}
+}
+
+/**
+ * @implements IteratorAggregate<ItemInterface>
+ */
+#[ListBased(itemClassName: ItemInterface::class)]
+final class InterfaceList implements IteratorAggregate
+{
+    /** @param array<ItemInterface> $items */
+    private function __construct(private readonly array $items) {}
+
+    public function getIterator(): Traversable
+    {
+        return new ArrayIterator($this->items);
+    }
+}
+
+interface ItemInterface {}
+
+#[StringBased]
+final class ItemA implements ItemInterface
+{
+    private function __construct(
+        public string $value,
+    ) {}
+}
+
+final class ItemB implements ItemInterface
+{
+    private function __construct(
+        public string $value,
+        public GivenName $givenName,
+    ) {}
+}
+
+/**
+ * @implements IteratorAggregate<mixed>
+ */
+final class StringIterator implements IteratorAggregate
+{
+    public function __construct(
+        private string $first,
+        private string $second,
+    ) {}
+
+    public function getIterator(): Traversable
+    {
+        yield from get_object_vars($this);
+    }
+}
+
+final class ShapeWithTypeDiscriminatedProperties
+{
+    /**
+     * @param array<string> $stringArray
+     */
+    public function __construct(
+        public readonly InterfaceList $interfaceList,
+        #[Discriminator(propertyName: 'customT', mapping: ['A' => ImplementationAOfInterfaceWithDiscriminator::class, 'B' => ImplementationBOfInterfaceWithDiscriminator::class])]
+        public readonly InterfaceWithDiscriminator $interfaceWithCustomDiscriminator,
+        public readonly InterfaceWithDiscriminator $interfaceWithDefaultDiscriminator,
+        public readonly array $stringArray,
+        public readonly StringIterator $stringIterator,
     ) {}
 }

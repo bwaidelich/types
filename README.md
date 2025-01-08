@@ -718,6 +718,99 @@ The exception itself is JSON-serializable and the above example would be equival
 > If the syntax is familiar to you, that's no surpise. It is inspired (and in fact almost completely compatible) with the issue format
 > of the fantastic [Zod library](https://zod.dev/ERROR_HANDLING)
 
+## Serialization
+
+This package promotes the heavy usage of dedicated value objects for a greater type-safety. When it comes to serializing those objects (e.g. to transmit them to a database or API) this comes at a cost:
+The default behavior of PHPs built-in [json_encode](https://www.php.net/manual/en/function.json-encode.php) function will, by default, just include all properties of a class.
+
+For the simple type-based objects this is not feasible as it turns the simple value into an associative array of `['value' => <the-actual-value>]` instead of the desired simple representation of `<the-actual-value>`.
+
+### Example:
+
+```php
+#[StringBased]
+final class Name {
+    private function __construct(public readonly string $value) {}
+}
+$instance = instantiate(Name::class, 'John Doe');
+$serialized = json_encode($instance);
+assert($serialized === '{"value":"John Doe"}'); // This should preferably just be serialized to the value itself ("John Doe")
+```
+
+Also, [Discriminator](#Discriminator) details will be lost.
+
+Starting with version [1.4](https://github.com/bwaidelich/types/releases/tag/1.4.0), this package provides a dedicated `Normalizer` that can be used to encode types:
+
+```php
+// ...
+$instance = instantiate(Name::class, 'John Doe');
+
+$normalized = (new Normalizer())->normalize($instance);
+assert($normalized === 'John Doe');
+
+$normalizedJson = (new Normalizer())->toJson($instance);
+assert($normalizedJson === '"John Doe"');
+```
+
+<details>
+<summary><b>Example: Complex type with type discrimination</b></summary>
+
+```php
+#[StringBased]
+final class GivenName {
+    private function __construct(public readonly string $value) {}
+}
+#[StringBased]
+final class FamilyName {
+    private function __construct(public readonly string $value) {}
+}
+
+#[Discriminator(propertyName: 'type', mapping: ['email' => EmailAddress::class, 'phone' => PhoneNumber::class])]
+interface ContactInformation {}
+
+#[StringBased(format: StringTypeFormat::email)]
+final class EmailAddress implements ContactInformation {
+    public function __construct(public readonly string $value) {}
+}
+
+enum PhoneNumberType {
+    case PERSONAL;
+    case WORK;
+    case OTHER;
+}
+
+final class PhoneNumber implements ContactInformation {
+    public function __construct(
+        public readonly PhoneNumberType $phoneNumberType,
+        public readonly string $number,
+    ) {}
+}
+
+#[ListBased(itemClassName: ContactInformation::class)]
+final class ContactOptions implements IteratorAggregate {
+    private function __construct(private readonly array $options) {}
+    
+    public function getIterator() : Traversable {
+        yield from $this->options;
+    }
+}
+
+final class Contact {
+    public function __construct(
+        public readonly GivenName $givenName,
+        public readonly FamilyName $familyName,
+        public readonly ContactOptions $contactOptions,
+    ) {}
+}
+
+$input = ['givenName' => 'Jane', 'familyName' => 'Doe', 'contactOptions' => [['type' => 'email', '__value' => 'jane.doe@example.com'], ['type' => 'phone', 'phoneNumberType' => 'PERSONAL', 'number' => '1234567']]];
+$instance = instantiate(Contact::class, $input);
+$normalized = (new Normalizer())->normalize($instance);
+
+assert($normalized === $input);
+```
+
+</details>
 
 ## Integrations
 
