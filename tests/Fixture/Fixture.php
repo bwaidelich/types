@@ -500,8 +500,8 @@ final class ImplementationBOfInterfaceWithDiscriminator implements InterfaceWith
 
 final class EmptyImplementationOfInterfaceWithDiscriminator implements InterfaceWithDiscriminator
 {
-
-    public function __construct() {
+    public function __construct()
+    {
         // a constructor is required
     }
 }
