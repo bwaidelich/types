@@ -120,9 +120,6 @@ final class InterfaceSchema implements Schema
         } else {
             unset($array[$discriminatorPropertyName]);
         }
-        if ($array === []) {
-            throw CoerceException::custom(sprintf('Missing keys for interface of type %s', $this->getName()), $value, $this);
-        }
         try {
             $result = Parser::instantiate($type, $array);
         } catch (CoerceException $e) {
