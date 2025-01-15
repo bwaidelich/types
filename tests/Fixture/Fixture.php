@@ -483,7 +483,7 @@ final class ShapeWithOptionalInterfacePropertyAndCustomDiscriminator
     ) {}
 }
 
-#[Discriminator(propertyName: 't', mapping: ['implementationA' => ImplementationAOfInterfaceWithDiscriminator::class, 'implementationB' => ImplementationBOfInterfaceWithDiscriminator::class, 'invalid' => 'NoClassName'])] // @phpstan-ignore-line
+#[Discriminator(propertyName: 't', mapping: ['implementationA' => ImplementationAOfInterfaceWithDiscriminator::class, 'implementationB' => ImplementationBOfInterfaceWithDiscriminator::class, 'empty' => EmptyImplementationOfInterfaceWithDiscriminator::class, 'invalid' => 'NoClassName'])] // @phpstan-ignore-line
 interface InterfaceWithDiscriminator {}
 
 #[StringBased]
@@ -496,6 +496,14 @@ final class ImplementationAOfInterfaceWithDiscriminator implements InterfaceWith
 final class ImplementationBOfInterfaceWithDiscriminator implements InterfaceWithDiscriminator
 {
     private function __construct(public readonly string $value) {}
+}
+
+final class EmptyImplementationOfInterfaceWithDiscriminator implements InterfaceWithDiscriminator
+{
+
+    public function __construct() {
+        // a constructor is required
+    }
 }
 
 #[Discriminator(propertyName: 'type')]
