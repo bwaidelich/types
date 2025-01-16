@@ -27,6 +27,7 @@ use Wwwision\Types\Attributes\ListBased;
 use Wwwision\Types\Attributes\StringBased;
 use Wwwision\Types\Attributes\TypeBased;
 use Wwwision\Types\Schema\ArraySchema;
+use Wwwision\Types\Schema\DeferredSchema;
 use Wwwision\Types\Schema\EnumCaseSchema;
 use Wwwision\Types\Schema\EnumSchema;
 use Wwwision\Types\Schema\FloatSchema;
@@ -93,7 +94,7 @@ final class Parser
         try {
             Assert::notEmpty($className, 'Failed to get schema for empty class name');
             if (array_key_exists($className, self::$currentlyParsing)) {
-                throw new RuntimeException(sprintf('Recursion detected for class "%s"', $className), 1737058637);
+                return new DeferredSchema(fn() => self::getSchema($className));
             }
             self::$currentlyParsing[$className] = true;
             if (interface_exists($className)) {
