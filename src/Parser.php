@@ -58,6 +58,11 @@ final class Parser
     private static array $reflectionClassRuntimeCache = [];
 
     /**
+     * @var array<class-string<object>, true>
+     */
+    private static array $currentlyParsing = [];
+
+    /**
      * @codeCoverageIgnore
      */
     private function __construct() {}
@@ -85,42 +90,53 @@ final class Parser
      */
     public static function getSchema(string $className): Schema
     {
-        Assert::notEmpty($className, 'Failed to get schema for empty class name');
-        if (interface_exists($className)) {
-            $interfaceReflection = self::reflectClass($className);
-            return self::getInterfaceSchema($interfaceReflection);
-        }
-        Assert::classExists($className, 'Failed to get schema for class %s because that class does not exist');
-        $reflectionClass = self::reflectClass($className);
-        if (is_a($reflectionClass, ReflectionEnum::class, true)) {
-            $caseSchemas = [];
-            foreach ($reflectionClass->getCases() as $caseReflection) {
-                $caseSchemas[$caseReflection->getName()] = new EnumCaseSchema($caseReflection, self::getDescription($caseReflection));
+        try {
+            Assert::notEmpty($className, 'Failed to get schema for empty class name');
+            if (array_key_exists($className, self::$currentlyParsing)) {
+                throw new RuntimeException(sprintf('Recursion detected for class "%s"', $className), 1737058637);
             }
-            /** @var Schema $schema */
-            $schema = new EnumSchema($reflectionClass, self::getDescription($reflectionClass), $caseSchemas);
+            self::$currentlyParsing[$className] = true;
+            if (interface_exists($className)) {
+                $interfaceReflection = self::reflectClass($className);
+                $schema = self::getInterfaceSchema($interfaceReflection);
+                return $schema;
+            }
+            Assert::classExists($className, 'Failed to get schema for class %s because that class does not exist');
+            $reflectionClass = self::reflectClass($className);
+            if (is_a($reflectionClass, ReflectionEnum::class, true)) {
+                $caseSchemas = [];
+                foreach ($reflectionClass->getCases() as $caseReflection) {
+                    $caseSchemas[$caseReflection->getName()] = new EnumCaseSchema($caseReflection, self::getDescription($caseReflection));
+                }
+                /** @var Schema $schema */
+                $schema = new EnumSchema($reflectionClass, self::getDescription($reflectionClass), $caseSchemas);
+                return $schema;
+            }
+            $baseTypeAttributes = $reflectionClass->getAttributes(TypeBased::class, ReflectionAttribute::IS_INSTANCEOF);
+            if ($baseTypeAttributes === []) {
+                $schema = self::getShapeSchema($reflectionClass);
+                return $schema;
+            }
+            Assert::keyExists($baseTypeAttributes, 0, sprintf('Missing BaseType attribute for class "%s"', $reflectionClass->getName()));
+            Assert::count($baseTypeAttributes, 1, 'Expected exactly %d BaseType attribute for class "' . $reflectionClass->getName() . '", got %d');
+            $baseTypeAttribute = $baseTypeAttributes[0]->newInstance();
+            $schema = match ($baseTypeAttribute::class) {
+                StringBased::class => new StringSchema($reflectionClass, self::getDescription($reflectionClass), $baseTypeAttribute->minLength, $baseTypeAttribute->maxLength, $baseTypeAttribute->pattern, $baseTypeAttribute->format),
+                IntegerBased::class => new IntegerSchema($reflectionClass, self::getDescription($reflectionClass), $baseTypeAttribute->minimum, $baseTypeAttribute->maximum),
+                FloatBased::class => new FloatSchema($reflectionClass, self::getDescription($reflectionClass), $baseTypeAttribute->minimum, $baseTypeAttribute->maximum),
+                ListBased::class => new ListSchema(
+                    $reflectionClass,
+                    self::getDescription($reflectionClass),
+                    self::getSchema($baseTypeAttribute->itemClassName),
+                    $baseTypeAttribute->minCount,
+                    $baseTypeAttribute->maxCount,
+                ),
+                default => throw new InvalidArgumentException(sprintf('BaseType attribute for class "%s" has an invalid type of %s', $reflectionClass->getName(), get_debug_type($baseTypeAttribute)), 1688559710),
+            };
             return $schema;
+        } finally {
+            unset(self::$currentlyParsing[$className]);
         }
-        $baseTypeAttributes = $reflectionClass->getAttributes(TypeBased::class, ReflectionAttribute::IS_INSTANCEOF);
-        if ($baseTypeAttributes === []) {
-            return self::getShapeSchema($reflectionClass);
-        }
-        Assert::keyExists($baseTypeAttributes, 0, sprintf('Missing BaseType attribute for class "%s"', $reflectionClass->getName()));
-        Assert::count($baseTypeAttributes, 1, 'Expected exactly %d BaseType attribute for class "' . $reflectionClass->getName() . '", got %d');
-        $baseTypeAttribute = $baseTypeAttributes[0]->newInstance();
-        return match ($baseTypeAttribute::class) {
-            StringBased::class => new StringSchema($reflectionClass, self::getDescription($reflectionClass), $baseTypeAttribute->minLength, $baseTypeAttribute->maxLength, $baseTypeAttribute->pattern, $baseTypeAttribute->format),
-            IntegerBased::class => new IntegerSchema($reflectionClass, self::getDescription($reflectionClass), $baseTypeAttribute->minimum, $baseTypeAttribute->maximum),
-            FloatBased::class => new FloatSchema($reflectionClass, self::getDescription($reflectionClass), $baseTypeAttribute->minimum, $baseTypeAttribute->maximum),
-            ListBased::class => new ListSchema(
-                $reflectionClass,
-                self::getDescription($reflectionClass),
-                self::getSchema($baseTypeAttribute->itemClassName),
-                $baseTypeAttribute->minCount,
-                $baseTypeAttribute->maxCount,
-            ),
-            default => throw new InvalidArgumentException(sprintf('BaseType attribute for class "%s" has an invalid type of %s', $reflectionClass->getName(), get_debug_type($baseTypeAttribute)), 1688559710),
-        };
     }
 
     /**

@@ -603,3 +603,17 @@ final class ShapeWithTypeDiscriminatedProperties
         public readonly StringIterator $stringIterator,
     ) {}
 }
+
+final class ClassWithRecursion
+{
+    public function __construct(
+        public readonly SubClassWithRecursion $subClass,
+    ) {}
+}
+
+final class SubClassWithRecursion
+{
+    public function __construct(
+        public readonly ClassWithRecursion $parentClass,
+    ) {}
+}
