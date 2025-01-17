@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionEnumUnitCase;
+use RuntimeException;
 use stdClass;
 use UnitEnum;
 use Wwwision\Types\Attributes\Description;
@@ -147,6 +148,13 @@ final class IntegrationTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Failed to parse constructor argument "someProperty" of class "ShapeWithPropertyOfNonExistingClass": Expected an existing class or interface name, got Wwwision\Types\Tests\Fixture\Non\Existing\Class');
         Parser::getSchema(Fixture\ShapeWithPropertyOfNonExistingClass::class);
+    }
+
+    public function test_getSchema_throws_if_parsing_class_leads_to_recursion(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Recursion detected for class "Wwwision\Types\Tests\Fixture\ClassWithRecursion"');
+        Parser::getSchema(Fixture\ClassWithRecursion::class);
     }
 
     public static function getSchema_dataProvider(): Generator
