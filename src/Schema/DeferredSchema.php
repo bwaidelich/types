@@ -19,35 +19,35 @@ final class DeferredSchema implements Schema
 
     public function getType(): string
     {
-        return $this->resolveSchema()->getType();
+        return $this->resolve()->getType();
     }
 
     public function getName(): string
     {
-        return $this->resolveSchema()->getName();
+        return $this->resolve()->getName();
     }
 
     public function getDescription(): ?string
     {
-        return $this->resolveSchema()->getDescription();
+        return $this->resolve()->getDescription();
     }
 
     public function isInstance(mixed $value): bool
     {
-        return $this->resolveSchema()->isInstance($value);
+        return $this->resolve()->isInstance($value);
     }
 
     public function instantiate(mixed $value): mixed
     {
-        return $this->resolveSchema()->instantiate($value);
+        return $this->resolve()->instantiate($value);
     }
 
     public function jsonSerialize(): array
     {
-        return $this->resolveSchema()->jsonSerialize();
+        return $this->resolve()->jsonSerialize();
     }
 
-    private function resolveSchema(): Schema
+    public function resolve(): Schema
     {
         if ($this->resolvedSchema === null) {
             $this->resolvedSchema = ($this->schemaResolver)();
