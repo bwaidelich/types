@@ -604,6 +604,7 @@ final class ShapeWithTypeDiscriminatedProperties
     ) {}
 }
 
+#[Description('Description on recursive class')]
 final class ClassWithRecursion
 {
     public function __construct(
@@ -614,6 +615,7 @@ final class ClassWithRecursion
 final class SubClassWithRecursion
 {
     public function __construct(
+        #[Description('recursive property')]
         public readonly ClassWithRecursion $parentClass,
     ) {}
 }

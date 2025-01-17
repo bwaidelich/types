@@ -150,13 +150,6 @@ final class IntegrationTest extends TestCase
         Parser::getSchema(Fixture\ShapeWithPropertyOfNonExistingClass::class);
     }
 
-    public function test_getSchema_throws_if_parsing_class_leads_to_recursion(): void
-    {
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Recursion detected for class "Wwwision\Types\Tests\Fixture\ClassWithRecursion"');
-        Parser::getSchema(Fixture\ClassWithRecursion::class);
-    }
-
     public static function getSchema_dataProvider(): Generator
     {
         yield 'enum' => ['className' => Fixture\Title::class, 'expectedResult' => '{"type":"enum","name":"Title","description":"honorific title of a person","cases":[{"type":"string","description":"for men, regardless of marital status, who do not have another professional or academic title","name":"MR","value":"MR"},{"type":"string","description":"for married women who do not have another professional or academic title","name":"MRS","value":"MRS"},{"type":"string","description":"for girls, unmarried women and married women who continue to use their maiden name","name":"MISS","value":"MISS"},{"type":"string","description":"for women, regardless of marital status or when marital status is unknown","name":"MS","value":"MS"},{"type":"string","description":"for any other title that does not match the above","name":"OTHER","value":"OTHER"}]}'];
@@ -190,6 +183,8 @@ final class IntegrationTest extends TestCase
         yield 'shape with union type and discriminator' => ['className' => Fixture\ShapeWithUnionTypeAndDiscriminator::class, 'expectedResult' => '{"description":null,"name":"ShapeWithUnionTypeAndDiscriminator","properties":[{"description":null,"name":"givenOrFamilyName","type":"GivenName|FamilyName"}],"type":"object"}'];
         yield 'shape with optional interface property and custom discriminator' => ['className' => Fixture\ShapeWithOptionalInterfacePropertyAndCustomDiscriminator::class, 'expectedResult' => '{"description":null,"name":"ShapeWithOptionalInterfacePropertyAndCustomDiscriminator","properties":[{"description":"SomeInterface description","name":"property","optional":true,"type":"SomeInterface"}],"type":"object"}'];
         yield 'interface with discriminator' => ['className' => Fixture\InterfaceWithDiscriminator::class, 'expectedResult' => '{"type":"interface","name":"InterfaceWithDiscriminator","description":null,"properties":[]}'];
+        yield 'shape with recursion' => ['className' => Fixture\ClassWithRecursion::class, 'expectedResult' => '{"type":"object","name":"ClassWithRecursion","description":"Description on recursive class","properties":[{"type":"SubClassWithRecursion","name":"subClass","description":null}]}'];
+        yield 'shape with recursion 2' => ['className' => Fixture\SubClassWithRecursion::class, 'expectedResult' => '{"type":"object","name":"SubClassWithRecursion","description":null,"properties":[{"type":"ClassWithRecursion","name":"parentClass","description":"Description on recursive class"}]}'];
     }
 
     /**
