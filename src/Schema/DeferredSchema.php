@@ -47,7 +47,7 @@ final class DeferredSchema implements Schema
         return $this->resolveSchema()->jsonSerialize();
     }
 
-    private function resolveSchema(): Schema
+    public function resolveSchema(): Schema
     {
         if ($this->resolvedSchema === null) {
             $this->resolvedSchema = ($this->schemaResolver)();
