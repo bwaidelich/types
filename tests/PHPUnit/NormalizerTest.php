@@ -156,4 +156,11 @@ final class NormalizerTest extends TestCase
         self::assertSame(['t' => null], $actualResult);
     }
 
+    public function test_normalize_respects_jsonSerializable_properties(): void
+    {
+        $instance = new Fixture\JsonSerializableShape(new Fixture\JsonSerializableSimpleShape('some name'), 123);
+        $actualResult = (new Normalizer())->normalize($instance);
+        self::assertSame(['name' => 'SOME NAME', 'age' => 123], $actualResult);
+    }
+
 }

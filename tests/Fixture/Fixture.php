@@ -9,6 +9,7 @@ namespace Wwwision\Types\Tests\Fixture;
 use ArrayIterator;
 use DateTimeImmutable;
 use IteratorAggregate;
+use JsonSerializable;
 use stdClass;
 use Traversable;
 use Wwwision\Types\Attributes\Description;
@@ -618,4 +619,35 @@ final class SubClassWithRecursion
         #[Description('recursive property')]
         public readonly ClassWithRecursion $parentClass,
     ) {}
+}
+
+final class JsonSerializableShape implements JsonSerializable
+{
+    public function __construct(
+        public readonly JsonSerializableSimpleShape $name,
+        public readonly int $age,
+    ) {}
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): array
+    {
+        return [
+            'name' => $this->name,
+            'age' => $this->age,
+        ];
+    }
+}
+
+final class JsonSerializableSimpleShape implements JsonSerializable
+{
+    public function __construct(
+        public readonly string $name,
+    ) {}
+
+    public function jsonSerialize(): string
+    {
+        return strtoupper($this->name);
+    }
 }
