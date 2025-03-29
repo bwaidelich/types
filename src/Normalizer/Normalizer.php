@@ -19,7 +19,7 @@ use Wwwision\Types\Attributes\TypeBased;
 final class Normalizer
 {
     public function __construct(
-        private bool $includeRootLevelTypeDiscrimination = true,
+        private readonly bool $includeRootLevelTypeDiscrimination = true,
     ) {}
 
     public function normalize(object $object): mixed
