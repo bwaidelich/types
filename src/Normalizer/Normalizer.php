@@ -6,6 +6,7 @@ namespace Wwwision\Types\Normalizer;
 
 use BackedEnum;
 use JsonException;
+use JsonSerializable;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionNamedType;
@@ -39,6 +40,16 @@ final class Normalizer
      */
     private function normalizeInternal(object $object, ReflectionClass $reflectionClass): mixed
     {
+        if ($object instanceof JsonSerializable) {
+            $deserialized = $object->jsonSerialize();
+            if (is_iterable($deserialized)) {
+                return $this->normalizeIterable($deserialized, is_object($deserialized) ? new ReflectionClass($deserialized) : null);
+            }
+            if (is_object($deserialized)) {
+                return $this->normalizeInternal($deserialized, new ReflectionClass($deserialized));
+            }
+            return $deserialized;
+        }
         if ($object instanceof BackedEnum) {
             return $object->value;
         }
@@ -83,16 +94,18 @@ final class Normalizer
     /**
      * @template T of object
      * @param iterable<mixed> $iterable
-     * @param ReflectionClass<T> $reflectionClass
+     * @param ReflectionClass<T>|null $reflectionClass
      * @return array<mixed>
      */
-    private function normalizeIterable(iterable $iterable, ReflectionClass $reflectionClass): array
+    private function normalizeIterable(iterable $iterable, ReflectionClass|null $reflectionClass): array
     {
         $itemDiscriminator = null;
-        /** @var ReflectionAttribute<ListBased>|null $listBasedReflectionAttribute */
-        $listBasedReflectionAttribute = $reflectionClass->getAttributes(ListBased::class, ReflectionAttribute::IS_INSTANCEOF)[0] ?? null;
-        if ($listBasedReflectionAttribute !== null) {
-            $itemDiscriminator = self::getClassDiscriminator(new ReflectionClass($listBasedReflectionAttribute->newInstance()->itemClassName));
+        if ($reflectionClass !== null) {
+            /** @var ReflectionAttribute<ListBased>|null $listBasedReflectionAttribute */
+            $listBasedReflectionAttribute = $reflectionClass->getAttributes(ListBased::class, ReflectionAttribute::IS_INSTANCEOF)[0] ?? null;
+            if ($listBasedReflectionAttribute !== null) {
+                $itemDiscriminator = self::getClassDiscriminator(new ReflectionClass($listBasedReflectionAttribute->newInstance()->itemClassName));
+            }
         }
         $result = [];
         foreach ($iterable as $key => $item) {
