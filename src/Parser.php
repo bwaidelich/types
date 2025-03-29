@@ -37,6 +37,7 @@ use Wwwision\Types\Schema\ListSchema;
 use Wwwision\Types\Schema\LiteralBooleanSchema;
 use Wwwision\Types\Schema\LiteralFloatSchema;
 use Wwwision\Types\Schema\LiteralIntegerSchema;
+use Wwwision\Types\Schema\LiteralNullSchema;
 use Wwwision\Types\Schema\LiteralStringSchema;
 use Wwwision\Types\Schema\OneOfSchema;
 use Wwwision\Types\Schema\OptionalSchema;
@@ -205,6 +206,8 @@ final class Parser
             }
             if ($parameter->isOptional()) {
                 $propertySchema = new OptionalSchema($propertySchema);
+            } elseif ($parameter->allowsNull() && !$propertySchema instanceof OneOfSchema) {
+                $propertySchema = new OneOfSchema([$propertySchema, new LiteralNullSchema(null)], null, null);
             }
             $propertySchemas[$propertyName] = $propertySchema;
         }
@@ -256,6 +259,7 @@ final class Parser
                 'float' => new LiteralFloatSchema($description),
                 'int' => new LiteralIntegerSchema($description),
                 'string' => new LiteralStringSchema($description),
+                'null' => new LiteralNullSchema($description),
                 default => throw new InvalidArgumentException(sprintf('No support for type %s', $reflectionType->getName())),
             };
         }

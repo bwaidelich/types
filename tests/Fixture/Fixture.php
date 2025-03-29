@@ -272,11 +272,15 @@ final class ShapeWithOptionalTypes
 {
     public function __construct(
         public readonly FamilyName $stringBased,
+        public readonly string|null $stringOrNull,
+        public readonly GivenNames|null $givenNamesOrNull,
         public readonly ?FamilyName $optionalStringBased = null,
         #[Description('Some description')]
         public readonly ?int $optionalInt = null,
-        public readonly ?bool $optionalBool = false,
+        public readonly ?bool $optionalBool = null,
         public readonly ?string $optionalString = null,
+        public readonly string $stringWithDefaultValue = 'default',
+        public readonly bool $boolWithDefault = false,
     ) {}
 }
 
@@ -410,6 +414,13 @@ final class ShapeWithUnionType
 {
     public function __construct(
         public readonly GivenName|FamilyName $givenOrFamilyName,
+    ) {}
+}
+
+final class ShapeWithOptionalUnionType
+{
+    public function __construct(
+        public readonly GivenName|FamilyName|null $givenOrFamilyNameOrNull,
     ) {}
 }
 

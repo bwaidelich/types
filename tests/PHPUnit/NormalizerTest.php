@@ -102,6 +102,9 @@ final class NormalizerTest extends TestCase
         yield 'shape with discriminated interface property' => ['className' => Fixture\ShapeWithDiscriminatedInterfaceProperty::class, 'input' => ['property' => ['t' => 'implementationA', '__value' => 'Foo']]];
         yield 'shape with interface property and discriminator' => ['className' => Fixture\ShapeWithInterfacePropertyAndDiscriminator::class, 'input' => ['property' => ['type' => 'a', '__value' => 'Bar']]];
         yield 'shape with type-discriminated properties' => ['className' => Fixture\ShapeWithTypeDiscriminatedProperties::class, 'input' => ['interfaceList' => [['__type' => Fixture\ItemA::class, '__value' => 'A'], ['__type' => Fixture\ItemB::class, 'value' => 'B', 'givenName' => 'Jane']], 'interfaceWithCustomDiscriminator' => ['customT' => 'A', '__value' => 'Foo'], 'interfaceWithDefaultDiscriminator' => ['t' => 'implementationA', '__value' => 'Bar'], 'stringArray' => ['foo', 'bar'], 'stringIterator' => ['first' => 'baz', 'second' => 'foos']]];
+        yield 'shape with left out optional properties' => ['className' => Fixture\ShapeWithOptionalTypes::class, 'input' => ['stringBased' => 'Some Value', 'stringOrNull' => null, 'givenNamesOrNull' => null]];
+        yield 'shape with left out optional properties 2' => ['className' => Fixture\ShapeWithOptionalTypes::class, 'input' => ['stringBased' => 'Some Value', 'stringOrNull' => 'value', 'givenNamesOrNull' => ['Jane', 'John']]];
+        yield 'shape with specified optional properties' => ['className' => Fixture\ShapeWithOptionalTypes::class, 'input' => ['stringBased' => 'Some Value', 'stringOrNull' => 'foo', 'givenNamesOrNull' => ['John', 'Jane'], 'optionalStringBased' => 'Optional', 'optionalInt' => 123, 'optionalBool' => false, 'optionalString' => 'Optional String', 'stringWithDefaultValue' => 'not the default', 'boolWithDefault' => true]];
     }
 
     /**
@@ -154,6 +157,39 @@ final class NormalizerTest extends TestCase
         $instance = new $class();
         $actualResult = (new Normalizer())->normalize($instance);
         self::assertSame(['t' => null], $actualResult);
+    }
+
+    public function test_discriminator_is_set_for_concrete_instance_of_discriminated_interface_property(): void
+    {
+        $propertyInstance = instantiate(Fixture\ImplementationBOfInterfaceWithDiscriminator::class, 'foo');
+        $instance = new Fixture\ShapeWithDiscriminatedInterfaceProperty($propertyInstance);
+        $actualResult = (new Normalizer())->normalize($instance);
+        self::assertSame(['property' => ['t' => 'implementationB', '__value' => 'foo']], $actualResult);
+    }
+
+    public function test_overridden_property_discriminator_is_respected(): void
+    {
+        $propertyInstance = instantiate(Fixture\ImplementationBOfInterfaceWithDiscriminator::class, 'foo');
+        $instance = new Fixture\ShapeWithInterfacePropertyAndDiscriminator($propertyInstance);
+        $actualResult = (new Normalizer())->normalize($instance);
+        self::assertSame(['property' => ['type' => 'b', '__value' => 'foo']], $actualResult);
+    }
+
+    public function test_properties_are_removed_if_equal_to_optional_default(): void
+    {
+        $instance = new Fixture\ShapeWithOptionalTypes(
+            stringBased: instantiate(Fixture\FamilyName::class, 'Doe'),
+            stringOrNull: null,
+            givenNamesOrNull: null,
+            optionalStringBased: null,
+            optionalInt: null,
+            optionalBool: null,
+            optionalString: null,
+            stringWithDefaultValue: 'default',
+            boolWithDefault: false,
+        );
+        $actualResult = (new Normalizer())->normalize($instance);
+        self::assertSame(['stringBased' => 'Doe', 'stringOrNull' => null, 'givenNamesOrNull' => null], $actualResult);
     }
 
     public function test_normalize_respects_jsonSerializable_properties(): void

@@ -77,6 +77,10 @@ final class OneOfSchema implements Schema
         }
         $discriminatorPropertyName = $this->discriminator?->propertyName ?? '__type';
         if (!array_key_exists($discriminatorPropertyName, $array)) {
+            $nonLiteralSubSchemas = array_filter($this->subSchemas, static fn(Schema $subSchema) => !($subSchema instanceof LiteralStringSchema || $subSchema instanceof LiteralIntegerSchema || $subSchema instanceof LiteralFloatSchema || $subSchema instanceof LiteralBooleanSchema || $subSchema instanceof LiteralNullSchema));
+            if (count($nonLiteralSubSchemas) === 1) {
+                return $nonLiteralSubSchemas[0]->instantiate($value);
+            }
             throw CoerceException::custom('Missing discriminator key "' . $discriminatorPropertyName . '"', $value, $this);
         }
         $type = $array[$discriminatorPropertyName];
