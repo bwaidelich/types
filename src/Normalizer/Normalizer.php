@@ -63,9 +63,18 @@ final class Normalizer
             $result = $properties[array_key_first($properties)];
         } else {
             $result = [];
+            $propertyDefaultValues = [];
+            foreach ($reflectionClass->getConstructor()?->getParameters() ?? [] as $reflectionParameter) {
+                if ($reflectionParameter->isOptional()) {
+                    $propertyDefaultValues[$reflectionParameter->getName()] = $reflectionParameter->getDefaultValue();
+                }
+            }
             foreach (get_object_vars($object) as $propertyName => $propertyValue) {
+                if (array_key_exists($propertyName, $propertyDefaultValues) && $propertyValue === $propertyDefaultValues[$propertyName]) {
+                    continue;
+                }
                 if (is_iterable($propertyValue)) {
-                    $normalizedPropertyValue = is_object($propertyValue) ? $this->normalizeIterable($propertyValue, new ReflectionClass($propertyValue)) : $propertyValue;
+                    $normalizedPropertyValue = $this->normalizeIterable($propertyValue, is_object($propertyValue) ? new ReflectionClass($propertyValue) : null);
                 } elseif (is_object($propertyValue)) {
                     $normalizedPropertyValue = $this->normalizeInternal($propertyValue, new ReflectionClass($propertyValue));
                 } else {
