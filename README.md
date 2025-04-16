@@ -819,6 +819,7 @@ So far, the following two exist – Feel free to create another one and I will g
 
 * [types/graphql](https://github.com/bwaidelich/types-graphql) – to create GraphQL schemas from PHP types
 * [types/glossary](https://github.com/bwaidelich/types-glossary) – to create Markdown glossaries for all relevant PHP types
+* [types/openapi](https://github.com/bwaidelich/types-openapi) – to declare and serve OpenAPI compatible HTTP APIs
 
 ## Dependencies
 
