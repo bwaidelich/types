@@ -38,10 +38,10 @@ final class LiteralBooleanSchema implements Schema
         if ($this->isInstance($value)) {
             return $value;
         }
-        if ($value === 0 || $value === '0') {
+        if ($value === 0 || $value === '0' || $value === 'false') {
             return false;
         }
-        if ($value === 1 || $value === '1') {
+        if ($value === 1 || $value === '1' || $value === 'true') {
             return true;
         }
         throw CoerceException::invalidType($value, $this);
