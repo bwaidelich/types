@@ -73,13 +73,16 @@ final class OneOfSchema implements Schema
         } elseif (is_object($value)) {
             $array = get_object_vars($value);
         } else {
-            throw CoerceException::invalidType($value, $this);
+            $array = [];
         }
         $discriminatorPropertyName = $this->discriminator?->propertyName ?? '__type';
         if (!array_key_exists($discriminatorPropertyName, $array)) {
             $nonLiteralSubSchemas = array_filter($this->subSchemas, static fn(Schema $subSchema) => !($subSchema instanceof LiteralStringSchema || $subSchema instanceof LiteralIntegerSchema || $subSchema instanceof LiteralFloatSchema || $subSchema instanceof LiteralBooleanSchema || $subSchema instanceof LiteralNullSchema));
             if (count($nonLiteralSubSchemas) === 1) {
                 return $nonLiteralSubSchemas[0]->instantiate($value);
+            }
+            if ($value === null || is_scalar($value)) {
+                throw CoerceException::invalidType($value, $this);
             }
             throw CoerceException::custom('Missing discriminator key "' . $discriminatorPropertyName . '"', $value, $this);
         }

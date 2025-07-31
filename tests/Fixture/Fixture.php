@@ -272,6 +272,7 @@ final class ShapeWithOptionalTypes
 {
     public function __construct(
         public readonly FamilyName $stringBased,
+        public readonly FamilyName|null $stringBasedOrNull,
         public readonly string|null $stringOrNull,
         public readonly GivenNames|null $givenNamesOrNull,
         public readonly ?FamilyName $optionalStringBased = null,

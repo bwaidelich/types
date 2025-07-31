@@ -102,9 +102,9 @@ final class NormalizerTest extends TestCase
         yield 'shape with discriminated interface property' => ['className' => Fixture\ShapeWithDiscriminatedInterfaceProperty::class, 'input' => ['property' => ['t' => 'implementationA', '__value' => 'Foo']]];
         yield 'shape with interface property and discriminator' => ['className' => Fixture\ShapeWithInterfacePropertyAndDiscriminator::class, 'input' => ['property' => ['type' => 'a', '__value' => 'Bar']]];
         yield 'shape with type-discriminated properties' => ['className' => Fixture\ShapeWithTypeDiscriminatedProperties::class, 'input' => ['interfaceList' => [['__type' => Fixture\ItemA::class, '__value' => 'A'], ['__type' => Fixture\ItemB::class, 'value' => 'B', 'givenName' => 'Jane']], 'interfaceWithCustomDiscriminator' => ['customT' => 'A', '__value' => 'Foo'], 'interfaceWithDefaultDiscriminator' => ['t' => 'implementationA', '__value' => 'Bar'], 'stringArray' => ['foo', 'bar'], 'stringIterator' => ['first' => 'baz', 'second' => 'foos']]];
-        yield 'shape with left out optional properties' => ['className' => Fixture\ShapeWithOptionalTypes::class, 'input' => ['stringBased' => 'Some Value', 'stringOrNull' => null, 'givenNamesOrNull' => null]];
-        yield 'shape with left out optional properties 2' => ['className' => Fixture\ShapeWithOptionalTypes::class, 'input' => ['stringBased' => 'Some Value', 'stringOrNull' => 'value', 'givenNamesOrNull' => ['Jane', 'John']]];
-        yield 'shape with specified optional properties' => ['className' => Fixture\ShapeWithOptionalTypes::class, 'input' => ['stringBased' => 'Some Value', 'stringOrNull' => 'foo', 'givenNamesOrNull' => ['John', 'Jane'], 'optionalStringBased' => 'Optional', 'optionalInt' => 123, 'optionalBool' => false, 'optionalString' => 'Optional String', 'stringWithDefaultValue' => 'not the default', 'boolWithDefault' => true]];
+        yield 'shape with left out optional properties' => ['className' => Fixture\ShapeWithOptionalTypes::class, 'input' => ['stringBased' => 'Some Value', 'stringBasedOrNull' => null, 'stringOrNull' => null, 'givenNamesOrNull' => null]];
+        yield 'shape with left out optional properties 2' => ['className' => Fixture\ShapeWithOptionalTypes::class, 'input' => ['stringBased' => 'Some Value', 'stringBasedOrNull' => 'foo', 'stringOrNull' => 'value', 'givenNamesOrNull' => ['Jane', 'John']]];
+        yield 'shape with specified optional properties' => ['className' => Fixture\ShapeWithOptionalTypes::class, 'input' => ['stringBased' => 'Some Value', 'stringBasedOrNull' => 'bar', 'stringOrNull' => 'foo', 'givenNamesOrNull' => ['John', 'Jane'], 'optionalStringBased' => 'Optional', 'optionalInt' => 123, 'optionalBool' => false, 'optionalString' => 'Optional String', 'stringWithDefaultValue' => 'not the default', 'boolWithDefault' => true]];
     }
 
     /**
@@ -179,6 +179,7 @@ final class NormalizerTest extends TestCase
     {
         $instance = new Fixture\ShapeWithOptionalTypes(
             stringBased: instantiate(Fixture\FamilyName::class, 'Doe'),
+            stringBasedOrNull: null,
             stringOrNull: null,
             givenNamesOrNull: null,
             optionalStringBased: null,
@@ -189,7 +190,7 @@ final class NormalizerTest extends TestCase
             boolWithDefault: false,
         );
         $actualResult = (new Normalizer())->normalize($instance);
-        self::assertSame(['stringBased' => 'Doe', 'stringOrNull' => null, 'givenNamesOrNull' => null], $actualResult);
+        self::assertSame(['stringBased' => 'Doe', 'stringBasedOrNull' => null, 'stringOrNull' => null, 'givenNamesOrNull' => null], $actualResult);
     }
 
     public function test_normalize_respects_jsonSerializable_properties(): void
