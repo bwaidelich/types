@@ -14,7 +14,7 @@ use function is_string;
 final class LiteralIntegerSchema implements Schema
 {
     public function __construct(
-        public readonly ?string $description,
+        public readonly null|string $description,
     ) {}
 
     public function getType(): string
@@ -27,7 +27,7 @@ final class LiteralIntegerSchema implements Schema
         return 'int';
     }
 
-    public function getDescription(): ?string
+    public function getDescription(): null|string
     {
         return $this->description;
     }

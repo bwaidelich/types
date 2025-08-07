@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Wwwision\Types\Schema;
 
 use ReflectionClass;
-use RuntimeException;
 use Webmozart\Assert\Assert;
 use Wwwision\Types\Attributes\Discriminator;
 use Wwwision\Types\Exception\CoerceException;
@@ -24,10 +23,10 @@ final class InterfaceSchema implements Schema
      */
     public function __construct(
         private readonly ReflectionClass $reflectionClass,
-        public readonly ?string $description,
+        public readonly null|string $description,
         public readonly array $propertySchemas,
         private readonly array $overriddenPropertyDescriptions,
-        public readonly ?Discriminator $discriminator,
+        public readonly null|Discriminator $discriminator,
     ) {
         Assert::allIsInstanceOf($this->propertySchemas, Schema::class);
     }
@@ -47,12 +46,12 @@ final class InterfaceSchema implements Schema
         return $this->reflectionClass->getShortName();
     }
 
-    public function getDescription(): ?string
+    public function getDescription(): null|string
     {
         return $this->description;
     }
 
-    public function overriddenPropertyDescription(string $propertyName): ?string
+    public function overriddenPropertyDescription(string $propertyName): null|string
     {
         return $this->overriddenPropertyDescriptions[$propertyName] ?? null;
     }

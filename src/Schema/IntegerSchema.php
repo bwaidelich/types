@@ -25,9 +25,9 @@ final class IntegerSchema implements Schema
      */
     public function __construct(
         private readonly ReflectionClass $reflectionClass,
-        public readonly ?string $description,
-        public readonly ?int $minimum = null,
-        public readonly ?int $maximum = null,
+        public readonly null|string $description,
+        public readonly null|int $minimum = null,
+        public readonly null|int $maximum = null,
     ) {}
 
     public function getType(): string
@@ -40,7 +40,7 @@ final class IntegerSchema implements Schema
         return $this->reflectionClass->getShortName();
     }
 
-    public function getDescription(): ?string
+    public function getDescription(): null|string
     {
         return $this->description;
     }

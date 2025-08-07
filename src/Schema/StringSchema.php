@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Wwwision\Types\Schema;
 
-use DateTimeImmutable;
-use DateTimeInterface;
 use Ramsey\Uuid\Uuid;
 use ReflectionClass;
 use ReflectionException;
@@ -32,11 +30,11 @@ final class StringSchema implements Schema
      */
     public function __construct(
         private readonly ReflectionClass $reflectionClass,
-        public readonly ?string $description,
-        public readonly ?int $minLength = null,
-        public readonly ?int $maxLength = null,
-        public readonly ?string $pattern = null,
-        public readonly ?StringTypeFormat $format = null,
+        public readonly null|string $description,
+        public readonly null|int $minLength = null,
+        public readonly null|int $maxLength = null,
+        public readonly null|string $pattern = null,
+        public readonly null|StringTypeFormat $format = null,
     ) {}
 
     public function getType(): string
@@ -49,7 +47,7 @@ final class StringSchema implements Schema
         return $this->reflectionClass->getShortName();
     }
 
-    public function getDescription(): ?string
+    public function getDescription(): null|string
     {
         return $this->description;
     }

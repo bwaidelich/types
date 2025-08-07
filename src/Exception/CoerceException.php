@@ -46,7 +46,6 @@ final class CoerceException extends InvalidArgumentException implements JsonSeri
         return new self($value, $schema, $issues);
     }
 
-
     private static function createMessage(mixed $value, Schema $schema, Issues $issues): string
     {
         if (is_string($value)) {
@@ -169,7 +168,6 @@ final class CoerceException extends InvalidArgumentException implements JsonSeri
     }
 
     // ----------------------------------
-
 
     /**
      * @param array<string|int> $values

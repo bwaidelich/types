@@ -12,7 +12,7 @@ final class EnumCaseSchema implements Schema
 {
     public function __construct(
         private readonly ReflectionEnumUnitCase $reflectionClass,
-        public readonly ?string $description,
+        public readonly null|string $description,
     ) {}
 
     public function getType(): string
@@ -30,7 +30,7 @@ final class EnumCaseSchema implements Schema
         return $this->reflectionClass instanceof ReflectionEnumBackedCase ? $this->reflectionClass->getBackingValue() : $this->reflectionClass->getName();
     }
 
-    public function getDescription(): ?string
+    public function getDescription(): null|string
     {
         return $this->description;
     }

@@ -11,9 +11,9 @@ use Wwwision\Types\Schema\StringTypeFormat;
 final class StringBased implements TypeBased
 {
     public function __construct(
-        public readonly ?int $minLength = null,
-        public readonly ?int $maxLength = null,
-        public readonly ?string $pattern = null,
-        public readonly ?StringTypeFormat $format = null,
+        public readonly null|int $minLength = null,
+        public readonly null|int $maxLength = null,
+        public readonly null|string $pattern = null,
+        public readonly null|StringTypeFormat $format = null,
     ) {}
 }

@@ -14,7 +14,7 @@ final class ListBased implements TypeBased
      */
     public function __construct(
         public readonly string $itemClassName,
-        public readonly ?int $minCount = null,
-        public readonly ?int $maxCount = null,
+        public readonly null|int $minCount = null,
+        public readonly null|int $maxCount = null,
     ) {}
 }

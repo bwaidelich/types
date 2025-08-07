@@ -4,17 +4,12 @@ declare(strict_types=1);
 
 namespace Wwwision\Types\Schema;
 
-use Stringable;
 use Wwwision\Types\Exception\CoerceException;
-
-use function is_float;
-use function is_int;
-use function is_string;
 
 final class ArraySchema implements Schema
 {
     public function __construct(
-        public readonly ?string $description,
+        public readonly null|string $description,
     ) {}
 
     public function getType(): string
@@ -27,7 +22,7 @@ final class ArraySchema implements Schema
         return 'array';
     }
 
-    public function getDescription(): ?string
+    public function getDescription(): null|string
     {
         return $this->description;
     }

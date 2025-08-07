@@ -10,7 +10,7 @@ interface Schema extends JsonSerializable
 {
     public function getType(): string;
     public function getName(): string;
-    public function getDescription(): ?string;
+    public function getDescription(): null|string;
     public function isInstance(mixed $value): bool;
     public function instantiate(mixed $value): mixed;
     /**
