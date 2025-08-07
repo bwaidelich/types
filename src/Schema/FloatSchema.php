@@ -22,12 +22,14 @@ final class FloatSchema implements Schema
 {
     /**
      * @param ReflectionClass<object> $reflectionClass
+     * @param array<float|int>|null $examples
      */
     public function __construct(
         private readonly ReflectionClass $reflectionClass,
         public readonly null|string $description,
         public readonly float|int|null $minimum = null,
         public readonly float|int|null $maximum = null,
+        public readonly array|null $examples = null,
     ) {}
 
     public function getType(): string
@@ -109,6 +111,9 @@ final class FloatSchema implements Schema
         }
         if ($this->maximum !== null) {
             $result['maximum'] = $this->maximum;
+        }
+        if ($this->examples !== null) {
+            $result['examples'] = $this->examples;
         }
         return $result;
     }

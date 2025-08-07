@@ -266,12 +266,13 @@ It has the optional arguments
 
 * `minimum` – to specify the allowed _minimum_ value
 * `maximum` – to specify the allowed _maximum_ value
+* `examples`- to provide valid example values (since version [1.7](https://github.com/bwaidelich/types/releases/tag/1.7.0))
 
 <details>
 <summary><b>Example</b></summary>
 
 ```php
-#[IntegerBased(minimum: 0, maximum: 123)]
+#[IntegerBased(minimum: 0, maximum: 123, examples: [0, 22, 123])]
 final class SomeIntBased {
     private function __construct(public readonly int $value) {}
 }
@@ -292,12 +293,13 @@ It has the optional arguments
 
 * `minimum` – to specify the allowed _minimum_ value (as integer or float)
 * `maximum` – to specify the allowed _maximum_ value (as integer or float)
+* `examples`- to provide valid example values (since version [1.7](https://github.com/bwaidelich/types/releases/tag/1.7.0))
 
 <details>
 <summary><b>Example</b></summary>
 
 ```php
-#[FloatBased(minimum: 12.34, maximum: 30)]
+#[FloatBased(minimum: 12.34, maximum: 30, examples: [23.345, 6, 7.89])]
 final class SomeFloatBased {
     private function __construct(public readonly float $value) {}
 }
@@ -320,6 +322,7 @@ It has the optional arguments
 * `pattern` – to specify a regular expression that the string has to match
 * `format` – one of the predefined formats the string has to satisfy (this is a subset of
   the [JSON Schema string format](https://json-schema.org/understanding-json-schema/reference/string.html#format))
+* `examples`- to provide valid example values (since version [1.7](https://github.com/bwaidelich/types/releases/tag/1.7.0))
 
 <details>
 <summary><b>Example: String Value Object with min and max length constraints</b></summary>
@@ -343,7 +346,7 @@ instantiate(GivenName::class, '');
 Just like with JSON Schema, `format` and `pattern` can be _combined_ to further narrow the type:
 
 ```php
-#[StringBased(format: StringTypeFormat::email, pattern: '@your.org$')]
+#[StringBased(format: StringTypeFormat::email, pattern: '@your.org$', examples: ['john.doe@your.org', 'jane.doe@your.org'])]
 final class EmployeeEmailAddress {
     private function __construct(public readonly string $value) {}
 }

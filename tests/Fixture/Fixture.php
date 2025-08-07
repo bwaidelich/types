@@ -24,7 +24,7 @@ use Wwwision\Types\Schema\StringTypeFormat;
 
 use function Wwwision\Types\instantiate;
 
-#[StringBased(minLength: 3, maxLength: 20)]
+#[StringBased(minLength: 3, maxLength: 20, examples: ['John', 'Jane'])]
 #[Description('First name of a person')]
 final class GivenName implements SomeInterface
 {
@@ -58,7 +58,7 @@ final class FamilyName implements SomeInterface
     }
 }
 
-#[IntegerBased(minimum: 1, maximum: 120)]
+#[IntegerBased(minimum: 1, maximum: 120, examples: [123, 321])]
 #[Description('The age of a person in years')]
 final class Age
 {
@@ -332,7 +332,7 @@ interface SomeInterface
     public function someOtherMethod(): null|FamilyName;
 }
 
-#[FloatBased(minimum: -180.0, maximum: 180.5)]
+#[FloatBased(minimum: -180.0, maximum: 180.5, examples: [77.0369])]
 final class Longitude
 {
     private function __construct(

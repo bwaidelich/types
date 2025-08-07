@@ -22,12 +22,14 @@ final class IntegerSchema implements Schema
 {
     /**
      * @param ReflectionClass<object> $reflectionClass
+     * @param array<int>|null $examples
      */
     public function __construct(
         private readonly ReflectionClass $reflectionClass,
         public readonly null|string $description,
         public readonly null|int $minimum = null,
         public readonly null|int $maximum = null,
+        public readonly null|array $examples = null,
     ) {}
 
     public function getType(): string
@@ -113,6 +115,9 @@ final class IntegerSchema implements Schema
         }
         if ($this->maximum !== null) {
             $result['maximum'] = $this->maximum;
+        }
+        if ($this->examples !== null) {
+            $result['examples'] = $this->examples;
         }
         return $result;
     }

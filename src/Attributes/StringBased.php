@@ -10,10 +10,14 @@ use Wwwision\Types\Schema\StringTypeFormat;
 #[Attribute(Attribute::TARGET_CLASS)]
 final class StringBased implements TypeBased
 {
+    /**
+     * @param array<string>|null $examples
+     */
     public function __construct(
         public readonly null|int $minLength = null,
         public readonly null|int $maxLength = null,
         public readonly null|string $pattern = null,
         public readonly null|StringTypeFormat $format = null,
+        public readonly null|array $examples = null,
     ) {}
 }

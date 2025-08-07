@@ -123,9 +123,9 @@ final class Parser
             Assert::count($baseTypeAttributes, 1, 'Expected exactly %d BaseType attribute for class "' . $reflectionClass->getName() . '", got %d');
             $baseTypeAttribute = $baseTypeAttributes[0]->newInstance();
             $schema = match ($baseTypeAttribute::class) {
-                StringBased::class => new StringSchema($reflectionClass, self::getDescription($reflectionClass), $baseTypeAttribute->minLength, $baseTypeAttribute->maxLength, $baseTypeAttribute->pattern, $baseTypeAttribute->format),
-                IntegerBased::class => new IntegerSchema($reflectionClass, self::getDescription($reflectionClass), $baseTypeAttribute->minimum, $baseTypeAttribute->maximum),
-                FloatBased::class => new FloatSchema($reflectionClass, self::getDescription($reflectionClass), $baseTypeAttribute->minimum, $baseTypeAttribute->maximum),
+                StringBased::class => new StringSchema($reflectionClass, self::getDescription($reflectionClass), $baseTypeAttribute->minLength, $baseTypeAttribute->maxLength, $baseTypeAttribute->pattern, $baseTypeAttribute->format, $baseTypeAttribute->examples),
+                IntegerBased::class => new IntegerSchema($reflectionClass, self::getDescription($reflectionClass), $baseTypeAttribute->minimum, $baseTypeAttribute->maximum, $baseTypeAttribute->examples),
+                FloatBased::class => new FloatSchema($reflectionClass, self::getDescription($reflectionClass), $baseTypeAttribute->minimum, $baseTypeAttribute->maximum, $baseTypeAttribute->examples),
                 ListBased::class => new ListSchema(
                     $reflectionClass,
                     self::getDescription($reflectionClass),

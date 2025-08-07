@@ -155,14 +155,14 @@ final class IntegrationTest extends TestCase
         yield 'int backed enum' => ['className' => Fixture\Number::class, 'expectedResult' => '{"type":"enum","name":"Number","description":"A number","cases":[{"type":"integer","description":"The number 1","name":"ONE","value":1},{"type":"integer","description":null,"name":"TWO","value":2},{"type":"integer","description":null,"name":"THREE","value":3}]}'];
         yield 'string backed enum' => ['className' => Fixture\RomanNumber::class, 'expectedResult' => '{"type":"enum","name":"RomanNumber","description":null,"cases":[{"type":"string","description":null,"name":"I","value":"1"},{"type":"string","description":"random description","name":"II","value":"2"},{"type":"string","description":null,"name":"III","value":"3"},{"type":"string","description":null,"name":"IV","value":"4"}]}'];
 
-        yield 'float based object' => ['className' => Fixture\Longitude::class, 'expectedResult' => '{"type":"float","name":"Longitude","description":null,"minimum":-180,"maximum":180.5}'];
-        yield 'integer based object' => ['className' => Fixture\Age::class, 'expectedResult' => '{"type":"integer","name":"Age","description":"The age of a person in years","minimum":1,"maximum":120}'];
+        yield 'float based object' => ['className' => Fixture\Longitude::class, 'expectedResult' => '{"type":"float","name":"Longitude","description":null,"minimum":-180,"maximum":180.5,"examples":[77.0369]}'];
+        yield 'integer based object' => ['className' => Fixture\Age::class, 'expectedResult' => '{"type":"integer","name":"Age","description":"The age of a person in years","minimum":1,"maximum":120,"examples":[123,321]}'];
         yield 'list object' => ['className' => Fixture\FullNames::class, 'expectedResult' => '{"type":"array","name":"FullNames","description":null,"itemType":"FullName","minCount":2,"maxCount":5}'];
         yield 'list of interfaces' => ['className' => Fixture\InterfaceList::class, 'expectedResult' => '{"type":"array","name":"InterfaceList","description":null,"itemType":"ItemInterface"}'];
         yield 'shape object' => ['className' => Fixture\FullName::class, 'expectedResult' => '{"type":"object","name":"FullName","description":"First and last name of a person","properties":[{"type":"GivenName","name":"givenName","description":"First name of a person"},{"type":"FamilyName","name":"familyName","description":"Last name of a person"}]}'];
         yield 'shape object with optional properties' => ['className' => Fixture\ShapeWithOptionalTypes::class, 'expectedResult' => '{"type":"object","name":"ShapeWithOptionalTypes","description":null,"properties":[{"type":"FamilyName","name":"stringBased","description":"Last name of a person"},{"type":"FamilyName|null","name":"stringBasedOrNull","description":null},{"type":"string|null","name":"stringOrNull","description":null},{"type":"GivenNames|null","name":"givenNamesOrNull","description":null},{"type":"FamilyName","name":"optionalStringBased","description":"Last name of a person","optional":true},{"type":"int","name":"optionalInt","description":"Some description","optional":true},{"type":"boolean","name":"optionalBool","description":null,"optional":true},{"type":"string","name":"optionalString","description":null,"optional":true},{"type":"string","name":"stringWithDefaultValue","description":null,"optional":true},{"type":"boolean","name":"boolWithDefault","description":null,"optional":true}]}'];
 
-        yield 'string based object' => ['className' => Fixture\GivenName::class, 'expectedResult' => '{"type":"string","name":"GivenName","description":"First name of a person","minLength":3,"maxLength":20}'];
+        yield 'string based object' => ['className' => Fixture\GivenName::class, 'expectedResult' => '{"type":"string","name":"GivenName","description":"First name of a person","minLength":3,"maxLength":20,"examples":["John","Jane"]}'];
         yield 'string based object with format' => ['className' => Fixture\EmailAddress::class, 'expectedResult' => '{"type":"string","name":"EmailAddress","description":null,"format":"email"}'];
         yield 'string based object with pattern' => ['className' => Fixture\NotMagic::class, 'expectedResult' => '{"type":"string","name":"NotMagic","description":null,"pattern":"^(?!magic).*"}'];
 
@@ -1169,7 +1169,8 @@ final class IntegrationTest extends TestCase
                     "maxLength": 20,
                     "minLength": 3,
                     "name": "GivenName",
-                    "type": "string"
+                    "type": "string",
+                    "examples": ["John", "Jane"]
                 },
                 {
                     "description": "Last name of a person",
