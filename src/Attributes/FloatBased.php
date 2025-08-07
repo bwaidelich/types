@@ -9,8 +9,12 @@ use Attribute;
 #[Attribute(Attribute::TARGET_CLASS)]
 final class FloatBased implements TypeBased
 {
+    /**
+     * @param array<float|int>|null $examples
+     */
     public function __construct(
         public readonly float|int|null $minimum = null,
         public readonly float|int|null $maximum = null,
+        public readonly array|null $examples = null,
     ) {}
 }
