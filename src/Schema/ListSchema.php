@@ -22,10 +22,10 @@ final class ListSchema implements Schema
      */
     public function __construct(
         private readonly ReflectionClass $reflectionClass,
-        public readonly ?string $description,
+        public readonly null|string $description,
         public readonly Schema $itemSchema,
-        public readonly ?int $minCount = null,
-        public readonly ?int $maxCount = null,
+        public readonly null|int $minCount = null,
+        public readonly null|int $maxCount = null,
     ) {}
 
     public function getType(): string
@@ -38,7 +38,7 @@ final class ListSchema implements Schema
         return $this->reflectionClass->getShortName();
     }
 
-    public function getDescription(): ?string
+    public function getDescription(): null|string
     {
         return $this->description;
     }

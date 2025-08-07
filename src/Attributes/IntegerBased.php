@@ -10,7 +10,7 @@ use Attribute;
 final class IntegerBased implements TypeBased
 {
     public function __construct(
-        public readonly ?int $minimum = null,
-        public readonly ?int $maximum = null,
+        public readonly null|int $minimum = null,
+        public readonly null|int $maximum = null,
     ) {}
 }

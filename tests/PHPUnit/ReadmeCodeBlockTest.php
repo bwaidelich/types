@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Wwwision\Types\Tests\PHPUnit;
 
-use Exception;
 use Generator;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -20,7 +19,7 @@ use function sprintf;
 #[CoversNothing]
 final class ReadmeCodeBlockTest extends TestCase
 {
-    private static ?string $previousNamespace = null;
+    private static null|string $previousNamespace = null;
 
     public static function code_blocks_dataProvider(): Generator
     {

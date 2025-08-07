@@ -33,7 +33,7 @@ final class ShapeSchema implements Schema
      */
     public function __construct(
         private readonly ReflectionClass $reflectionClass,
-        public readonly ?string $description,
+        public readonly null|string $description,
         public readonly array $propertySchemas,
         private readonly array $overriddenPropertyDescriptions,
         private readonly array $propertyDiscriminators,
@@ -52,12 +52,12 @@ final class ShapeSchema implements Schema
         return $this->reflectionClass->getShortName();
     }
 
-    public function getDescription(): ?string
+    public function getDescription(): null|string
     {
         return $this->description;
     }
 
-    public function overriddenPropertyDescription(string $propertyName): ?string
+    public function overriddenPropertyDescription(string $propertyName): null|string
     {
         return $this->overriddenPropertyDescriptions[$propertyName] ?? null;
     }

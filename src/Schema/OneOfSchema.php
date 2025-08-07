@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Wwwision\Types\Schema;
 
-use RuntimeException;
 use Webmozart\Assert\Assert;
 use Wwwision\Types\Attributes\Discriminator;
 use Wwwision\Types\Exception\CoerceException;
@@ -25,8 +24,8 @@ final class OneOfSchema implements Schema
      */
     public function __construct(
         public readonly array $subSchemas,
-        private readonly ?string $description,
-        public readonly ?Discriminator $discriminator,
+        private readonly null|string $description,
+        public readonly null|Discriminator $discriminator,
     ) {
         Assert::allIsInstanceOf($this->subSchemas, Schema::class);
     }
@@ -46,7 +45,7 @@ final class OneOfSchema implements Schema
         return implode('|', array_map(static fn(Schema $subSchema) => $subSchema->getName(), $this->subSchemas));
     }
 
-    public function getDescription(): ?string
+    public function getDescription(): null|string
     {
         return $this->description;
     }

@@ -25,7 +25,7 @@ final class FloatSchema implements Schema
      */
     public function __construct(
         private readonly ReflectionClass $reflectionClass,
-        public readonly ?string $description,
+        public readonly null|string $description,
         public readonly float|int|null $minimum = null,
         public readonly float|int|null $maximum = null,
     ) {}
@@ -40,7 +40,7 @@ final class FloatSchema implements Schema
         return $this->reflectionClass->getShortName();
     }
 
-    public function getDescription(): ?string
+    public function getDescription(): null|string
     {
         return $this->description;
     }

@@ -65,7 +65,6 @@ final class Age
     private function __construct(public readonly int $value) {}
 }
 
-
 #[Description('First and last name of a person')]
 final class FullName implements SomeInterface
 {
@@ -275,11 +274,11 @@ final class ShapeWithOptionalTypes
         public readonly FamilyName|null $stringBasedOrNull,
         public readonly string|null $stringOrNull,
         public readonly GivenNames|null $givenNamesOrNull,
-        public readonly ?FamilyName $optionalStringBased = null,
+        public readonly null|FamilyName $optionalStringBased = null,
         #[Description('Some description')]
-        public readonly ?int $optionalInt = null,
-        public readonly ?bool $optionalBool = null,
-        public readonly ?string $optionalString = null,
+        public readonly null|int $optionalInt = null,
+        public readonly null|bool $optionalBool = null,
+        public readonly null|string $optionalString = null,
         public readonly string $stringWithDefaultValue = 'default',
         public readonly bool $boolWithDefault = false,
     ) {}
@@ -330,9 +329,8 @@ interface SomeInterface
     #[Description('Custom description for "someMethod"')]
     public function someMethod(): string;
     #[Description('Custom description for "someOtherMethod"')]
-    public function someOtherMethod(): ?FamilyName;
+    public function someOtherMethod(): null|FamilyName;
 }
-
 
 #[FloatBased(minimum: -180.0, maximum: 180.5)]
 final class Longitude
@@ -357,7 +355,6 @@ final class GeoCoordinates
         public readonly Latitude $latitude,
     ) {}
 }
-
 
 interface SomeInvalidInterface
 {

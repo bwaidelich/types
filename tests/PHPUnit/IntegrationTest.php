@@ -226,7 +226,6 @@ final class IntegrationTest extends TestCase
         self::assertTrue($schema->isInstance($value));
     }
 
-
     public function test_getSchema_for_shape_object_allows_to_retrieve_overridden_property_descriptions(): void
     {
         $schema = Parser::getSchema(Fixture\ShapeWithOptionalTypes::class);
