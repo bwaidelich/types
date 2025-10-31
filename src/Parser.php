@@ -9,7 +9,6 @@ use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionClassConstant;
 use ReflectionEnum;
-use ReflectionException;
 use ReflectionFunctionAbstract;
 use ReflectionIntersectionType;
 use ReflectionMethod;
@@ -17,8 +16,6 @@ use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionType;
 use ReflectionUnionType;
-use RuntimeException;
-use UnitEnum;
 use Webmozart\Assert\Assert;
 use Wwwision\Types\Attributes\Description;
 use Wwwision\Types\Attributes\Discriminator;
@@ -51,7 +48,6 @@ use function get_debug_type;
 use function interface_exists;
 use function is_a;
 use function is_object;
-use function is_subclass_of;
 use function sprintf;
 
 final class Parser
@@ -107,13 +103,27 @@ final class Parser
             }
             Assert::classExists($className, 'Failed to get schema for class %s because that class does not exist');
             $reflectionClass = self::reflectClass($className);
-            if ($reflectionClass instanceof ReflectionEnum) {
-                $caseSchemas = [];
-                foreach ($reflectionClass->getCases() as $caseReflection) {
-                    $caseSchemas[$caseReflection->getName()] = new EnumCaseSchema($caseReflection, self::getDescription($caseReflection));
+
+            if ($reflectionClass->isEnum()) {
+                if (!is_a($className, \UnitEnum::class, true)) {
+                    throw new InvalidArgumentException(sprintf('Expected enum class for "%s"', $className));
                 }
-                return new EnumSchema($reflectionClass, self::getDescription($reflectionClass), $caseSchemas);
+                /** @var class-string<\UnitEnum> $className */
+                $enumReflection = new ReflectionEnum($className);
+                $caseSchemas = [];
+                foreach ($enumReflection->getCases() as $caseReflection) {
+                    $caseSchemas[$caseReflection->getName()] = new EnumCaseSchema(
+                        $caseReflection,
+                        self::getDescription($caseReflection),
+                    );
+                }
+                return new EnumSchema(
+                    $enumReflection,
+                    self::getDescription($enumReflection),
+                    $caseSchemas,
+                );
             }
+
             $baseTypeAttributes = $reflectionClass->getAttributes(TypeBased::class, ReflectionAttribute::IS_INSTANCEOF);
             if ($baseTypeAttributes === []) {
                 return self::getShapeSchema($reflectionClass);
@@ -140,10 +150,10 @@ final class Parser
     }
 
     /**
-     * @param ReflectionParameter|ReflectionClass<object>|ReflectionClassConstant|ReflectionFunctionAbstract $reflection
+     * @param ReflectionParameter|ReflectionClass<object>|ReflectionClassConstant|ReflectionFunctionAbstract|ReflectionEnum<\UnitEnum> $reflection
      * @return string|null
      */
-    private static function getDescription(ReflectionParameter|ReflectionClass|ReflectionClassConstant|ReflectionFunctionAbstract $reflection): string|null
+    private static function getDescription(ReflectionParameter|ReflectionClass|ReflectionClassConstant|ReflectionFunctionAbstract|ReflectionEnum $reflection): string|null
     {
         $descriptionAttributes = $reflection->getAttributes(Description::class, ReflectionAttribute::IS_INSTANCEOF);
         if (!isset($descriptionAttributes[0])) {
@@ -184,8 +194,8 @@ final class Parser
             $propertyName = $parameter->getName();
             $parameterType = $parameter->getType();
             Assert::notNull($parameterType, sprintf('Failed to determine type of constructor parameter "%s"', $propertyName));
-            Assert::isInstanceOfAny($parameterType, [ReflectionNamedType::class, ReflectionUnionType::class]);
-            /** @var ReflectionNamedType|ReflectionUnionType $parameterType */
+            Assert::isInstanceOfAny($parameterType, [ReflectionNamedType::class, ReflectionUnionType::class, ReflectionIntersectionType::class]);
+            /** @var ReflectionType $parameterType */
             try {
                 $propertySchema = self::reflectionTypeToSchema($parameterType, self::getDescription($parameter));
             } catch (InvalidArgumentException $exception) {
@@ -288,13 +298,7 @@ final class Parser
     private static function reflectClass(string $className): ReflectionClass
     {
         if (!isset(self::$reflectionClassRuntimeCache[$className])) {
-            try {
-                self::$reflectionClassRuntimeCache[$className] = is_subclass_of($className, UnitEnum::class) ? new ReflectionEnum($className) : new ReflectionClass($className); // @phpstan-ignore assign.propertyType
-                // @codeCoverageIgnoreStart
-            } catch (ReflectionException $e) {
-                throw new RuntimeException(sprintf('Failed to reflect class "%s": %s', $className, $e->getMessage()), 1688570076, $e);
-            }
-            // @codeCoverageIgnoreEnd
+            self::$reflectionClassRuntimeCache[$className] = new ReflectionClass($className);
         }
         /** @var ReflectionClass<T> self::$reflectionClassRuntimeCache[$className] */
         return self::$reflectionClassRuntimeCache[$className];
