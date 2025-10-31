@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Wwwision\Types\Schema;
 
 use Wwwision\Types\Exception\CoerceException;
+use Wwwision\Types\Options;
 
 final class ArraySchema implements Schema
 {
@@ -36,7 +37,7 @@ final class ArraySchema implements Schema
     /**
      * @return array<mixed>
      */
-    public function instantiate(mixed $value): array
+    public function instantiate(mixed $value, Options $options): array
     {
         if ($this->isInstance($value)) {
             return $value;

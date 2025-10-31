@@ -12,6 +12,8 @@ use Webmozart\Assert\Assert;
 use Wwwision\Types\Exception\CoerceException;
 use Wwwision\Types\Exception\Issues\Issues;
 
+use Wwwision\Types\Options;
+
 use function is_iterable;
 use function sprintf;
 
@@ -49,12 +51,12 @@ final class ListSchema implements Schema
         return is_object($value) && $this->reflectionClass->isInstance($value);
     }
 
-    public function instantiate(mixed $value): object
+    public function instantiate(mixed $value, Options $options): object
     {
         if ($this->isInstance($value)) {
             return $value;
         }
-        $arrayValue = $this->coerce($value);
+        $arrayValue = $this->coerce($value, $options);
         $constructor = $this->reflectionClass->getConstructor();
         Assert::isInstanceOf($constructor, ReflectionMethod::class, sprintf('Missing constructor in class "%s"', $this->reflectionClass->getName()));
         try {
@@ -71,7 +73,7 @@ final class ListSchema implements Schema
     /**
      * @return array<mixed>
      */
-    private function coerce(mixed $value): array
+    private function coerce(mixed $value, Options $options): array
     {
         if (!is_iterable($value)) {
             throw CoerceException::invalidType($value, $this);
@@ -82,7 +84,7 @@ final class ListSchema implements Schema
         foreach ($value as $key => $itemValue) {
             $count++;
             try {
-                $converted[$key] = $this->itemSchema->instantiate($itemValue);
+                $converted[$key] = $this->itemSchema->instantiate($itemValue, $options);
             } catch (CoerceException $e) {
                 $issues = $issues->add($e->issues, $key);
             }

@@ -6,6 +6,7 @@ namespace Wwwision\Types\Schema;
 
 use Wwwision\Types\Attributes\Discriminator;
 use Wwwision\Types\Exception\InvalidSchemaException;
+use Wwwision\Types\Options;
 
 final class OptionalSchema implements Schema
 {
@@ -41,12 +42,12 @@ final class OptionalSchema implements Schema
         return $value === null || $this->wrapped->isInstance($value);
     }
 
-    public function instantiate(mixed $value): mixed
+    public function instantiate(mixed $value, Options $options): mixed
     {
         if ($value === null) {
             return null;
         }
-        return $this->wrapped->instantiate($value);
+        return $this->wrapped->instantiate($value, $options);
     }
 
     public function jsonSerialize(): array

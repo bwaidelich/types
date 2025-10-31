@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Wwwision\Types\Schema;
 
 use Wwwision\Types\Exception\CoerceException;
+use Wwwision\Types\Options;
 
 final class LiteralBooleanSchema implements Schema
 {
@@ -33,7 +34,7 @@ final class LiteralBooleanSchema implements Schema
         return is_bool($value);
     }
 
-    public function instantiate(mixed $value): bool
+    public function instantiate(mixed $value, Options $options): bool
     {
         if ($this->isInstance($value)) {
             return $value;

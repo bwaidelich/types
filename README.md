@@ -436,7 +436,7 @@ instantiate(HobbiesAdvanced::class, ['Soccer', 'Ping Pong', 'Guitar', 'Gaming'])
 ## Composite types
 
 The examples above demonstrate how to create very specific Value Objects with strict validation and introspection.
-
+Those Value Objects can be composed into composite types (aka shape).
 
 <details>
 <summary><b>Example: Complex composite object</b></summary>
@@ -496,6 +496,43 @@ assert($schema->propertySchemas['isRegistered']->getDescription() === 'Whether t
 ```
 
 </details>
+
+### Ignore unrecognized keys
+
+Just like single-value objects, composite objects can be instantiated from unstructured input:
+
+```php
+final class Composite {
+    public function __construct(
+        public readonly string $property1,
+        public readonly bool $property2
+    ) {}
+}
+$instance = instantiate(Composite::class, ['property1' => 'foo', 'property2' => 'true']);
+assert($instance instanceof Composite);
+```
+
+This will fail, if the input contains keys that do not map to a property of the target class:
+
+```php
+// ...
+try {
+    instantiate(Composite::class, ['property1' => 'foo', 'property2' => 'true', 'unknownProperty' => 'bar']);
+} catch (CoerceException $e) {
+    $exception = $e->getMessage();
+}
+assert($exception === 'Failed to cast value of type array to Composite: unrecognized_keys (Unrecognized key(s) in object: \'unknownProperty\')');
+```
+
+Sometimes it can be useful to ignore those unknown properties instead, e.g. when consuming 3rd party APIs. Starting with version [1.8](https://github.com/bwaidelich/types/releases/tag/1.8.0), the `ignoreUnrecognizedKeys` option can be specified to achieve that:
+
+```php
+// ...
+use Wwwision\Types\Options;
+
+$instance = instantiate(Composite::class, ['property1' => 'foo', 'property2' => 'true', 'unknownProperty' => 'bar'], Options::create(ignoreUnrecognizedKeys: true));
+assert($instance instanceof Composite);
+```
 
 ## Generics
 

@@ -14,6 +14,8 @@ use Webmozart\Assert\Assert;
 use Wwwision\Types\Exception\CoerceException;
 use Wwwision\Types\Exception\Issues\Issues;
 
+use Wwwision\Types\Options;
+
 use function filter_var;
 use function is_string;
 use function preg_match;
@@ -60,7 +62,7 @@ final class StringSchema implements Schema
         return is_object($value) && $this->reflectionClass->isInstance($value);
     }
 
-    public function instantiate(mixed $value): object
+    public function instantiate(mixed $value, Options $options): object
     {
         if ($this->isInstance($value)) {
             return $value;

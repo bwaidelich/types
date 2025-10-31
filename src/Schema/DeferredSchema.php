@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Wwwision\Types\Schema;
 
 use Closure;
+use Wwwision\Types\Options;
 
 final class DeferredSchema implements Schema
 {
@@ -37,9 +38,9 @@ final class DeferredSchema implements Schema
         return $this->resolve()->isInstance($value);
     }
 
-    public function instantiate(mixed $value): mixed
+    public function instantiate(mixed $value, Options $options): mixed
     {
-        return $this->resolve()->instantiate($value);
+        return $this->resolve()->instantiate($value, $options);
     }
 
     public function jsonSerialize(): array

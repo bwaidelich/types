@@ -70,16 +70,15 @@ final class Parser
     /**
      * @template T of object
      * @param class-string<T> $className
-     * @param mixed $input
      * @return T
      */
-    public static function instantiate(string $className, mixed $input): object
+    public static function instantiate(string $className, mixed $input, Options|null $options = null): object
     {
         if (is_object($input) && is_a($input, $className)) {
             return $input;
         }
         $schema = self::getSchema($className);
-        $instance = $schema->instantiate($input);
+        $instance = $schema->instantiate($input, $options ?? Options::create());
         Assert::isInstanceOf($instance, $className);
         return $instance;
     }
