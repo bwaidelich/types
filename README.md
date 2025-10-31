@@ -524,7 +524,7 @@ try {
 assert($exception === 'Failed to cast value of type array to Composite: unrecognized_keys (Unrecognized key(s) in object: \'unknownProperty\')');
 ```
 
-Sometimes it can be useful to ignore those unknown properties instead, e.g. when consuming 3rd party apis. Starting with version [1.8](https://github.com/bwaidelich/types/releases/tag/1.8.0), the `ignoreUnrecognizedKeys` option can be specified to achieve that:
+Sometimes it can be useful to ignore those unknown properties instead, e.g. when consuming 3rd party APIs. Starting with version [1.8](https://github.com/bwaidelich/types/releases/tag/1.8.0), the `ignoreUnrecognizedKeys` option can be specified to achieve that:
 
 ```php
 // ...
