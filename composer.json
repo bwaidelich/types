@@ -47,11 +47,9 @@
   "scripts": {
     "test:phpstan": "phpstan",
     "test:cs": [
-      "@putenv PHP_CS_FIXER_IGNORE_ENV=1",
       "php-cs-fixer check"
     ],
     "test:cs:fix": [
-      "@putenv PHP_CS_FIXER_IGNORE_ENV=1",
       "php-cs-fixer fix"
     ],
     "test:phpunit": "phpunit tests/PHPUnit",
