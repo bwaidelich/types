@@ -27,7 +27,7 @@ final class DeferredSchema implements Schema
         return $this->resolve()->getName();
     }
 
-    public function getDescription(): null|string
+    public function getDescription(): string|null
     {
         return $this->resolve()->getDescription();
     }

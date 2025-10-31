@@ -31,7 +31,7 @@ final class OptionalSchema implements Schema
         return $this->wrapped->getName();
     }
 
-    public function getDescription(): null|string
+    public function getDescription(): string|null
     {
         return $this->wrapped->getDescription();
     }

@@ -13,7 +13,7 @@ use function is_string;
 final class LiteralStringSchema implements Schema
 {
     public function __construct(
-        public readonly null|string $description,
+        public readonly string|null $description,
     ) {}
 
     public function getType(): string
@@ -26,7 +26,7 @@ final class LiteralStringSchema implements Schema
         return 'string';
     }
 
-    public function getDescription(): null|string
+    public function getDescription(): string|null
     {
         return $this->description;
     }

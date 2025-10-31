@@ -274,11 +274,11 @@ final class ShapeWithOptionalTypes
         public readonly FamilyName|null $stringBasedOrNull,
         public readonly string|null $stringOrNull,
         public readonly GivenNames|null $givenNamesOrNull,
-        public readonly null|FamilyName $optionalStringBased = null,
+        public readonly FamilyName|null $optionalStringBased = null,
         #[Description('Some description')]
-        public readonly null|int $optionalInt = null,
-        public readonly null|bool $optionalBool = null,
-        public readonly null|string $optionalString = null,
+        public readonly int|null $optionalInt = null,
+        public readonly bool|null $optionalBool = null,
+        public readonly string|null $optionalString = null,
         public readonly string $stringWithDefaultValue = 'default',
         public readonly bool $boolWithDefault = false,
     ) {}
@@ -329,7 +329,7 @@ interface SomeInterface
     #[Description('Custom description for "someMethod"')]
     public function someMethod(): string;
     #[Description('Custom description for "someOtherMethod"')]
-    public function someOtherMethod(): null|FamilyName;
+    public function someOtherMethod(): FamilyName|null;
 }
 
 #[FloatBased(minimum: -180.0, maximum: 180.5, examples: [77.0369])]

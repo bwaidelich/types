@@ -7,7 +7,7 @@ namespace Wwwision\Types\Schema;
 final class LiteralNullSchema implements Schema
 {
     public function __construct(
-        public readonly null|string $description,
+        public readonly string|null $description,
     ) {}
 
     public function getType(): string
@@ -20,7 +20,7 @@ final class LiteralNullSchema implements Schema
         return 'null';
     }
 
-    public function getDescription(): null|string
+    public function getDescription(): string|null
     {
         return $this->description;
     }

@@ -23,10 +23,10 @@ final class InterfaceSchema implements Schema
      */
     public function __construct(
         private readonly ReflectionClass $reflectionClass,
-        public readonly null|string $description,
+        public readonly string|null $description,
         public readonly array $propertySchemas,
         private readonly array $overriddenPropertyDescriptions,
-        public readonly null|Discriminator $discriminator,
+        public readonly Discriminator|null $discriminator,
     ) {
         Assert::allIsInstanceOf($this->propertySchemas, Schema::class);
     }
@@ -46,12 +46,12 @@ final class InterfaceSchema implements Schema
         return $this->reflectionClass->getShortName();
     }
 
-    public function getDescription(): null|string
+    public function getDescription(): string|null
     {
         return $this->description;
     }
 
-    public function overriddenPropertyDescription(string $propertyName): null|string
+    public function overriddenPropertyDescription(string $propertyName): string|null
     {
         return $this->overriddenPropertyDescriptions[$propertyName] ?? null;
     }

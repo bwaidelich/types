@@ -19,7 +19,7 @@ use function sprintf;
 #[CoversNothing]
 final class ReadmeCodeBlockTest extends TestCase
 {
-    private static null|string $previousNamespace = null;
+    private static string|null $previousNamespace = null;
 
     public static function code_blocks_dataProvider(): Generator
     {

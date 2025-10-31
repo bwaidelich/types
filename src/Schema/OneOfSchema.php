@@ -24,8 +24,8 @@ final class OneOfSchema implements Schema
      */
     public function __construct(
         public readonly array $subSchemas,
-        private readonly null|string $description,
-        public readonly null|Discriminator $discriminator,
+        private readonly string|null $description,
+        public readonly Discriminator|null $discriminator,
     ) {
         Assert::allIsInstanceOf($this->subSchemas, Schema::class);
     }
@@ -45,7 +45,7 @@ final class OneOfSchema implements Schema
         return implode('|', array_map(static fn(Schema $subSchema) => $subSchema->getName(), $this->subSchemas));
     }
 
-    public function getDescription(): null|string
+    public function getDescription(): string|null
     {
         return $this->description;
     }

@@ -145,7 +145,7 @@ final class Parser
      * @param ReflectionParameter|ReflectionClass<object>|ReflectionClassConstant|ReflectionFunctionAbstract $reflection
      * @return string|null
      */
-    private static function getDescription(ReflectionParameter|ReflectionClass|ReflectionClassConstant|ReflectionFunctionAbstract $reflection): null|string
+    private static function getDescription(ReflectionParameter|ReflectionClass|ReflectionClassConstant|ReflectionFunctionAbstract $reflection): string|null
     {
         $descriptionAttributes = $reflection->getAttributes(Description::class, ReflectionAttribute::IS_INSTANCEOF);
         if (!isset($descriptionAttributes[0])) {
@@ -160,7 +160,7 @@ final class Parser
      * @param ReflectionClass<object>|ReflectionParameter $reflection
      * @return Discriminator|null
      */
-    private static function getDiscriminator(ReflectionClass|ReflectionParameter $reflection): null|Discriminator
+    private static function getDiscriminator(ReflectionClass|ReflectionParameter $reflection): Discriminator|null
     {
         $discriminatorAttributes = $reflection->getAttributes(Discriminator::class, ReflectionAttribute::IS_INSTANCEOF);
         if (!isset($discriminatorAttributes[0])) {

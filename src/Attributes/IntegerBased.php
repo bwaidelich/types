@@ -13,8 +13,8 @@ final class IntegerBased implements TypeBased
      * @param array<int>|null $examples
      */
     public function __construct(
-        public readonly null|int $minimum = null,
-        public readonly null|int $maximum = null,
-        public readonly null|array $examples = null,
+        public readonly int|null $minimum = null,
+        public readonly int|null $maximum = null,
+        public readonly array|null $examples = null,
     ) {}
 }

@@ -23,7 +23,7 @@ final class EnumSchema implements Schema
      */
     public function __construct(
         private readonly ReflectionEnum $reflectionClass,
-        public readonly null|string $description,
+        public readonly string|null $description,
         public readonly array $caseSchemas,
     ) {}
 
@@ -37,7 +37,7 @@ final class EnumSchema implements Schema
         return $this->reflectionClass->getShortName();
     }
 
-    public function getDescription(): null|string
+    public function getDescription(): string|null
     {
         return $this->description;
     }

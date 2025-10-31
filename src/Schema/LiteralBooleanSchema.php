@@ -9,7 +9,7 @@ use Wwwision\Types\Exception\CoerceException;
 final class LiteralBooleanSchema implements Schema
 {
     public function __construct(
-        public readonly null|string $description,
+        public readonly string|null $description,
     ) {}
 
     public function getType(): string
@@ -22,7 +22,7 @@ final class LiteralBooleanSchema implements Schema
         return 'boolean';
     }
 
-    public function getDescription(): null|string
+    public function getDescription(): string|null
     {
         return $this->description;
     }
