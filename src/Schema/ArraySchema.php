@@ -27,7 +27,7 @@ final class ArraySchema implements Schema
         return $this->description;
     }
 
-    /** @phpstan-assert-if-true array $value */
+    /** @phpstan-assert-if-true array<mixed> $value */
     public function isInstance(mixed $value): bool
     {
         return is_array($value);

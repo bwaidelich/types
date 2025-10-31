@@ -92,7 +92,7 @@ final class InterfaceSchema implements Schema
         } else {
             throw CoerceException::invalidType($value, $this);
         }
-        $discriminatorPropertyName = $this->discriminator?->propertyName ?? '__type';
+        $discriminatorPropertyName = $this->discriminator->propertyName ?? '__type';
         if (!array_key_exists($discriminatorPropertyName, $array)) {
             throw CoerceException::custom('Missing discriminator key "' . $discriminatorPropertyName . '"', $value, $this);
         }

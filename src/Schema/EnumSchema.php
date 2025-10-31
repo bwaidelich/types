@@ -19,6 +19,7 @@ use function is_string;
 final class EnumSchema implements Schema
 {
     /**
+     * @param ReflectionEnum<UnitEnum> $reflectionClass
      * @param array<string|int, EnumCaseSchema> $caseSchemas
      */
     public function __construct(

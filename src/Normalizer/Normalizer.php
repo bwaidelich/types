@@ -13,6 +13,7 @@ use ReflectionNamedType;
 use RuntimeException;
 use Traversable;
 use UnitEnum;
+use Webmozart\Assert\Assert;
 use Wwwision\Types\Attributes\Discriminator;
 use Wwwision\Types\Attributes\ListBased;
 use Wwwision\Types\Attributes\TypeBased;
@@ -126,6 +127,7 @@ final class Normalizer
             } else {
                 $normalizedItem = $item;
             }
+            Assert::validArrayKey($key);
             $result[$key] = $normalizedItem;
         }
         return $result;
