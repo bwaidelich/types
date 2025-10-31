@@ -8,6 +8,7 @@ use Webmozart\Assert\Assert;
 use Wwwision\Types\Attributes\Discriminator;
 use Wwwision\Types\Exception\CoerceException;
 use Wwwision\Types\Exception\InvalidSchemaException;
+use Wwwision\Types\Options;
 use Wwwision\Types\Parser;
 
 use function array_key_exists;
@@ -60,7 +61,7 @@ final class OneOfSchema implements Schema
         return false;
     }
 
-    public function instantiate(mixed $value): mixed
+    public function instantiate(mixed $value, Options $options): mixed
     {
         if ($this->isInstance($value)) {
             return $value;
@@ -78,7 +79,7 @@ final class OneOfSchema implements Schema
         if (!array_key_exists($discriminatorPropertyName, $array)) {
             $nonLiteralSubSchemas = array_filter($this->subSchemas, static fn(Schema $subSchema) => !($subSchema instanceof LiteralStringSchema || $subSchema instanceof LiteralIntegerSchema || $subSchema instanceof LiteralFloatSchema || $subSchema instanceof LiteralBooleanSchema || $subSchema instanceof LiteralNullSchema));
             if (count($nonLiteralSubSchemas) === 1) {
-                return $nonLiteralSubSchemas[0]->instantiate($value);
+                return $nonLiteralSubSchemas[0]->instantiate($value, $options);
             }
             if ($value === null || is_scalar($value)) {
                 throw CoerceException::invalidType($value, $this);
@@ -112,7 +113,7 @@ final class OneOfSchema implements Schema
             throw CoerceException::custom(sprintf('Missing keys for union of type %s', $this->getName()), $value, $this);
         }
         try {
-            $result = Parser::instantiate($type, $array);
+            $result = Parser::instantiate($type, $array, $options);
         } catch (CoerceException $e) {
             throw CoerceException::fromIssues($e->issues, $value, $this);
         }

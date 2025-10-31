@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Wwwision\Types\Schema;
 
+use Wwwision\Types\Options;
+
 final class LiteralNullSchema implements Schema
 {
     public function __construct(
@@ -31,7 +33,7 @@ final class LiteralNullSchema implements Schema
         return is_null($value);
     }
 
-    public function instantiate(mixed $value): mixed
+    public function instantiate(mixed $value, Options $options): mixed
     {
         return null;
     }

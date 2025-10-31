@@ -9,6 +9,7 @@ use Webmozart\Assert\Assert;
 use Wwwision\Types\Attributes\Discriminator;
 use Wwwision\Types\Exception\CoerceException;
 use Wwwision\Types\Exception\InvalidSchemaException;
+use Wwwision\Types\Options;
 use Wwwision\Types\Parser;
 
 use function is_array;
@@ -77,7 +78,7 @@ final class InterfaceSchema implements Schema
         return is_object($value) && $this->reflectionClass->isInstance($value);
     }
 
-    public function instantiate(mixed $value): object
+    public function instantiate(mixed $value, Options $options): object
     {
         if ($this->isInstance($value)) {
             /** @var object $value */
@@ -120,7 +121,7 @@ final class InterfaceSchema implements Schema
             unset($array[$discriminatorPropertyName]);
         }
         try {
-            $result = Parser::instantiate($type, $array);
+            $result = Parser::instantiate($type, $array, $options);
         } catch (CoerceException $e) {
             throw CoerceException::fromIssues($e->issues, $value, $this);
         }

@@ -12,6 +12,8 @@ use UnitEnum;
 use ValueError;
 use Wwwision\Types\Exception\CoerceException;
 
+use Wwwision\Types\Options;
+
 use function is_float;
 use function is_int;
 use function is_string;
@@ -58,7 +60,7 @@ final class EnumSchema implements Schema
         return is_object($value) && $this->reflectionClass->isInstance($value);
     }
 
-    public function instantiate(mixed $value): UnitEnum
+    public function instantiate(mixed $value, Options $options): UnitEnum
     {
         if ($this->isInstance($value)) {
             return $value;
@@ -75,7 +77,7 @@ final class EnumSchema implements Schema
         }
         foreach ($this->caseSchemas as $caseSchema) {
             if ($caseSchema->getName() === $coercedValue) {
-                return $caseSchema->instantiate($coercedValue);
+                return $caseSchema->instantiate($coercedValue, $options);
             }
         }
         throw CoerceException::invalidEnumValue($value, $this);

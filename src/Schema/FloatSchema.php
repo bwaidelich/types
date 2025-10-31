@@ -13,6 +13,8 @@ use Webmozart\Assert\Assert;
 use Wwwision\Types\Exception\CoerceException;
 use Wwwision\Types\Exception\Issues\Issues;
 
+use Wwwision\Types\Options;
+
 use function is_float;
 use function is_int;
 use function is_string;
@@ -53,7 +55,7 @@ final class FloatSchema implements Schema
         return is_object($value) && $this->reflectionClass->isInstance($value);
     }
 
-    public function instantiate(mixed $value): object
+    public function instantiate(mixed $value, Options $options): object
     {
         if ($this->isInstance($value)) {
             return $value;

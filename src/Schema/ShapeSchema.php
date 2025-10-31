@@ -14,6 +14,8 @@ use Wwwision\Types\Exception\CoerceException;
 use Wwwision\Types\Exception\InvalidSchemaException;
 use Wwwision\Types\Exception\Issues\Issues;
 
+use Wwwision\Types\Options;
+
 use function array_diff_key;
 use function array_key_exists;
 use function get_object_vars;
@@ -68,12 +70,12 @@ final class ShapeSchema implements Schema
         return is_object($value) && $this->reflectionClass->isInstance($value);
     }
 
-    public function instantiate(mixed $value): mixed
+    public function instantiate(mixed $value, Options $options): mixed
     {
         if ($this->isInstance($value)) {
             return $value;
         }
-        $arrayValue = $this->coerce($value);
+        $arrayValue = $this->coerce($value, $options);
         $constructor = $this->reflectionClass->getConstructor();
         Assert::isInstanceOf($constructor, ReflectionMethod::class, sprintf('Missing constructor in class "%s"', $this->reflectionClass->getName()));
         try {
@@ -90,7 +92,7 @@ final class ShapeSchema implements Schema
     /**
      * @return array<mixed>
      */
-    private function coerce(mixed $value): array
+    private function coerce(mixed $value, Options $options): array
     {
         if (is_array($value)) {
             $array = $value;
@@ -107,7 +109,7 @@ final class ShapeSchema implements Schema
             if (array_key_exists($propertyName, $array)) {
                 $propertySchema = $this->applyCustomDiscriminator($propertyName, $propertySchema);
                 try {
-                    $result[$propertyName] = $propertySchema->instantiate($array[$propertyName]);
+                    $result[$propertyName] = $propertySchema->instantiate($array[$propertyName], $options);
                 } catch (InvalidSchemaException $e) {
                     throw new InvalidSchemaException(sprintf('Invalid schema for property "%s" of type "%s": %s', $propertyName, $this->getName(), $e->getMessage()), 1734008510, $e);
                 } catch (CoerceException $e) {
@@ -120,9 +122,11 @@ final class ShapeSchema implements Schema
             }
             $issues = $issues->add(CoerceException::required($this, $propertySchema)->issues, $propertyName);
         }
-        $unrecognizedKeys = array_diff_key($array, $this->propertySchemas);
-        if ($unrecognizedKeys !== []) {
-            $issues = $issues->add(CoerceException::unrecognizedKeys($value, $this, array_keys($unrecognizedKeys))->issues);
+        if (!$options->ignoreUnrecognizedKeys) {
+            $unrecognizedKeys = array_diff_key($array, $this->propertySchemas);
+            if ($unrecognizedKeys !== []) {
+                $issues = $issues->add(CoerceException::unrecognizedKeys($value, $this, array_keys($unrecognizedKeys))->issues);
+            }
         }
         if (!$issues->isEmpty()) {
             throw CoerceException::fromIssues($issues, $value, $this);

@@ -7,6 +7,8 @@ namespace Wwwision\Types\Schema;
 use Stringable;
 use Wwwision\Types\Exception\CoerceException;
 
+use Wwwision\Types\Options;
+
 use function is_float;
 use function is_int;
 use function is_string;
@@ -38,7 +40,7 @@ final class LiteralFloatSchema implements Schema
         return is_float($value);
     }
 
-    public function instantiate(mixed $value): float
+    public function instantiate(mixed $value, Options $options): float
     {
         if ($this->isInstance($value)) {
             return $value;

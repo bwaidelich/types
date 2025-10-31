@@ -7,6 +7,8 @@ namespace Wwwision\Types\Schema;
 use Stringable;
 use Wwwision\Types\Exception\CoerceException;
 
+use Wwwision\Types\Options;
+
 use function is_int;
 use function is_string;
 
@@ -37,7 +39,7 @@ final class LiteralStringSchema implements Schema
         return is_string($value);
     }
 
-    public function instantiate(mixed $value): string
+    public function instantiate(mixed $value, Options $options): string
     {
         if ($this->isInstance($value)) {
             return $value;

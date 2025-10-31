@@ -7,6 +7,7 @@ namespace Wwwision\Types\Schema;
 use ReflectionEnumBackedCase;
 use ReflectionEnumUnitCase;
 use UnitEnum;
+use Wwwision\Types\Options;
 
 final class EnumCaseSchema implements Schema
 {
@@ -40,7 +41,7 @@ final class EnumCaseSchema implements Schema
         return $value === $this->reflectionClass->getValue();
     }
 
-    public function instantiate(mixed $value): UnitEnum
+    public function instantiate(mixed $value, Options $options): UnitEnum
     {
         return $this->reflectionClass->getValue();
     }

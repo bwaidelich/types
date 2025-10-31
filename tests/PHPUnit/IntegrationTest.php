@@ -37,6 +37,7 @@ use Wwwision\Types\Exception\Issues\TooBig;
 use Wwwision\Types\Exception\Issues\TooSmall;
 use Wwwision\Types\Exception\Issues\UnrecognizedKeys;
 use Wwwision\Types\Normalizer\Normalizer;
+use Wwwision\Types\Options;
 use Wwwision\Types\Parser;
 use Wwwision\Types\Schema\ArraySchema;
 use Wwwision\Types\Schema\EnumCaseSchema;
@@ -268,7 +269,7 @@ final class IntegrationTest extends TestCase
     {
         $literalFloatSchema = new LiteralFloatSchema(null);
         self::assertSame($requiresCoercion, !$literalFloatSchema->isInstance($value));
-        self::assertSame($expectedResult, $literalFloatSchema->instantiate($value));
+        self::assertSame($expectedResult, $literalFloatSchema->instantiate($value, Options::create()));
     }
 
     public static function instantiate_failing_literal_float_dataProvider(): Generator
@@ -284,7 +285,7 @@ final class IntegrationTest extends TestCase
 
         $this->expectException(CoerceException::class);
         $this->expectExceptionMessage($expectedException);
-        $literalFloatSchema->instantiate($value);
+        $literalFloatSchema->instantiate($value, Options::create());
     }
 
     public function test_getSchema_for_literal_string(): void
@@ -321,7 +322,7 @@ final class IntegrationTest extends TestCase
     {
         $optionalSchema = new OptionalSchema(new LiteralStringSchema(null));
         self::assertSame($requiresCoercion, !$optionalSchema->isInstance($value));
-        self::assertSame($expectedResult, $optionalSchema->instantiate($value));
+        self::assertSame($expectedResult, $optionalSchema->instantiate($value, Options::create()));
     }
 
     public function test_instantiate_throws_if_className_is_empty(): void
@@ -542,7 +543,7 @@ final class IntegrationTest extends TestCase
     public function test_instantiate_float_based_object_returns_same_instance_if_already_valid(): void
     {
         $instance = instantiate(Fixture\Longitude::class, 120);
-        $converted = Parser::getSchema(Fixture\Longitude::class)->instantiate($instance);
+        $converted = Parser::getSchema(Fixture\Longitude::class)->instantiate($instance, Options::create());
 
         self::assertSame($instance, $converted);
     }
@@ -771,6 +772,12 @@ final class IntegrationTest extends TestCase
         self::assertSame($expectedResult, $actualResult);
     }
 
+    public function test_instantiate_shape_object_ignoring_unrecognized_keys(): void
+    {
+        $instance = instantiate(Fixture\FullName::class, ['givenName' => 'Some first name', 'familyName' => 'Some last name', 'additional' => 'ignored', 'another additional' => 'also ignored'], Options::create(ignoreUnrecognizedKeys: true));
+        self::assertInstanceOf(Fixture\FullName::class, $instance);
+    }
+
     public static function instantiate_string_based_object_failing_dataProvider(): Generator
     {
         yield 'from null' => ['value' => null, 'className' => Fixture\GivenName::class, 'expectedIssues' => [['code' => 'invalid_type', 'message' => 'Expected string, received null', 'path' => [], 'expected' => 'string', 'received' => 'null']]];
@@ -977,13 +984,13 @@ final class IntegrationTest extends TestCase
     #[DataProvider('objects_dataProvider')]
     public function test_instantiate_returns_same_object_if_it_is_already_a_valid_type(object $instance): void
     {
-        self::assertSame($instance, Parser::getSchema($instance::class)->instantiate($instance));
+        self::assertSame($instance, Parser::getSchema($instance::class)->instantiate($instance, Options::create()));
     }
 
     public function test_instantiate_returns_same_instance_if_object_implements_interface_of_schema(): void
     {
         $instance = Parser::instantiate(Fixture\GivenName::class, 'John');
-        self::assertSame($instance, Parser::getSchema(Fixture\SomeInterface::class)->instantiate($instance));
+        self::assertSame($instance, Parser::getSchema(Fixture\SomeInterface::class)->instantiate($instance, Options::create()));
     }
 
     public function test_interface_schema_discriminator_can_be_changed(): void
@@ -1062,7 +1069,7 @@ final class IntegrationTest extends TestCase
             Parser::getSchema(Fixture\FamilyName::class),
         ], null, null);
         try {
-            $oneOfSchema->instantiate($value);
+            $oneOfSchema->instantiate($value, Options::create());
         } catch (CoerceException $e) {
             $exceptionThrown = true;
             self::assertJsonStringEqualsJsonString($expectedIssuesJson, json_encode($e, JSON_THROW_ON_ERROR));
@@ -1138,7 +1145,7 @@ final class IntegrationTest extends TestCase
             Parser::getSchema(Fixture\GivenName::class),
             Parser::getSchema(Fixture\FamilyName::class),
         ], null, null);
-        $instance = $oneOfSchema->instantiate($value);
+        $instance = $oneOfSchema->instantiate($value, Options::create());
         assert(is_object($instance));
         $actualResult = (new Normalizer())->toJson($instance);
         self::assertJsonStringEqualsJsonString($expectedResult, $actualResult);
@@ -1151,7 +1158,7 @@ final class IntegrationTest extends TestCase
             Parser::getSchema(Fixture\FamilyName::class),
         ], null, null);
         $instance = Parser::instantiate(Fixture\GivenName::class, 'John');
-        self::assertSame($instance, $oneOfSchema->instantiate($instance));
+        self::assertSame($instance, $oneOfSchema->instantiate($instance, Options::create()));
     }
 
     public function test_oneOf_serialization(): void
