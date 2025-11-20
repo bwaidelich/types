@@ -44,6 +44,9 @@
     "phpbench/phpbench": "84.x-dev",
     "friendsofphp/php-cs-fixer": "^3"
   },
+  "suggest": {
+    "wwwision/types-phpstan": "Provides custom PHPStan rules"
+  },
   "scripts": {
     "test:phpstan": "phpstan",
     "test:cs": [

@@ -147,6 +147,14 @@ final class DatabaseContactRepository implements ContactRepository {
 
 </details>
 
+## PHPStan rules
+
+To enforce the rules above automatically via [PHPStan](https://phpstan.org), you can install the [wwwision/types-phpstan](https://github.com/bwaidelich/types-phpstan) package
+
+```bash
+composer require --dev wwwision/types-phpstan
+``` 
+
 ## Best practices
 
 In order to gain the most with this package, a couple of rules should be considered:
