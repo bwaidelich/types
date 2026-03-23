@@ -302,7 +302,7 @@ final class IntegrationTest extends TestCase
 
     public function test_getSchema_for_optional(): void
     {
-        $mockWrapped = $this->getMockBuilder(Schema::class)->getMock();
+        $mockWrapped = $this->createStub(Schema::class);
         $mockWrapped->method('getType')->willReturn('WrappedType');
         $mockWrapped->method('getName')->willReturn('WrappedName');
         $mockWrapped->method('getDescription')->willReturn('WrappedDescription');
