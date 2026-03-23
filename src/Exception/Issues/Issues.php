@@ -82,8 +82,9 @@ final class Issues implements IteratorAggregate, JsonSerializable
     }
 
     /**
-     * @param Closure(Issue): mixed $callback
-     * @return array<mixed>
+     * @template T
+     * @param Closure(Issue): T $callback
+     * @return array<T>
      */
     public function map(Closure $callback): array
     {
