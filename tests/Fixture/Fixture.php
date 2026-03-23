@@ -15,6 +15,7 @@ use Traversable;
 use Wwwision\Types\Attributes\Description;
 use Wwwision\Types\Attributes\Discriminator;
 use Wwwision\Types\Attributes\FloatBased;
+use Wwwision\Types\Attributes\Ignore;
 use Wwwision\Types\Attributes\IntegerBased;
 use Wwwision\Types\Attributes\ListBased;
 use Wwwision\Types\Attributes\StringBased;
@@ -356,9 +357,17 @@ final class GeoCoordinates
     ) {}
 }
 
-interface SomeInvalidInterface
+interface SomeInterfaceWithParameterizedMethod
 {
     public function methodWithParameters(string|null $param = null): string;
+    public function methodWithoutParameters(): string;
+}
+
+interface SomeInterfaceWithIgnoredParameterizedMethod
+{
+    #[Ignore]
+    public function methodWithParameters(string|null $param = null): string;
+    public function methodWithoutParameters(): string;
 }
 
 #[StringBased(minLength: 10, maxLength: 2, pattern: '^foo$', format: StringTypeFormat::email)]
