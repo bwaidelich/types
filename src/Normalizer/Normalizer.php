@@ -61,7 +61,8 @@ final class Normalizer
             $result = $this->normalizeIterable($object, $reflectionClass);
         } elseif (self::isTypeBased($reflectionClass)) {
             $properties = get_object_vars($object);
-            $result = $properties[array_key_first($properties)];
+            $firstKey = array_key_first($properties);
+            $result = $firstKey !== null ? $properties[$firstKey] : null;
         } else {
             $result = [];
             $propertyDefaultValues = [];
