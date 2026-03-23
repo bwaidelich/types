@@ -16,10 +16,12 @@ use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionType;
 use ReflectionUnionType;
+use RuntimeException;
 use Webmozart\Assert\Assert;
 use Wwwision\Types\Attributes\Description;
 use Wwwision\Types\Attributes\Discriminator;
 use Wwwision\Types\Attributes\FloatBased;
+use Wwwision\Types\Attributes\Ignore;
 use Wwwision\Types\Attributes\IntegerBased;
 use Wwwision\Types\Attributes\ListBased;
 use Wwwision\Types\Attributes\StringBased;
@@ -230,7 +232,12 @@ final class Parser
         $propertySchemas = [];
         $overriddenPropertyDescriptions = [];
         foreach ($interfaceReflection->getMethods(ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
-            Assert::isEmpty($reflectionMethod->getParameters(), sprintf('Method "%s" of interface "%s" has at least one parameter, but this is currently not supported', $reflectionMethod->getName(), $interfaceReflection->getName()));
+            if ($reflectionMethod->getAttributes(Ignore::class) !== []) {
+                continue;
+            }
+            if ($reflectionMethod->getNumberOfParameters() !== 0) {
+                throw new RuntimeException(sprintf('Method "%s" of interface "%s" has at least one parameter, but this is currently not supported – add an #[Ignore] attribute to skip this method', $reflectionMethod->getName(), $interfaceReflection->getName()));
+            }
             $propertyName = $reflectionMethod->getName();
             $returnType = $reflectionMethod->getReturnType();
             Assert::notNull($returnType, sprintf('Return type of method "%s" of interface "%s" is missing', $reflectionMethod->getName(), $interfaceReflection->getName()));

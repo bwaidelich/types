@@ -131,9 +131,17 @@ final class IntegrationTest extends TestCase
      */
     public function test_getSchema_throws_if_given_class_is_interface_with_parameterized_methods(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Method "methodWithParameters" of interface "Wwwision\Types\Tests\Fixture\SomeInvalidInterface" has at least one parameter, but this is currently not supported');
-        Parser::getSchema(Fixture\SomeInvalidInterface::class);
+        $this->expectExceptionMessage('Method "methodWithParameters" of interface "Wwwision\Types\Tests\Fixture\SomeInterfaceWithParameterizedMethod" has at least one parameter, but this is currently not supported – add an #[Ignore] attribute to skip this method');
+        Parser::getSchema(Fixture\SomeInterfaceWithParameterizedMethod::class);
+    }
+
+    public function test_getSchema_skips_parameterized_methods_if_instructed(): void
+    {
+        $schema = Parser::getSchema(Fixture\SomeInterfaceWithIgnoredParameterizedMethod::class);
+        self::assertInstanceOf(InterfaceSchema::class, $schema);
+        self::assertArrayNotHasKey('methodWithParameters', $schema->propertySchemas);
+        self::assertArrayHasKey('methodWithoutParameters', $schema->propertySchemas);
+        self::assertInstanceOf(LiteralStringSchema::class, $schema->propertySchemas['methodWithoutParameters']);
     }
 
     public function test_getSchema_throws_if_shape_has_no_constructor(): void

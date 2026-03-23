@@ -542,6 +542,39 @@ $instance = instantiate(Composite::class, ['property1' => 'foo', 'property2' => 
 assert($instance instanceof Composite);
 ```
 
+### Skip interface methods
+
+When trying to generate a schema for an interface, public methods are considered properties of that schema.
+As a result, an exception will be thrown if the interface contains methods with parameters because those cannot be represented as properties:
+
+```php
+interface SomeInterface {
+    public function someMethodWithParameter(string $parameter): bool;
+}
+try {
+    $schema = Parser::getSchema(SomeInterface::class);
+} catch (\Exception $e) {
+    $exception = $e->getMessage();
+}
+assert(str_starts_with($exception, 'Method "someMethodWithParameter" of interface "'));
+assert(str_ends_with($exception, 'SomeInterface" has at least one parameter, but this is currently not supported – add an #[Ignore] attribute to skip this method'));
+```
+
+Starting with version [1.9](https://github.com/bwaidelich/types/releases/tag/1.9.0), those cases can be ignored by adding the `#[Ignore]` attribute to the method:
+
+```php
+use Wwwision\Types\Attributes\Ignore;
+
+interface SomeInterface {
+    #[Ignore]
+    public function someMethodWithParameter(string $parameter): bool;
+}
+
+$schema = Parser::getSchema(SomeInterface::class);
+assert($schema instanceof \Wwwision\Types\Schema\InterfaceSchema);
+assert($schema->propertySchemas === []);
+```
+
 ## Generics
 
 Generics won't make it into PHP most likely (see this [video from Brent](https://www.youtube.com/watch?v=JtmRG5lCENA) that explains why that is the case).
