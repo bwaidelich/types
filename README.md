@@ -275,6 +275,7 @@ It has the optional arguments
 * `minimum` – to specify the allowed _minimum_ value
 * `maximum` – to specify the allowed _maximum_ value
 * `examples`- to provide valid example values (since version [1.7](https://github.com/bwaidelich/types/releases/tag/1.7.0))
+* `extensions` – to attach custom key/value pairs to the schema (see [Schema extensions](#schema-extensions))
 
 <details>
 <summary><b>Example</b></summary>
@@ -302,6 +303,7 @@ It has the optional arguments
 * `minimum` – to specify the allowed _minimum_ value (as integer or float)
 * `maximum` – to specify the allowed _maximum_ value (as integer or float)
 * `examples`- to provide valid example values (since version [1.7](https://github.com/bwaidelich/types/releases/tag/1.7.0))
+* `extensions` – to attach custom key/value pairs to the schema (see [Schema extensions](#schema-extensions))
 
 <details>
 <summary><b>Example</b></summary>
@@ -331,6 +333,7 @@ It has the optional arguments
 * `format` – one of the predefined formats the string has to satisfy (this is a subset of
   the [JSON Schema string format](https://json-schema.org/understanding-json-schema/reference/string.html#format))
 * `examples`- to provide valid example values (since version [1.7](https://github.com/bwaidelich/types/releases/tag/1.7.0))
+* `extensions` – to attach custom key/value pairs to the schema (see [Schema extensions](#schema-extensions))
 
 <details>
 <summary><b>Example: String Value Object with min and max length constraints</b></summary>
@@ -374,6 +377,7 @@ It has the optional arguments
 
 * `minCount` – to specify how many items the list has to contain _at least_
 * `maxCount` – to specify how many items the list has to contain _at most_
+* `extensions` – to attach custom key/value pairs to the schema (see [Schema extensions](#schema-extensions))
 
 <details>
 <summary><b>Example: Simple generic array</b></summary>
@@ -437,6 +441,30 @@ final class HobbiesAdvanced implements IteratorAggregate, Countable, JsonSeriali
 instantiate(HobbiesAdvanced::class, ['Soccer', 'Ping Pong', 'Guitar', 'Gaming']);
 
 // Exception: Failed to cast value of type array to HobbiesAdvanced: too_big (Array must contain at most 3 element(s))
+```
+
+</details>
+
+### Schema extensions
+
+Starting with version [1.10](https://github.com/bwaidelich/types/releases/tag/1.10.0), the [IntegerBased](#integerbased), [FloatBased](#floatbased), [StringBased](#stringbased) and [ListBased](#listbased) attributes accept an optional `extensions` argument: an associative array of arbitrary key/value pairs that are merged into the schema's JSON representation.
+
+This is useful when translating the schema for downstream tooling (for example, [JSON Schema](https://json-schema.org) or [OpenAPI specification extensions](https://spec.openapis.org/oas/v3.1.0#specification-extensions), which use the `x-` prefix for vendor-specific keys).
+
+The values are also accessible on the corresponding `Schema` instance via the `$extensions` property.
+
+<details>
+<summary><b>Example: Custom editor hint via an OpenAPI-style extension</b></summary>
+
+```php
+#[StringBased(format: StringTypeFormat::uri, extensions: ['x-editor' => 'ImageEditor'])]
+final class ImageUrl {
+    private function __construct(public readonly string $value) {}
+}
+
+$schema = Parser::getSchema(ImageUrl::class);
+assert($schema->extensions === ['x-editor' => 'ImageEditor']);
+assert(json_encode($schema) === '{"type":"string","name":"ImageUrl","description":null,"format":"uri","x-editor":"ImageEditor"}');
 ```
 
 </details>

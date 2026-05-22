@@ -194,6 +194,58 @@ final class IntegrationTest extends TestCase
         yield 'interface with discriminator' => ['className' => Fixture\InterfaceWithDiscriminator::class, 'expectedResult' => '{"type":"interface","name":"InterfaceWithDiscriminator","description":null,"properties":[]}'];
         yield 'shape with recursion' => ['className' => Fixture\ClassWithRecursion::class, 'expectedResult' => '{"type":"object","name":"ClassWithRecursion","description":"Description on recursive class","properties":[{"type":"SubClassWithRecursion","name":"subClass","description":null}]}'];
         yield 'shape with recursion 2' => ['className' => Fixture\SubClassWithRecursion::class, 'expectedResult' => '{"type":"object","name":"SubClassWithRecursion","description":null,"properties":[{"type":"ClassWithRecursion","name":"parentClass","description":"Description on recursive class"}]}'];
+
+        yield 'string based object with extensions' => ['className' => Fixture\ImageUrl::class, 'expectedResult' => '{"type":"string","name":"ImageUrl","description":null,"x-editor":"ImageEditor","x-mime":"image/png"}'];
+        yield 'integer based object with extensions' => ['className' => Fixture\TimeoutSeconds::class, 'expectedResult' => '{"type":"integer","name":"TimeoutSeconds","description":null,"x-unit":"seconds"}'];
+        yield 'float based object with extensions' => ['className' => Fixture\Temperature::class, 'expectedResult' => '{"type":"float","name":"Temperature","description":null,"x-unit":"celsius"}'];
+        yield 'list object with extensions' => ['className' => Fixture\TaggedGivenNames::class, 'expectedResult' => '{"type":"array","name":"TaggedGivenNames","description":null,"itemType":"GivenName","x-widget":"TagInput"}'];
+    }
+
+    public function test_getSchema_exposes_extensions_on_StringSchema(): void
+    {
+        $schema = Parser::getSchema(Fixture\ImageUrl::class);
+        self::assertInstanceOf(StringSchema::class, $schema);
+        self::assertSame(['x-editor' => 'ImageEditor', 'x-mime' => 'image/png'], $schema->extensions);
+    }
+
+    public function test_getSchema_exposes_extensions_on_IntegerSchema(): void
+    {
+        $schema = Parser::getSchema(Fixture\TimeoutSeconds::class);
+        self::assertInstanceOf(IntegerSchema::class, $schema);
+        self::assertSame(['x-unit' => 'seconds'], $schema->extensions);
+    }
+
+    public function test_getSchema_exposes_extensions_on_FloatSchema(): void
+    {
+        $schema = Parser::getSchema(Fixture\Temperature::class);
+        self::assertInstanceOf(FloatSchema::class, $schema);
+        self::assertSame(['x-unit' => 'celsius'], $schema->extensions);
+    }
+
+    public function test_getSchema_exposes_extensions_on_ListSchema(): void
+    {
+        $schema = Parser::getSchema(Fixture\TaggedGivenNames::class);
+        self::assertInstanceOf(ListSchema::class, $schema);
+        self::assertSame(['x-widget' => 'TagInput'], $schema->extensions);
+    }
+
+    public function test_getSchema_returns_null_extensions_when_none_specified(): void
+    {
+        $stringSchema = Parser::getSchema(Fixture\GivenName::class);
+        self::assertInstanceOf(StringSchema::class, $stringSchema);
+        self::assertNull($stringSchema->extensions);
+
+        $integerSchema = Parser::getSchema(Fixture\Age::class);
+        self::assertInstanceOf(IntegerSchema::class, $integerSchema);
+        self::assertNull($integerSchema->extensions);
+
+        $floatSchema = Parser::getSchema(Fixture\Longitude::class);
+        self::assertInstanceOf(FloatSchema::class, $floatSchema);
+        self::assertNull($floatSchema->extensions);
+
+        $listSchema = Parser::getSchema(Fixture\FullNames::class);
+        self::assertInstanceOf(ListSchema::class, $listSchema);
+        self::assertNull($listSchema->extensions);
     }
 
     /**

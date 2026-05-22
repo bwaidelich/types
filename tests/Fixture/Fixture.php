@@ -669,3 +669,36 @@ final class JsonSerializableSimpleShape implements JsonSerializable
         return strtoupper($this->name);
     }
 }
+
+#[StringBased(extensions: ['x-editor' => 'ImageEditor', 'x-mime' => 'image/png'])]
+final class ImageUrl
+{
+    private function __construct(public readonly string $value) {}
+}
+
+#[IntegerBased(extensions: ['x-unit' => 'seconds'])]
+final class TimeoutSeconds
+{
+    private function __construct(public readonly int $value) {}
+}
+
+#[FloatBased(extensions: ['x-unit' => 'celsius'])]
+final class Temperature
+{
+    private function __construct(public readonly float $value) {}
+}
+
+/**
+ * @implements IteratorAggregate<GivenName>
+ */
+#[ListBased(itemClassName: GivenName::class, extensions: ['x-widget' => 'TagInput'])]
+final class TaggedGivenNames implements IteratorAggregate
+{
+    /** @param array<GivenName> $givenNames */
+    private function __construct(private readonly array $givenNames) {}
+
+    public function getIterator(): Traversable
+    {
+        return new ArrayIterator($this->givenNames);
+    }
+}

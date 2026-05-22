@@ -30,6 +30,7 @@ final class StringSchema implements Schema
     /**
      * @param ReflectionClass<object> $reflectionClass
      * @param array<string>|null $examples
+     * @param array<string, mixed>|null $extensions
      */
     public function __construct(
         private readonly ReflectionClass $reflectionClass,
@@ -39,6 +40,7 @@ final class StringSchema implements Schema
         public readonly string|null $pattern = null,
         public readonly StringTypeFormat|null $format = null,
         public readonly array|null $examples = null,
+        public readonly array|null $extensions = null,
     ) {}
 
     public function getType(): string
@@ -152,6 +154,9 @@ final class StringSchema implements Schema
         }
         if ($this->examples !== null) {
             $result['examples'] = $this->examples;
+        }
+        if ($this->extensions !== null) {
+            $result += $this->extensions;
         }
         return $result;
     }
