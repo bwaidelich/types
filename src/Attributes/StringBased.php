@@ -12,6 +12,7 @@ final class StringBased implements TypeBased
 {
     /**
      * @param array<string>|null $examples
+     * @param array<string, mixed>|null $extensions
      */
     public function __construct(
         public readonly int|null $minLength = null,
@@ -19,5 +20,6 @@ final class StringBased implements TypeBased
         public readonly string|null $pattern = null,
         public readonly StringTypeFormat|null $format = null,
         public readonly array|null $examples = null,
+        public readonly array|null $extensions = null,
     ) {}
 }

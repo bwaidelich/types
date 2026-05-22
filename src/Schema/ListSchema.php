@@ -21,6 +21,7 @@ final class ListSchema implements Schema
 {
     /**
      * @param ReflectionClass<object> $reflectionClass
+     * @param array<string, mixed>|null $extensions
      */
     public function __construct(
         private readonly ReflectionClass $reflectionClass,
@@ -28,6 +29,7 @@ final class ListSchema implements Schema
         public readonly Schema $itemSchema,
         public readonly int|null $minCount = null,
         public readonly int|null $maxCount = null,
+        public readonly array|null $extensions = null,
     ) {}
 
     public function getType(): string
@@ -114,6 +116,9 @@ final class ListSchema implements Schema
         }
         if ($this->maxCount !== null) {
             $result['maxCount'] = $this->maxCount;
+        }
+        if ($this->extensions !== null) {
+            $result += $this->extensions;
         }
         return $result;
     }

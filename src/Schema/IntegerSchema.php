@@ -25,6 +25,7 @@ final class IntegerSchema implements Schema
     /**
      * @param ReflectionClass<object> $reflectionClass
      * @param array<int>|null $examples
+     * @param array<string, mixed>|null $extensions
      */
     public function __construct(
         private readonly ReflectionClass $reflectionClass,
@@ -32,6 +33,7 @@ final class IntegerSchema implements Schema
         public readonly int|null $minimum = null,
         public readonly int|null $maximum = null,
         public readonly array|null $examples = null,
+        public readonly array|null $extensions = null,
     ) {}
 
     public function getType(): string
@@ -120,6 +122,9 @@ final class IntegerSchema implements Schema
         }
         if ($this->examples !== null) {
             $result['examples'] = $this->examples;
+        }
+        if ($this->extensions !== null) {
+            $result += $this->extensions;
         }
         return $result;
     }
