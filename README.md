@@ -570,37 +570,58 @@ $instance = instantiate(Composite::class, ['property1' => 'foo', 'property2' => 
 assert($instance instanceof Composite);
 ```
 
-### Skip interface methods
+### Interface properties
 
-When trying to generate a schema for an interface, public methods are considered properties of that schema.
-As a result, an exception will be thrown if the interface contains methods with parameters because those cannot be represented as properties:
+When generating a schema for an interface, its readable members are considered properties of that schema.
+A member becomes a property if it is either
+
+* a [property hook](https://www.php.net/manual/en/language.oop5.property-hooks.php) with a `get` accessor, or
+* a public, non-static method without parameters whose return type can be mapped to a schema
 
 ```php
 interface SomeInterface {
-    public function someMethodWithParameter(string $parameter): bool;
+    public string $someProperty { get; }
+    public function someMethod(): string;
 }
-try {
-    $schema = Parser::getSchema(SomeInterface::class);
-} catch (\Exception $e) {
-    $exception = $e->getMessage();
-}
-assert(str_starts_with($exception, 'Method "someMethodWithParameter" of interface "'));
-assert(str_ends_with($exception, 'SomeInterface" has at least one parameter, but this is currently not supported – add an #[Ignore] attribute to skip this method'));
+
+$schema = Parser::getSchema(SomeInterface::class);
+assert($schema instanceof \Wwwision\Types\Schema\InterfaceSchema);
+assert(array_keys($schema->propertySchemas) === ['someProperty', 'someMethod']);
 ```
 
-Starting with version [1.9](https://github.com/bwaidelich/types/releases/tag/1.9.0), those cases can be ignored by adding the `#[Ignore]` attribute to the method:
+> **Note**
+> If an interface declares a property hook and a method of the same name, the property hook takes precedence.
+
+All other methods are considered _behavior_ rather than data and are silently skipped.
+This includes methods that have parameters, return `void`, are `static`, or have a return type that cannot be mapped to a schema.
+This makes it possible to generate schemas for interfaces that mix data accessors and behavior – including 3rd party interfaces you cannot change:
 
 ```php
-use Wwwision\Types\Attributes\Ignore;
-
 interface SomeInterface {
-    #[Ignore]
-    public function someMethodWithParameter(string $parameter): bool;
+    public function withParameter(string $parameter): bool; // skipped: has a parameter
+    public function returningVoid(): void;                  // skipped: void return type
+    public static function create(): string;                // skipped: static method
 }
 
 $schema = Parser::getSchema(SomeInterface::class);
 assert($schema instanceof \Wwwision\Types\Schema\InterfaceSchema);
 assert($schema->propertySchemas === []);
+```
+
+To exclude a member that _would_ qualify as a property, add the `#[Ignore]` attribute (supported on methods since version [1.9](https://github.com/bwaidelich/types/releases/tag/1.9.0) and on property hooks since version 1.11):
+
+```php
+use Wwwision\Types\Attributes\Ignore;
+
+interface SomeInterface {
+    public string $included { get; }
+    #[Ignore]
+    public function excluded(): string;
+}
+
+$schema = Parser::getSchema(SomeInterface::class);
+assert($schema instanceof \Wwwision\Types\Schema\InterfaceSchema);
+assert(array_keys($schema->propertySchemas) === ['included']);
 ```
 
 ## Generics

@@ -126,13 +126,13 @@ final class IntegrationTest extends TestCase
         Parser::getSchema(Fixture\ShapeWithInvalidObjectProperty::class);
     }
 
-    /**
-     * Note: Currently methods with parameters are not supported, but this can change at some point
-     */
-    public function test_getSchema_throws_if_given_class_is_interface_with_parameterized_methods(): void
+    public function test_getSchema_skips_parameterized_interface_methods(): void
     {
-        $this->expectExceptionMessage('Method "methodWithParameters" of interface "Wwwision\Types\Tests\Fixture\SomeInterfaceWithParameterizedMethod" has at least one parameter, but this is currently not supported – add an #[Ignore] attribute to skip this method');
-        Parser::getSchema(Fixture\SomeInterfaceWithParameterizedMethod::class);
+        $schema = Parser::getSchema(Fixture\SomeInterfaceWithParameterizedMethod::class);
+        self::assertInstanceOf(InterfaceSchema::class, $schema);
+        self::assertArrayNotHasKey('methodWithParameters', $schema->propertySchemas);
+        self::assertArrayHasKey('methodWithoutParameters', $schema->propertySchemas);
+        self::assertInstanceOf(LiteralStringSchema::class, $schema->propertySchemas['methodWithoutParameters']);
     }
 
     public function test_getSchema_skips_parameterized_methods_if_instructed(): void
@@ -142,6 +142,49 @@ final class IntegrationTest extends TestCase
         self::assertArrayNotHasKey('methodWithParameters', $schema->propertySchemas);
         self::assertArrayHasKey('methodWithoutParameters', $schema->propertySchemas);
         self::assertInstanceOf(LiteralStringSchema::class, $schema->propertySchemas['methodWithoutParameters']);
+    }
+
+    public function test_getSchema_skips_interface_methods_with_void_return_type(): void
+    {
+        $schema = Parser::getSchema(Fixture\SomeInterfaceWithVoidMethod::class);
+        self::assertInstanceOf(InterfaceSchema::class, $schema);
+        self::assertSame(['name'], array_keys($schema->propertySchemas));
+    }
+
+    public function test_getSchema_skips_static_interface_methods(): void
+    {
+        $schema = Parser::getSchema(Fixture\SomeInterfaceWithStaticMethod::class);
+        self::assertInstanceOf(InterfaceSchema::class, $schema);
+        self::assertSame(['name'], array_keys($schema->propertySchemas));
+    }
+
+    public function test_getSchema_skips_interface_methods_with_unmappable_return_types(): void
+    {
+        $schema = Parser::getSchema(Fixture\SomeInterfaceWithUnmappableReturnTypes::class);
+        self::assertInstanceOf(InterfaceSchema::class, $schema);
+        self::assertSame(['name'], array_keys($schema->propertySchemas));
+    }
+
+    public function test_getSchema_supports_interface_property_hooks(): void
+    {
+        $schema = Parser::getSchema(Fixture\SomeInterfaceWithPropertyHooks::class);
+        self::assertInstanceOf(InterfaceSchema::class, $schema);
+        // behavior method and #[Ignore]d property are skipped, the remaining `get` hooks become properties
+        self::assertSame(['givenName', 'familyName', 'age'], array_keys($schema->propertySchemas));
+        self::assertInstanceOf(StringSchema::class, $schema->propertySchemas['givenName']);
+        // a nullable property type is represented as an optional property
+        self::assertInstanceOf(OptionalSchema::class, $schema->propertySchemas['age']);
+        // #[Description] on a property hook is honored
+        self::assertSame('Custom description for "familyName"', $schema->overriddenPropertyDescription('familyName'));
+    }
+
+    public function test_getSchema_prefers_property_hook_over_method_of_the_same_name(): void
+    {
+        $schema = Parser::getSchema(Fixture\SomeInterfaceWithCollidingHookAndMethod::class);
+        self::assertInstanceOf(InterfaceSchema::class, $schema);
+        self::assertSame(['name'], array_keys($schema->propertySchemas));
+        // the hook (GivenName) wins over the colliding method (FamilyName)
+        self::assertSame('GivenName', $schema->propertySchemas['name']->getName());
     }
 
     public function test_getSchema_throws_if_shape_has_no_constructor(): void
