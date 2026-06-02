@@ -608,7 +608,7 @@ assert($schema instanceof \Wwwision\Types\Schema\InterfaceSchema);
 assert($schema->propertySchemas === []);
 ```
 
-To exclude a member that _would_ qualify as a property, add the `#[Ignore]` attribute (supported on methods since version [1.9](https://github.com/bwaidelich/types/releases/tag/1.9.0) and on property hooks since version 1.11):
+To exclude a member that _would_ qualify as a property, add the `#[Ignore]` attribute (supported on methods since version [1.9](https://github.com/bwaidelich/types/releases/tag/1.9.0) and on property hooks since version [1.11]((https://github.com/bwaidelich/types/releases/tag/1.11.0)):
 
 ```php
 use Wwwision\Types\Attributes\Ignore;
