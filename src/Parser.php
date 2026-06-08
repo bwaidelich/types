@@ -14,9 +14,9 @@ use ReflectionIntersectionType;
 use ReflectionMethod;
 use ReflectionNamedType;
 use ReflectionParameter;
+use ReflectionProperty;
 use ReflectionType;
 use ReflectionUnionType;
-use RuntimeException;
 use Webmozart\Assert\Assert;
 use Wwwision\Types\Attributes\Description;
 use Wwwision\Types\Attributes\Discriminator;
@@ -152,10 +152,10 @@ final class Parser
     }
 
     /**
-     * @param ReflectionParameter|ReflectionClass<object>|ReflectionClassConstant|ReflectionFunctionAbstract|ReflectionEnum<\UnitEnum> $reflection
+     * @param ReflectionParameter|ReflectionProperty|ReflectionClass<object>|ReflectionClassConstant|ReflectionFunctionAbstract|ReflectionEnum<\UnitEnum> $reflection
      * @return string|null
      */
-    private static function getDescription(ReflectionParameter|ReflectionClass|ReflectionClassConstant|ReflectionFunctionAbstract|ReflectionEnum $reflection): string|null
+    private static function getDescription(ReflectionParameter|ReflectionProperty|ReflectionClass|ReflectionClassConstant|ReflectionFunctionAbstract|ReflectionEnum $reflection): string|null
     {
         $descriptionAttributes = $reflection->getAttributes(Description::class, ReflectionAttribute::IS_INSTANCEOF);
         if (!isset($descriptionAttributes[0])) {
@@ -232,18 +232,48 @@ final class Parser
     {
         $propertySchemas = [];
         $overriddenPropertyDescriptions = [];
+        // 1. Schema properties declared via PHP property hooks (e.g. `public string $name { get; }`).
+        foreach ($interfaceReflection->getProperties() as $reflectionProperty) {
+            if ($reflectionProperty->getAttributes(Ignore::class) !== []) {
+                continue;
+            }
+            // Only readable properties (i.e. with a `get` hook) can be represented in the schema
+            if (!array_key_exists('get', $reflectionProperty->getHooks())) {
+                continue;
+            }
+            $propertyName = $reflectionProperty->getName();
+            $propertyType = $reflectionProperty->getType();
+            Assert::isInstanceOfAny($propertyType, [ReflectionNamedType::class, ReflectionUnionType::class], sprintf('Type of property "%s" of interface "%s" was expected to be of type %%2$s. Got: %%s', $propertyName, $interfaceReflection->getName()));
+            /** @var ReflectionNamedType|ReflectionUnionType $propertyType */
+            $propertySchema = self::reflectionTypeToSchema($propertyType);
+            if ($propertyType->allowsNull()) {
+                $propertySchema = new OptionalSchema($propertySchema);
+            }
+            $overwrittenDescription = self::getDescription($reflectionProperty);
+            if ($overwrittenDescription !== null) {
+                $overriddenPropertyDescriptions[$propertyName] = $overwrittenDescription;
+            }
+            $propertySchemas[$propertyName] = $propertySchema;
+        }
+        // 2. Schema properties declared via parameterless getter methods. Any method that does not qualify
+        //    as a readable property (because it returns void, expects parameters, is static or has a return
+        //    type that cannot be mapped to a schema) is silently skipped – it describes behavior, not data.
         foreach ($interfaceReflection->getMethods(ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
+            $propertyName = $reflectionMethod->getName();
+            // A property hook of the same name takes precedence over the method
+            if (array_key_exists($propertyName, $propertySchemas)) {
+                continue;
+            }
             if ($reflectionMethod->getAttributes(Ignore::class) !== []) {
                 continue;
             }
-            if ($reflectionMethod->getNumberOfParameters() !== 0) {
-                throw new RuntimeException(sprintf('Method "%s" of interface "%s" has at least one parameter, but this is currently not supported – add an #[Ignore] attribute to skip this method', $reflectionMethod->getName(), $interfaceReflection->getName()));
+            if ($reflectionMethod->isStatic() || $reflectionMethod->getNumberOfParameters() !== 0) {
+                continue;
             }
-            $propertyName = $reflectionMethod->getName();
             $returnType = $reflectionMethod->getReturnType();
-            Assert::notNull($returnType, sprintf('Return type of method "%s" of interface "%s" is missing', $reflectionMethod->getName(), $interfaceReflection->getName()));
-            Assert::isInstanceOf($returnType, ReflectionNamedType::class, sprintf('Return type of method "%s" of interface "%s" was expected to be of type %%2$s. Got: %%s', $reflectionMethod->getName(), $interfaceReflection->getName()));
-            /** @var ReflectionNamedType $returnType */
+            if ($returnType === null || !self::isMappableType($returnType)) {
+                continue;
+            }
             $propertySchema = self::reflectionTypeToSchema($returnType);
             if ($returnType->allowsNull()) {
                 $propertySchema = new OptionalSchema($propertySchema);
@@ -256,6 +286,34 @@ final class Parser
         }
         $discriminator = self::getDiscriminator($interfaceReflection);
         return new InterfaceSchema($interfaceReflection, self::getDescription($interfaceReflection), $propertySchemas, $overriddenPropertyDescriptions, $discriminator);
+    }
+
+    /**
+     * Determines whether the given type can be mapped to a {@see Schema} without resolving it.
+     *
+     * This is used to decide whether an interface method qualifies as a (readable) property: only methods
+     * with a mappable return type are turned into properties, all others are treated as behavior and skipped.
+     * The check intentionally only inspects the type itself (not the referenced classes) so that genuine
+     * errors while building the referenced schema still surface instead of being swallowed.
+     */
+    private static function isMappableType(ReflectionType $reflectionType): bool
+    {
+        if ($reflectionType instanceof ReflectionUnionType) {
+            foreach ($reflectionType->getTypes() as $subType) {
+                if (!self::isMappableType($subType)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (!$reflectionType instanceof ReflectionNamedType) {
+            // intersection types and any future reflection type are not supported
+            return false;
+        }
+        if ($reflectionType->isBuiltin()) {
+            return in_array($reflectionType->getName(), ['array', 'bool', 'float', 'int', 'string', 'null'], true);
+        }
+        return class_exists($reflectionType->getName()) || interface_exists($reflectionType->getName());
     }
 
     private static function reflectionTypeToSchema(ReflectionType $reflectionType, string|null $description = null): Schema

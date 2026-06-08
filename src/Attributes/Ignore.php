@@ -6,5 +6,5 @@ namespace Wwwision\Types\Attributes;
 
 use Attribute;
 
-#[Attribute(Attribute::TARGET_METHOD)]
+#[Attribute(Attribute::TARGET_METHOD | Attribute::TARGET_PROPERTY)]
 final class Ignore {}

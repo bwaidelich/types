@@ -370,6 +370,42 @@ interface SomeInterfaceWithIgnoredParameterizedMethod
     public function methodWithoutParameters(): string;
 }
 
+interface SomeInterfaceWithVoidMethod
+{
+    public function name(): GivenName;
+    public function doSomething(): void;
+}
+
+interface SomeInterfaceWithStaticMethod
+{
+    public function name(): GivenName;
+    public static function create(): string;
+}
+
+interface SomeInterfaceWithUnmappableReturnTypes
+{
+    public function name(): GivenName;
+    public function anything(): mixed;
+    public function something(): object;
+}
+
+interface SomeInterfaceWithPropertyHooks
+{
+    public GivenName $givenName { get; }
+    #[Description('Custom description for "familyName"')]
+    public FamilyName $familyName { get; }
+    public Age|null $age { get; }
+    #[Ignore]
+    public GivenName $ignoredProperty { get; }
+    public function doSomething(): void;
+}
+
+interface SomeInterfaceWithCollidingHookAndMethod
+{
+    public GivenName $name { get; }
+    public function name(): FamilyName;
+}
+
 #[StringBased(minLength: 10, maxLength: 2, pattern: '^foo$', format: StringTypeFormat::email)]
 final class ImpossibleString
 {
