@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Wwwision\Types\Schema;
 
+use InvalidArgumentException;
 use Webmozart\Assert\Assert;
 use Wwwision\Types\Attributes\Discriminator;
 use Wwwision\Types\Exception\CoerceException;
@@ -28,6 +29,7 @@ final class ShapeSchema implements Schema
      * @param array<non-empty-string, Schema> $propertySchemas
      * @param array<non-empty-string, string> $overriddenPropertyDescriptions
      * @param array<non-empty-string, Discriminator> $propertyDiscriminators
+     * @param array<non-empty-string, mixed> $propertyDefaults the raw constructor default values, keyed by property name (presence means "has a default", so a default of null is distinguishable from "no default")
      */
     public function __construct(
         private readonly Target $target,
@@ -35,6 +37,7 @@ final class ShapeSchema implements Schema
         public readonly array $propertySchemas,
         private readonly array $overriddenPropertyDescriptions,
         private readonly array $propertyDiscriminators,
+        private readonly array $propertyDefaults = [],
     ) {
         Assert::allIsInstanceOf($this->propertySchemas, Schema::class);
         Assert::allIsInstanceOf($this->propertyDiscriminators, Discriminator::class);
@@ -58,6 +61,31 @@ final class ShapeSchema implements Schema
     public function overriddenPropertyDescription(string $propertyName): string|null
     {
         return $this->overriddenPropertyDescriptions[$propertyName] ?? null;
+    }
+
+    /**
+     * Whether the property with the given name has a constructor default value.
+     *
+     * Note: This is distinct from the property being optional – a property of type `?string $foo` (without
+     * default) is optional but has no default, whereas `string $foo = 'bar'` has the default value "bar".
+     */
+    public function hasDefaultValue(string $propertyName): bool
+    {
+        return array_key_exists($propertyName, $this->propertyDefaults);
+    }
+
+    /**
+     * The raw constructor default value of the property with the given name (e.g. the string "bar" for
+     * `string $foo = 'bar'`, or an enum case for `Suit $suit = Suit::Hearts`).
+     *
+     * @throws InvalidArgumentException if the property has no default value – use {@see self::hasDefaultValue()} to check
+     */
+    public function defaultValue(string $propertyName): mixed
+    {
+        if (!array_key_exists($propertyName, $this->propertyDefaults)) {
+            throw new InvalidArgumentException(sprintf('Property "%s" of type "%s" has no default value', $propertyName, $this->getName()), 1782518400);
+        }
+        return $this->propertyDefaults[$propertyName];
     }
 
     public function isInstance(mixed $value): bool

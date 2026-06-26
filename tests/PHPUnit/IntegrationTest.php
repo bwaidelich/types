@@ -251,6 +251,42 @@ final class IntegrationTest extends TestCase
         self::assertSame(['x-editor' => 'ImageEditor', 'x-mime' => 'image/png'], $schema->extensions);
     }
 
+    public function test_getSchema_exposes_default_values_on_ShapeSchema(): void
+    {
+        $schema = Parser::getSchema(Fixture\ShapeWithOptionalTypes::class);
+        self::assertInstanceOf(ShapeSchema::class, $schema);
+
+        // scalar default
+        self::assertTrue($schema->hasDefaultValue('stringWithDefaultValue'));
+        self::assertSame('default', $schema->defaultValue('stringWithDefaultValue'));
+        self::assertTrue($schema->hasDefaultValue('boolWithDefault'));
+        self::assertFalse($schema->defaultValue('boolWithDefault'));
+
+        // a default of null is distinguishable from "no default"
+        self::assertTrue($schema->hasDefaultValue('optionalInt'));
+        self::assertNull($schema->defaultValue('optionalInt'));
+
+        // required property without a default
+        self::assertFalse($schema->hasDefaultValue('stringBased'));
+    }
+
+    public function test_getSchema_exposes_default_values_as_raw_reflected_values(): void
+    {
+        $schema = Parser::getSchema(Fixture\ShapeWithEnumDefault::class);
+        self::assertInstanceOf(ShapeSchema::class, $schema);
+        self::assertTrue($schema->hasDefaultValue('title'));
+        // the raw enum case is returned, not a normalized/backing representation
+        self::assertSame(Fixture\Title::MR, $schema->defaultValue('title'));
+    }
+
+    public function test_ShapeSchema_defaultValue_throws_for_property_without_default(): void
+    {
+        $schema = Parser::getSchema(Fixture\ShapeWithOptionalTypes::class);
+        self::assertInstanceOf(ShapeSchema::class, $schema);
+        $this->expectException(InvalidArgumentException::class);
+        $schema->defaultValue('stringBased');
+    }
+
     public function test_getSchema_exposes_extensions_on_IntegerSchema(): void
     {
         $schema = Parser::getSchema(Fixture\TimeoutSeconds::class);

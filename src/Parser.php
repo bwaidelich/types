@@ -193,8 +193,12 @@ final class Parser
         $propertySchemas = [];
         $overriddenPropertyDescriptions = [];
         $propertyDiscriminators = [];
+        $propertyDefaults = [];
         foreach ($constructor->getParameters() as $parameter) {
             $propertyName = $parameter->getName();
+            if ($parameter->isDefaultValueAvailable()) {
+                $propertyDefaults[$propertyName] = $parameter->getDefaultValue();
+            }
             $parameterType = $parameter->getType();
             Assert::notNull($parameterType, sprintf('Failed to determine type of constructor parameter "%s"', $propertyName));
             Assert::isInstanceOfAny($parameterType, [ReflectionNamedType::class, ReflectionUnionType::class, ReflectionIntersectionType::class]);
@@ -222,7 +226,7 @@ final class Parser
             }
             $propertySchemas[$propertyName] = $propertySchema;
         }
-        return new ShapeSchema(new ClassTarget($reflectionClass), self::getDescription($reflectionClass), $propertySchemas, $overriddenPropertyDescriptions, $propertyDiscriminators);
+        return new ShapeSchema(new ClassTarget($reflectionClass), self::getDescription($reflectionClass), $propertySchemas, $overriddenPropertyDescriptions, $propertyDiscriminators, $propertyDefaults);
     }
 
     /**

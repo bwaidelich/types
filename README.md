@@ -529,7 +529,18 @@ assert($person->isRegistered === false);
 $schema = Parser::getSchema(Contact::class);
 assert($schema->getDescription() === 'A contact in the system');
 assert($schema->propertySchemas['isRegistered']->getDescription() === 'Whether the contact is registered or not');
+
+// Constructor default values are exposed on the ShapeSchema (e.g. to pre-fill form fields)
+assert($schema->hasDefaultValue('isRegistered') === true);
+assert($schema->defaultValue('isRegistered') === false);
+
+// Properties without a constructor default are reported as such
+assert($schema->hasDefaultValue('title') === false);
 ```
+
+> [!NOTE]
+> `defaultValue()` returns the **raw** reflected default value (a scalar, `null`, an array or an enum case – e.g. `Title::MR`), so a default of `null` is distinguishable from "no default" via `hasDefaultValue()`.
+> Calling `defaultValue()` for a property without a default throws an `InvalidArgumentException`, so guard it with `hasDefaultValue()`.
 
 </details>
 

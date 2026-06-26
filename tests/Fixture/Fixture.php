@@ -285,6 +285,13 @@ final class ShapeWithOptionalTypes
     ) {}
 }
 
+final class ShapeWithEnumDefault
+{
+    public function __construct(
+        public readonly Title $title = Title::MR,
+    ) {}
+}
+
 final class ShapeWithInvalidObjectProperty
 {
     public function __construct(
