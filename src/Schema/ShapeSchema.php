@@ -4,20 +4,17 @@ declare(strict_types=1);
 
 namespace Wwwision\Types\Schema;
 
-use ReflectionClass;
-use ReflectionException;
-use ReflectionMethod;
-use RuntimeException;
 use Webmozart\Assert\Assert;
 use Wwwision\Types\Attributes\Discriminator;
 use Wwwision\Types\Exception\CoerceException;
 use Wwwision\Types\Exception\InvalidSchemaException;
 use Wwwision\Types\Exception\Issues\Issues;
-
 use Wwwision\Types\Options;
+use Wwwision\Types\Schema\Target\Target;
 
 use function array_diff_key;
 use function array_key_exists;
+use function get_debug_type;
 use function get_object_vars;
 use function is_array;
 use function is_iterable;
@@ -28,13 +25,12 @@ use function sprintf;
 final class ShapeSchema implements Schema
 {
     /**
-     * @param ReflectionClass<object> $reflectionClass
      * @param array<non-empty-string, Schema> $propertySchemas
      * @param array<non-empty-string, string> $overriddenPropertyDescriptions
      * @param array<non-empty-string, Discriminator> $propertyDiscriminators
      */
     public function __construct(
-        private readonly ReflectionClass $reflectionClass,
+        private readonly Target $target,
         public readonly string|null $description,
         public readonly array $propertySchemas,
         private readonly array $overriddenPropertyDescriptions,
@@ -51,7 +47,7 @@ final class ShapeSchema implements Schema
 
     public function getName(): string
     {
-        return $this->reflectionClass->getShortName();
+        return $this->target->name();
     }
 
     public function getDescription(): string|null
@@ -64,29 +60,18 @@ final class ShapeSchema implements Schema
         return $this->overriddenPropertyDescriptions[$propertyName] ?? null;
     }
 
-    /** @phpstan-assert-if-true object $value */
     public function isInstance(mixed $value): bool
     {
-        return is_object($value) && $this->reflectionClass->isInstance($value);
+        return $this->target->isInstance($value);
     }
 
     public function instantiate(mixed $value, Options $options): mixed
     {
-        if ($this->isInstance($value)) {
+        if ($this->target->isInstance($value)) {
             return $value;
         }
         $arrayValue = $this->coerce($value, $options);
-        $constructor = $this->reflectionClass->getConstructor();
-        Assert::isInstanceOf($constructor, ReflectionMethod::class, sprintf('Missing constructor in class "%s"', $this->reflectionClass->getName()));
-        try {
-            $instance = $this->reflectionClass->newInstanceWithoutConstructor();
-            $constructor->invoke($instance, ...$arrayValue);
-            // @codeCoverageIgnoreStart
-        } catch (ReflectionException $e) {
-            throw new RuntimeException(sprintf('Failed to instantiate "%s": %s', $this->getName(), $e->getMessage()), 1688570532, $e);
-        }
-        // @codeCoverageIgnoreEnd
-        return $instance;
+        return $this->target->construct($arrayValue);
     }
 
     /**
