@@ -965,7 +965,7 @@ $schema = DynamicSchema::shape('Coordinate', [
 
 $coordinate = $schema->instantiate(['latitude' => 51.5, 'longitude' => -0.1], Options::create());
 
-assert($coordinate['latitude']->value === 51.5);
+assert($coordinate->latitude->value === 51.5);
 assert($schema->getName() === 'Coordinate');
 ```
 
@@ -991,8 +991,24 @@ $extended = DynamicSchema::extend(Parser::getSchema(Product::class), 'Discounted
 
 $discounted = $extended->instantiate(['name' => 'Widget', 'discount' => 20], Options::create());
 
-assert($discounted['name'] instanceof ProductName); // inherited: a real value object
-assert($discounted['discount']->value === 20);      // added: a dynamic value
+assert($discounted->name instanceof ProductName); // inherited: a real value object
+assert($discounted->discount->value === 20);      // added: a dynamic value
+```
+
+### Enum-like dynamic types
+
+There is no dynamic *enum* schema (enums resolve to pre-existing PHP cases, which requires a class).
+A class-less "one of a fixed set of values" type is easily expressed as a constrained string instead
+– it validates membership and yields a `DynamicValue`:
+
+```php
+use Wwwision\Types\DynamicSchema;
+use Wwwision\Types\Options;
+
+$title = DynamicSchema::string('Title', pattern: '^(MR|MRS|MS)$');
+
+assert($title->instantiate('MRS', Options::create())->value === 'MRS');
+// instantiating e.g. 'XX' would throw a CoerceException
 ```
 
 > **Note**

@@ -77,7 +77,7 @@ final class DynamicSchemaTest extends TestCase
 
         self::assertInstanceOf(DynamicRecord::class, $result);
         // the inherited, class-based property is still a real, validated value object
-        $name = $result['name'];
+        $name = $result->get('name');
         self::assertInstanceOf(Fixture\FamilyName::class, $name);
         self::assertSame('Doe', $name->value);
     }
@@ -102,9 +102,9 @@ final class DynamicSchemaTest extends TestCase
         $result = $extended->instantiate(['givenName' => 'Jane', 'familyName' => 'Doe', 'nickname' => 'JJ'], Options::create());
 
         self::assertInstanceOf(DynamicRecord::class, $result);
-        self::assertInstanceOf(Fixture\GivenName::class, $result['givenName']);
-        self::assertInstanceOf(Fixture\FamilyName::class, $result['familyName']);
-        $nickname = $result['nickname'];
+        self::assertInstanceOf(Fixture\GivenName::class, $result->get('givenName'));
+        self::assertInstanceOf(Fixture\FamilyName::class, $result->get('familyName'));
+        $nickname = $result->get('nickname');
         self::assertInstanceOf(DynamicValue::class, $nickname);
         self::assertSame('JJ', $nickname->value);
     }
