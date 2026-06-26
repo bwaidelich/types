@@ -147,6 +147,15 @@ final class DynamicSchemaTest extends TestCase
         }
     }
 
+    public function test_dynamic_record_is_immutable(): void
+    {
+        $record = DynamicSchema::shape('Point', ['x' => DynamicSchema::integer('X')])
+            ->instantiate(['x' => 1], Options::create());
+        self::assertInstanceOf(DynamicRecord::class, $record);
+        $this->expectException(\LogicException::class);
+        $record->__set('x', 2);
+    }
+
     public function test_dynamic_integer_validates_and_wraps(): void
     {
         $schema = DynamicSchema::integer('Quantity', minimum: 1, maximum: 10);
