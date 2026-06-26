@@ -5,21 +5,15 @@ declare(strict_types=1);
 namespace Wwwision\Types\Schema;
 
 use Ramsey\Uuid\Uuid;
-use ReflectionClass;
-use ReflectionException;
-use ReflectionMethod;
-use RuntimeException;
 use Stringable;
-use Webmozart\Assert\Assert;
 use Wwwision\Types\Exception\CoerceException;
 use Wwwision\Types\Exception\Issues\Issues;
-
 use Wwwision\Types\Options;
+use Wwwision\Types\Schema\Target\Target;
 
 use function filter_var;
 use function is_string;
 use function preg_match;
-use function sprintf;
 use function strlen;
 
 use const FILTER_VALIDATE_EMAIL;
@@ -28,12 +22,11 @@ use const FILTER_VALIDATE_URL;
 final class StringSchema implements Schema
 {
     /**
-     * @param ReflectionClass<object> $reflectionClass
      * @param array<string>|null $examples
      * @param array<string, mixed>|null $extensions
      */
     public function __construct(
-        private readonly ReflectionClass $reflectionClass,
+        private readonly Target $target,
         public readonly string|null $description,
         public readonly int|null $minLength = null,
         public readonly int|null $maxLength = null,
@@ -50,7 +43,7 @@ final class StringSchema implements Schema
 
     public function getName(): string
     {
-        return $this->reflectionClass->getShortName();
+        return $this->target->name();
     }
 
     public function getDescription(): string|null
@@ -58,29 +51,18 @@ final class StringSchema implements Schema
         return $this->description;
     }
 
-    /** @phpstan-assert-if-true object $value */
     public function isInstance(mixed $value): bool
     {
-        return is_object($value) && $this->reflectionClass->isInstance($value);
+        return $this->target->isInstance($value);
     }
 
-    public function instantiate(mixed $value, Options $options): object
+    public function instantiate(mixed $value, Options $options): mixed
     {
-        if ($this->isInstance($value)) {
+        if ($this->target->isInstance($value)) {
             return $value;
         }
         $stringValue = $this->coerce($value);
-        $constructor = $this->reflectionClass->getConstructor();
-        Assert::isInstanceOf($constructor, ReflectionMethod::class, sprintf('Missing constructor in class "%s"', $this->reflectionClass->getName()));
-        try {
-            $instance = $this->reflectionClass->newInstanceWithoutConstructor();
-            $constructor->invoke($instance, $stringValue);
-            // @codeCoverageIgnoreStart
-        } catch (ReflectionException $e) {
-            throw new RuntimeException(sprintf('Failed to instantiate "%s": %s', $this->getName(), $e->getMessage()), 1688570532, $e);
-        }
-        // @codeCoverageIgnoreEnd
-        return $instance;
+        return $this->target->construct($this, [$stringValue]);
     }
 
     private function coerce(mixed $value): string
@@ -109,18 +91,11 @@ final class StringSchema implements Schema
                 StringTypeFormat::email => filter_var($value, FILTER_VALIDATE_EMAIL) !== false,
                 StringTypeFormat::hostname => preg_match('/^(?!\d+$)(?!-)[[:alnum:]-]{0,63}(?<!-)$/', $value) === 1,
                 StringTypeFormat::idn_email => count(explode('@', $value, 3)) === 2,
-                //StringTypeFormat::idn_hostname => throw new \Exception('To be implemented'),
                 StringTypeFormat::ipv4 => filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false,
                 StringTypeFormat::ipv6 => filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false,
-                //StringTypeFormat::iri => throw new \Exception('To be implemented'),
-                //StringTypeFormat::iri_reference => throw new \Exception('To be implemented'),
-                //StringTypeFormat::json_pointer => throw new \Exception('To be implemented'),
                 StringTypeFormat::regex => @preg_match('/' . $value . '/', '') !== false,
-                //StringTypeFormat::relative_json_pointer => throw new \Exception('To be implemented'),
                 StringTypeFormat::time => preg_match('/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(\.\d+)?(Z|[+-]([01]\d|2[0-3]):?([0-5]\d)?)?$/i', $value) === 1,
                 StringTypeFormat::uri => filter_var($value, FILTER_VALIDATE_URL) !== false,
-                //StringTypeFormat::uri_reference => throw new \Exception('To be implemented'),
-                //StringTypeFormat::uri_template => throw new \Exception('To be implemented'),
                 StringTypeFormat::uuid => Uuid::isValid($value),
             };
             if (!$matchesFormat) {
