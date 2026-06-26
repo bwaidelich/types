@@ -942,6 +942,63 @@ assert($normalized === $input);
 
 </details>
 
+## Dynamic schemas
+
+Usually schemas are derived from PHP classes via `Parser::getSchema()`. Sometimes you don't have a
+class for every type – for example when a schema is defined at runtime, loaded from configuration or
+assembled on the fly. `DynamicSchema` lets you build schemas that are **not** backed by a PHP class.
+
+Crucially, this does *not* introduce a separate schema type: a dynamic schema is the very same
+`StringSchema` / `ShapeSchema` / `ListSchema` / ... as a class-based one, so anything consuming a
+`Schema` (serialization, introspection, ...) treats both identically. The only difference is the
+instantiated *value*: a class-less schema instantiates into a generic, immutable container
+(`DynamicValue` / `DynamicRecord` / `DynamicList`) instead of a dedicated class.
+
+```php
+use Wwwision\Types\DynamicSchema;
+use Wwwision\Types\Options;
+
+$schema = DynamicSchema::shape('Coordinate', [
+    'latitude' => DynamicSchema::float('Latitude', minimum: -90, maximum: 90),
+    'longitude' => DynamicSchema::float('Longitude', minimum: -180, maximum: 180),
+]);
+
+$coordinate = $schema->instantiate(['latitude' => 51.5, 'longitude' => -0.1], Options::create());
+
+assert($coordinate['latitude']->value === 51.5);
+assert($schema->getName() === 'Coordinate');
+```
+
+Existing class-based schemas can be **extended** – adding or removing properties produces a
+class-less schema, while inherited properties keep their original schemas (so their values remain
+real, validated value objects):
+
+```php
+use Wwwision\Types\DynamicSchema;
+use Wwwision\Types\Options;
+
+#[StringBased(minLength: 1, maxLength: 200)]
+final class ProductName {
+    private function __construct(public readonly string $value) {}
+}
+final class Product {
+    public function __construct(public readonly ProductName $name) {}
+}
+
+$extended = DynamicSchema::extend(Parser::getSchema(Product::class), 'DiscountedProduct')
+    ->withProperty('discount', DynamicSchema::integer('Discount', minimum: 0, maximum: 100))
+    ->build();
+
+$discounted = $extended->instantiate(['name' => 'Widget', 'discount' => 20], Options::create());
+
+assert($discounted['name'] instanceof ProductName); // inherited: a real value object
+assert($discounted['discount']->value === 20);      // added: a dynamic value
+```
+
+> **Note**
+> Dynamic schemas currently cover the constructor-based types (string/integer/float/list/shape).
+> Enums and interfaces are resolution/dispatch based and remain class-backed.
+
 ## Integrations
 
 The declarative approach of this library allows for some interesting integrations.
