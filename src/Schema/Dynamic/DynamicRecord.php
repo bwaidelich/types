@@ -53,18 +53,18 @@ final class DynamicRecord implements DynamicInstance, JsonSerializable, Iterator
 
     public function __set(string $name, mixed $value): never
     {
-        throw new LogicException(sprintf('Dynamic record "%s" is immutable', $this->schema->getName()), 1700000053);
+        throw new LogicException(sprintf('Dynamic record "%s" is immutable', $this->schema->getName()), 1782465458);
     }
 
     public function __unset(string $name): never
     {
-        throw new LogicException(sprintf('Dynamic record "%s" is immutable', $this->schema->getName()), 1700000054);
+        throw new LogicException(sprintf('Dynamic record "%s" is immutable', $this->schema->getName()), 1782465459);
     }
 
     public function get(string $name): mixed
     {
         if (!array_key_exists($name, $this->properties)) {
-            throw new LogicException(sprintf('Property "%s" does not exist on dynamic record "%s"', $name, $this->schema->getName()), 1700000050);
+            throw new LogicException(sprintf('Property "%s" does not exist on dynamic record "%s"', $name, $this->schema->getName()), 1782465457);
         }
         return $this->properties[$name];
     }
