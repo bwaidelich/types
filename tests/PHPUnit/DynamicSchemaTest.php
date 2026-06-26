@@ -9,9 +9,12 @@ use PHPUnit\Framework\TestCase;
 use Wwwision\Types\DynamicSchema;
 use Wwwision\Types\Options;
 use Wwwision\Types\Parser;
+use Wwwision\Types\Schema\Dynamic\DynamicList;
 use Wwwision\Types\Schema\Dynamic\DynamicRecord;
 use Wwwision\Types\Schema\Dynamic\DynamicValue;
 use Wwwision\Types\Schema\Dynamic\ShapeExtender;
+use Wwwision\Types\Schema\IntegerSchema;
+use Wwwision\Types\Schema\ListSchema;
 use Wwwision\Types\Schema\Schema;
 use Wwwision\Types\Schema\ShapeSchema;
 use Wwwision\Types\Schema\StringSchema;
@@ -28,9 +31,12 @@ require_once __DIR__ . '/../Fixture/Fixture.php';
 #[CoversClass(ClassTarget::class)]
 #[CoversClass(DynamicRecord::class)]
 #[CoversClass(DynamicValue::class)]
+#[CoversClass(DynamicList::class)]
 #[CoversClass(ShapeExtender::class)]
 #[CoversClass(StringSchema::class)]
 #[CoversClass(ShapeSchema::class)]
+#[CoversClass(IntegerSchema::class)]
+#[CoversClass(ListSchema::class)]
 #[CoversClass(Parser::class)]
 final class DynamicSchemaTest extends TestCase
 {
@@ -101,6 +107,25 @@ final class DynamicSchemaTest extends TestCase
         $nickname = $result['nickname'];
         self::assertInstanceOf(DynamicValue::class, $nickname);
         self::assertSame('JJ', $nickname->value);
+    }
+
+    public function test_dynamic_integer_validates_and_wraps(): void
+    {
+        $schema = DynamicSchema::integer('Quantity', minimum: 1, maximum: 10);
+        $result = $schema->instantiate('5', Options::create());
+        self::assertInstanceOf(DynamicValue::class, $result);
+        self::assertSame(5, $result->value);
+    }
+
+    public function test_dynamic_list_of_real_value_objects(): void
+    {
+        $schema = DynamicSchema::list('FamilyNames', Parser::getSchema(Fixture\FamilyName::class), minCount: 1);
+        $result = $schema->instantiate(['Doe', 'Roe'], Options::create());
+        self::assertInstanceOf(DynamicList::class, $result);
+        self::assertCount(2, $result);
+        foreach ($result as $item) {
+            self::assertInstanceOf(Fixture\FamilyName::class, $item);
+        }
     }
 
     public function test_a_consumer_typed_against_schema_treats_both_identically(): void

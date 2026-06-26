@@ -4,31 +4,24 @@ declare(strict_types=1);
 
 namespace Wwwision\Types\Schema;
 
-use ReflectionClass;
-use ReflectionException;
-use ReflectionMethod;
-use RuntimeException;
 use Stringable;
-use Webmozart\Assert\Assert;
 use Wwwision\Types\Exception\CoerceException;
 use Wwwision\Types\Exception\Issues\Issues;
-
 use Wwwision\Types\Options;
+use Wwwision\Types\Schema\Target\Target;
 
 use function is_float;
 use function is_int;
 use function is_string;
-use function sprintf;
 
 final class IntegerSchema implements Schema
 {
     /**
-     * @param ReflectionClass<object> $reflectionClass
      * @param array<int>|null $examples
      * @param array<string, mixed>|null $extensions
      */
     public function __construct(
-        private readonly ReflectionClass $reflectionClass,
+        private readonly Target $target,
         public readonly string|null $description,
         public readonly int|null $minimum = null,
         public readonly int|null $maximum = null,
@@ -43,7 +36,7 @@ final class IntegerSchema implements Schema
 
     public function getName(): string
     {
-        return $this->reflectionClass->getShortName();
+        return $this->target->name();
     }
 
     public function getDescription(): string|null
@@ -51,29 +44,18 @@ final class IntegerSchema implements Schema
         return $this->description;
     }
 
-    /** @phpstan-assert-if-true object $value */
     public function isInstance(mixed $value): bool
     {
-        return is_object($value) && $this->reflectionClass->isInstance($value);
+        return $this->target->isInstance($value);
     }
 
-    public function instantiate(mixed $value, Options $options): object
+    public function instantiate(mixed $value, Options $options): mixed
     {
-        if ($this->isInstance($value)) {
+        if ($this->target->isInstance($value)) {
             return $value;
         }
         $intValue = $this->coerce($value);
-        $constructor = $this->reflectionClass->getConstructor();
-        Assert::isInstanceOf($constructor, ReflectionMethod::class, sprintf('Missing constructor in class "%s"', $this->reflectionClass->getName()));
-        try {
-            $instance = $this->reflectionClass->newInstanceWithoutConstructor();
-            $constructor->invoke($instance, $intValue);
-            // @codeCoverageIgnoreStart
-        } catch (ReflectionException $e) {
-            throw new RuntimeException(sprintf('Failed to instantiate "%s": %s', $this->getName(), $e->getMessage()), 1688570532, $e);
-        }
-        // @codeCoverageIgnoreEnd
-        return $instance;
+        return $this->target->construct([$intValue]);
     }
 
     private function coerce(mixed $value): int

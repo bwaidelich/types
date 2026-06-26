@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Wwwision\Types;
 
+use Wwwision\Types\Schema\Dynamic\DynamicList;
 use Wwwision\Types\Schema\Dynamic\DynamicRecord;
 use Wwwision\Types\Schema\Dynamic\DynamicValue;
 use Wwwision\Types\Schema\Dynamic\ShapeExtender;
+use Wwwision\Types\Schema\FloatSchema;
+use Wwwision\Types\Schema\IntegerSchema;
+use Wwwision\Types\Schema\ListSchema;
 use Wwwision\Types\Schema\Schema;
 use Wwwision\Types\Schema\ShapeSchema;
 use Wwwision\Types\Schema\StringSchema;
@@ -40,6 +44,53 @@ final class DynamicSchema
     ): StringSchema {
         $target = new DynamicTarget($name, static fn(array $arguments) => new DynamicValue($name, reset($arguments)));
         return new StringSchema($target, $description, $minLength, $maxLength, $pattern, $format, $examples, $extensions);
+    }
+
+    /**
+     * @param array<int>|null $examples
+     * @param array<string, mixed>|null $extensions
+     */
+    public static function integer(
+        string $name,
+        string|null $description = null,
+        int|null $minimum = null,
+        int|null $maximum = null,
+        array|null $examples = null,
+        array|null $extensions = null,
+    ): IntegerSchema {
+        $target = new DynamicTarget($name, static fn(array $arguments) => new DynamicValue($name, reset($arguments)));
+        return new IntegerSchema($target, $description, $minimum, $maximum, $examples, $extensions);
+    }
+
+    /**
+     * @param array<float|int>|null $examples
+     * @param array<string, mixed>|null $extensions
+     */
+    public static function float(
+        string $name,
+        string|null $description = null,
+        float|int|null $minimum = null,
+        float|int|null $maximum = null,
+        array|null $examples = null,
+        array|null $extensions = null,
+    ): FloatSchema {
+        $target = new DynamicTarget($name, static fn(array $arguments) => new DynamicValue($name, reset($arguments)));
+        return new FloatSchema($target, $description, $minimum, $maximum, $examples, $extensions);
+    }
+
+    /**
+     * @param array<string, mixed>|null $extensions
+     */
+    public static function list(
+        string $name,
+        Schema $itemSchema,
+        int|null $minCount = null,
+        int|null $maxCount = null,
+        string|null $description = null,
+        array|null $extensions = null,
+    ): ListSchema {
+        $target = new DynamicTarget($name, static fn(array $arguments) => new DynamicList($name, reset($arguments)));
+        return new ListSchema($target, $description, $itemSchema, $minCount, $maxCount, $extensions);
     }
 
     /**

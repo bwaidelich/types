@@ -135,10 +135,10 @@ final class Parser
             $baseTypeAttribute = $baseTypeAttributes[0]->newInstance();
             return match ($baseTypeAttribute::class) {
                 StringBased::class => new StringSchema(new ClassTarget($reflectionClass), self::getDescription($reflectionClass), $baseTypeAttribute->minLength, $baseTypeAttribute->maxLength, $baseTypeAttribute->pattern, $baseTypeAttribute->format, $baseTypeAttribute->examples, $baseTypeAttribute->extensions),
-                IntegerBased::class => new IntegerSchema($reflectionClass, self::getDescription($reflectionClass), $baseTypeAttribute->minimum, $baseTypeAttribute->maximum, $baseTypeAttribute->examples, $baseTypeAttribute->extensions),
-                FloatBased::class => new FloatSchema($reflectionClass, self::getDescription($reflectionClass), $baseTypeAttribute->minimum, $baseTypeAttribute->maximum, $baseTypeAttribute->examples, $baseTypeAttribute->extensions),
+                IntegerBased::class => new IntegerSchema(new ClassTarget($reflectionClass), self::getDescription($reflectionClass), $baseTypeAttribute->minimum, $baseTypeAttribute->maximum, $baseTypeAttribute->examples, $baseTypeAttribute->extensions),
+                FloatBased::class => new FloatSchema(new ClassTarget($reflectionClass), self::getDescription($reflectionClass), $baseTypeAttribute->minimum, $baseTypeAttribute->maximum, $baseTypeAttribute->examples, $baseTypeAttribute->extensions),
                 ListBased::class => new ListSchema(
-                    $reflectionClass,
+                    new ClassTarget($reflectionClass),
                     self::getDescription($reflectionClass),
                     self::getSchema($baseTypeAttribute->itemClassName),
                     $baseTypeAttribute->minCount,
