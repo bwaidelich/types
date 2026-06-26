@@ -9,10 +9,12 @@ use Countable;
 use IteratorAggregate;
 use JsonSerializable;
 use Traversable;
+use Wwwision\Types\Schema\ListSchema;
 
 /**
- * Immutable container a binding-less list schema instantiates into. Iterable and countable; its
- * items may be real value objects or other dynamic values.
+ * Immutable container a binding-less list schema instantiates into. Iterable and countable; exposes
+ * its {@see ListSchema} (and thereby its item type). Items may be real value objects or other
+ * dynamic values.
  *
  * @implements IteratorAggregate<int|string, mixed>
  */
@@ -22,9 +24,14 @@ final class DynamicList implements DynamicInstance, JsonSerializable, IteratorAg
      * @param array<int|string, mixed> $items
      */
     public function __construct(
-        public readonly string $typeName,
+        private readonly ListSchema $schema,
         private readonly array $items,
     ) {}
+
+    public function getSchema(): ListSchema
+    {
+        return $this->schema;
+    }
 
     public function getIterator(): Traversable
     {

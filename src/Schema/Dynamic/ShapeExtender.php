@@ -59,8 +59,6 @@ final class ShapeExtender
 
     public function build(): ShapeSchema
     {
-        $name = $this->name;
-        $target = new DynamicTarget($name, static fn(array $arguments) => new DynamicRecord($name, $arguments));
-        return new ShapeSchema($target, $this->description, $this->propertySchemas, [], []);
+        return new ShapeSchema(DynamicTarget::record($this->name), $this->description, $this->propertySchemas, [], []);
     }
 }

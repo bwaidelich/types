@@ -9,6 +9,7 @@ use ReflectionException;
 use ReflectionMethod;
 use RuntimeException;
 use Webmozart\Assert\Assert;
+use Wwwision\Types\Schema\Schema;
 
 use function sprintf;
 
@@ -35,7 +36,7 @@ final class ClassTarget implements Target
         return is_object($value) && $this->reflectionClass->isInstance($value);
     }
 
-    public function construct(array $arguments): mixed
+    public function construct(Schema $schema, array $arguments): mixed
     {
         $constructor = $this->reflectionClass->getConstructor();
         Assert::isInstanceOf($constructor, ReflectionMethod::class, sprintf('Missing constructor in class "%s"', $this->reflectionClass->getName()));

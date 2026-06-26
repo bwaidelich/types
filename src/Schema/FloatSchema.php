@@ -55,7 +55,7 @@ final class FloatSchema implements Schema
             return $value;
         }
         $floatValue = $this->coerce($value);
-        return $this->target->construct([$floatValue]);
+        return $this->target->construct($this, [$floatValue]);
     }
 
     private function coerce(mixed $value): float

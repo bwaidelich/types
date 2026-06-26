@@ -995,6 +995,32 @@ assert($discounted->name instanceof ProductName); // inherited: a real value obj
 assert($discounted->discount->value === 20);      // added: a dynamic value
 ```
 
+### Introspecting dynamic values
+
+A dynamic value carries the `Schema` it was instantiated from (via `getSchema()`), and a
+`DynamicRecord` is iterable as `propertyName => value` – so integrations can map it to other type
+systems without a backing PHP class:
+
+```php
+use Wwwision\Types\DynamicSchema;
+use Wwwision\Types\Options;
+
+$schema = DynamicSchema::shape('Point', [
+    'x' => DynamicSchema::integer('X'),
+    'y' => DynamicSchema::integer('Y'),
+]);
+$point = $schema->instantiate(['x' => 1, 'y' => 2], Options::create());
+
+assert($point->getSchema()->getName() === 'Point');
+assert(array_keys($point->getSchema()->propertySchemas) === ['x', 'y']);
+
+$sum = 0;
+foreach ($point as $name => $value) {
+    $sum += $value->value;
+}
+assert($sum === 3);
+```
+
 ### Enum-like dynamic types
 
 There is no dynamic *enum* schema (enums resolve to pre-existing PHP cases, which requires a class).

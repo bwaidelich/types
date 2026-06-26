@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Wwwision\Types;
 
-use Wwwision\Types\Schema\Dynamic\DynamicList;
-use Wwwision\Types\Schema\Dynamic\DynamicRecord;
-use Wwwision\Types\Schema\Dynamic\DynamicValue;
 use Wwwision\Types\Schema\Dynamic\ShapeExtender;
 use Wwwision\Types\Schema\FloatSchema;
 use Wwwision\Types\Schema\IntegerSchema;
@@ -16,8 +13,6 @@ use Wwwision\Types\Schema\ShapeSchema;
 use Wwwision\Types\Schema\StringSchema;
 use Wwwision\Types\Schema\StringTypeFormat;
 use Wwwision\Types\Schema\Target\DynamicTarget;
-
-use function reset;
 
 /**
  * Builds schemas that are NOT backed by a PHP class. The result is an ordinary {@see StringSchema} /
@@ -42,8 +37,7 @@ final class DynamicSchema
         array|null $examples = null,
         array|null $extensions = null,
     ): StringSchema {
-        $target = new DynamicTarget($name, static fn(array $arguments) => new DynamicValue($name, reset($arguments)));
-        return new StringSchema($target, $description, $minLength, $maxLength, $pattern, $format, $examples, $extensions);
+        return new StringSchema(DynamicTarget::scalar($name), $description, $minLength, $maxLength, $pattern, $format, $examples, $extensions);
     }
 
     /**
@@ -58,8 +52,7 @@ final class DynamicSchema
         array|null $examples = null,
         array|null $extensions = null,
     ): IntegerSchema {
-        $target = new DynamicTarget($name, static fn(array $arguments) => new DynamicValue($name, reset($arguments)));
-        return new IntegerSchema($target, $description, $minimum, $maximum, $examples, $extensions);
+        return new IntegerSchema(DynamicTarget::scalar($name), $description, $minimum, $maximum, $examples, $extensions);
     }
 
     /**
@@ -74,8 +67,7 @@ final class DynamicSchema
         array|null $examples = null,
         array|null $extensions = null,
     ): FloatSchema {
-        $target = new DynamicTarget($name, static fn(array $arguments) => new DynamicValue($name, reset($arguments)));
-        return new FloatSchema($target, $description, $minimum, $maximum, $examples, $extensions);
+        return new FloatSchema(DynamicTarget::scalar($name), $description, $minimum, $maximum, $examples, $extensions);
     }
 
     /**
@@ -89,8 +81,7 @@ final class DynamicSchema
         string|null $description = null,
         array|null $extensions = null,
     ): ListSchema {
-        $target = new DynamicTarget($name, static fn(array $arguments) => new DynamicList($name, reset($arguments)));
-        return new ListSchema($target, $description, $itemSchema, $minCount, $maxCount, $extensions);
+        return new ListSchema(DynamicTarget::list($name), $description, $itemSchema, $minCount, $maxCount, $extensions);
     }
 
     /**
@@ -98,8 +89,7 @@ final class DynamicSchema
      */
     public static function shape(string $name, array $properties, string|null $description = null): ShapeSchema
     {
-        $target = new DynamicTarget($name, static fn(array $arguments) => new DynamicRecord($name, $arguments));
-        return new ShapeSchema($target, $description, $properties, [], []);
+        return new ShapeSchema(DynamicTarget::record($name), $description, $properties, [], []);
     }
 
     /**

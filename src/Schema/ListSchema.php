@@ -51,7 +51,7 @@ final class ListSchema implements Schema
             return $value;
         }
         $arrayValue = $this->coerce($value, $options);
-        return $this->target->construct([$arrayValue]);
+        return $this->target->construct($this, [$arrayValue]);
     }
 
     /**

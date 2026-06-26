@@ -62,7 +62,7 @@ final class StringSchema implements Schema
             return $value;
         }
         $stringValue = $this->coerce($value);
-        return $this->target->construct([$stringValue]);
+        return $this->target->construct($this, [$stringValue]);
     }
 
     private function coerce(mixed $value): string

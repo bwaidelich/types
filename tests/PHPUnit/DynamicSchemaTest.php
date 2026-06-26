@@ -109,6 +109,44 @@ final class DynamicSchemaTest extends TestCase
         self::assertSame('JJ', $nickname->value);
     }
 
+    public function test_dynamic_record_exposes_its_schema_and_is_iterable(): void
+    {
+        $schema = DynamicSchema::shape('Coordinate', [
+            'latitude' => DynamicSchema::float('Latitude'),
+            'longitude' => DynamicSchema::float('Longitude'),
+        ]);
+        $record = $schema->instantiate(['latitude' => 51.5, 'longitude' => -0.1], Options::create());
+        self::assertInstanceOf(DynamicRecord::class, $record);
+
+        // it carries its schema, so consumers can introspect names/types/descriptions
+        self::assertSame($schema, $record->getSchema());
+        self::assertSame(['latitude', 'longitude'], array_keys($record->getSchema()->propertySchemas));
+        self::assertSame(['latitude', 'longitude'], $record->propertyNames());
+
+        // ...and it is iterable as propertyName => value
+        $collected = [];
+        foreach ($record as $name => $value) {
+            self::assertInstanceOf(DynamicValue::class, $value);
+            $collected[$name] = $value->value;
+        }
+        self::assertSame(['latitude' => 51.5, 'longitude' => -0.1], $collected);
+    }
+
+    public function test_dynamic_value_and_list_expose_their_schema(): void
+    {
+        $listSchema = DynamicSchema::list('Tags', DynamicSchema::string('Tag'));
+        $list = $listSchema->instantiate(['a', 'b'], Options::create());
+        self::assertInstanceOf(DynamicList::class, $list);
+        self::assertSame($listSchema, $list->getSchema());
+
+        $first = $listSchema->instantiate(['x'], Options::create());
+        self::assertInstanceOf(DynamicList::class, $first);
+        foreach ($first as $tag) {
+            self::assertInstanceOf(DynamicValue::class, $tag);
+            self::assertSame('Tag', $tag->getSchema()->getName());
+        }
+    }
+
     public function test_dynamic_integer_validates_and_wraps(): void
     {
         $schema = DynamicSchema::integer('Quantity', minimum: 1, maximum: 10);

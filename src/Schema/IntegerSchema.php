@@ -55,7 +55,7 @@ final class IntegerSchema implements Schema
             return $value;
         }
         $intValue = $this->coerce($value);
-        return $this->target->construct([$intValue]);
+        return $this->target->construct($this, [$intValue]);
     }
 
     private function coerce(mixed $value): int
