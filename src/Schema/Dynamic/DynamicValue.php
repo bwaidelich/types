@@ -6,7 +6,9 @@ namespace Wwwision\Types\Schema\Dynamic;
 
 use JsonSerializable;
 use Stringable;
-use Wwwision\Types\Schema\Schema;
+use Wwwision\Types\Schema\FloatSchema;
+use Wwwision\Types\Schema\IntegerSchema;
+use Wwwision\Types\Schema\StringSchema;
 
 /**
  * Immutable container a binding-less scalar schema (string/integer/float) instantiates into.
@@ -14,11 +16,11 @@ use Wwwision\Types\Schema\Schema;
 final class DynamicValue implements DynamicInstance, JsonSerializable, Stringable
 {
     public function __construct(
-        private readonly Schema $schema,
+        private readonly StringSchema|IntegerSchema|FloatSchema $schema,
         public readonly string|int|float|bool $value,
     ) {}
 
-    public function getSchema(): Schema
+    public function getSchema(): StringSchema|IntegerSchema|FloatSchema
     {
         return $this->schema;
     }

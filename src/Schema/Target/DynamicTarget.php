@@ -9,9 +9,12 @@ use Wwwision\Types\Schema\Dynamic\DynamicInstance;
 use Wwwision\Types\Schema\Dynamic\DynamicList;
 use Wwwision\Types\Schema\Dynamic\DynamicRecord;
 use Wwwision\Types\Schema\Dynamic\DynamicValue;
+use Wwwision\Types\Schema\FloatSchema;
+use Wwwision\Types\Schema\IntegerSchema;
 use Wwwision\Types\Schema\ListSchema;
 use Wwwision\Types\Schema\Schema;
 use Wwwision\Types\Schema\ShapeSchema;
+use Wwwision\Types\Schema\StringSchema;
 
 use function is_array;
 use function is_scalar;
@@ -37,6 +40,7 @@ final class DynamicTarget implements Target
         return new self($name, static function (Schema $schema, array $arguments): DynamicValue {
             $value = reset($arguments);
             assert(is_scalar($value));
+            assert($schema instanceof StringSchema || $schema instanceof IntegerSchema || $schema instanceof FloatSchema);
             return new DynamicValue($schema, $value);
         });
     }
